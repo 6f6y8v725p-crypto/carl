@@ -116,7 +116,10 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 <div class="tab-pane" id="pane-perf">
   <div class="card" id="pWeek" style="margin-bottom:10px"></div>
   <div class="card" id="pMonth" style="margin-bottom:10px"></div>
-  <div class="card" id="pHist"></div>
+  <div class="card" id="pYear" style="margin-bottom:10px"></div>
+  <div class="card" id="pHistWeek" style="margin-bottom:10px"></div>
+  <div class="card" id="pHistMonth" style="margin-bottom:10px"></div>
+  <div class="card" id="pHistYear"></div>
 </div>
 
 <!-- DAG TAB -->
@@ -141,6 +144,34 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
   </div>
 </div>
 
+<!-- GRAFIEKEN TAB -->
+<div class="tab-pane" id="pane-charts">
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Allocatie (USD-posities)</div>
+    <div id="chAlloc"></div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Rendement per positie</div>
+    <div id="chRend"></div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Upside &#8594; koersdoel</div>
+    <div id="chUpside"></div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Ongerealiseerde P&amp;L</div>
+    <div id="chPnl"></div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Kostenbasis vs huidige waarde</div>
+    <div id="chBasis"></div>
+  </div>
+  <div class="card">
+    <div class="stitle">Verdeling per broker</div>
+    <div id="chBroker"></div>
+  </div>
+</div>
+
 </div><!-- /content -->
 
 <!-- BOTTOM NAV -->
@@ -150,6 +181,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
   <button class="nb"    onclick="go('perf',this)"><span class="ni">&#128197;</span>Prestaties</button>
   <button class="nb"    onclick="go('dag',this)"><span class="ni">&#9788;</span>Dag</button>
   <button class="nb"    onclick="go('vix',this)"><span class="ni">&#128201;</span>VIX</button>
+  <button class="nb"    onclick="go('charts',this)"><span class="ni">&#128202;</span>Grafieken</button>
 </nav>
 </div>
 
@@ -184,7 +216,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 
 <script>
 var EUR_USD = 1.1611;
-var PK = {w:'cp_w',m:'cp_m',wh:'cp_wh',mh:'cp_mh',dh:'cp_dh'};
+var PK = {w:'cp_w',m:'cp_m',y:'cp_y',wh:'cp_wh',mh:'cp_mh',yh:'cp_yh',dh:'cp_dh'};
 
 var H = [
   {ticker:'TSLA',name:'Tesla',         cat:'core',ccy:'USD',shares:579.13,  avg:383.89,price:411.59,qt:null,pc:0,pl:7.2,  pe:'400x',  fcf:'$5,3B',  target:419.94,upside:2, rating:'Buy',
@@ -218,6 +250,7 @@ function isoWeek(d){
   return t.getUTCFullYear()+'-W'+(wn<10?'0':'')+wn;
 }
 function isoMonth(d){d=d||new Date();return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1);}
+function isoYear(d){d=d||new Date();return String(d.getFullYear());}
 function n2(n){return Math.round(n).toLocaleString('nl-NL');}
 function fmtEur(n){return(n>=0?'+\u20ac':'\u2212\u20ac')+n2(Math.abs(n));}
 function fmtPct(n){return(n>=0?'+':'\u2212')+Math.abs(n).toFixed(2)+'%';}
@@ -237,7 +270,7 @@ function snapNow(live){
     if(h.ccy==='USD'){vals[h.ticker]=h.shares*h.price;tot+=h.shares*h.price;}
     else{eP[h.ticker]=h.shares*h.price;}
   });
-  return{date:isoDate(),time:now.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),week:isoWeek(),month:isoMonth(),vals:vals,eP:eP,tot:tot,live:!!live};
+  return{date:isoDate(),time:now.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),week:isoWeek(),month:isoMonth(),year:isoYear(),vals:vals,eP:eP,tot:tot,live:!!live};
 }
 
 function calcPnL(snap){
@@ -389,6 +422,8 @@ function onFetchDone(btn,st){
   if(!ws||!ws.live||ws.week!==isoWeek(now)) lsSet(PK.w,snapNow(true));
   var ms=lsGet(PK.m);
   if(!ms||!ms.live||ms.month!==isoMonth(now)) lsSet(PK.m,snapNow(true));
+  var ys=lsGet(PK.y);
+  if(!ys||!ys.live||ys.year!==isoYear(now)) lsSet(PK.y,snapNow(true));
   updateAll();
   if(btn){
     btn.disabled=false;
@@ -409,6 +444,7 @@ function updateAll(){
   renderDag();
   renderMkt();
   renderVIX();
+  renderCharts();
 }
 
 function updateKPI(){
@@ -482,6 +518,8 @@ function renderHoldings(){
       html+='<div class="ditem"><div class="dl">Gem. aankoop</div><div class="dv">'+sym+h.avg.toFixed(2)+'</div></div>';
       html+='<div class="ditem"><div class="dl">Koersdoel</div><div class="dv">'+sym+h.target.toFixed(2)+'</div></div>';
       html+='<div class="ditem"><div class="dl">Upside</div><div class="dv up">+'+h.upside+'%</div></div>';
+      html+='<div class="ditem"><div class="dl">P/E</div><div class="dv">'+h.pe+'</div></div>';
+      html+='<div class="ditem"><div class="dl">Free Cash Flow</div><div class="dv">'+h.fcf+'</div></div>';
       html+='<div class="ditem"><div class="dl">Rating</div><div class="dv">'+h.rating+'</div></div>';
       if(h.ccy==='USD'&&h.qt) html+='<div class="ditem"><div class="dl">Laatste koers-update</div><div class="dv" style="font-size:11px">'+fmtQt(h.qt)+'</div></div>';
       html+='</div>';
@@ -526,13 +564,19 @@ function toggleH(id){var el=document.getElementById(id);if(el) el.classList.togg
 function renderPerf(){
   renderPeriod('pWeek','Week P&L',lsGet(PK.w));
   renderPeriod('pMonth','Maand P&L',lsGet(PK.m));
-  var wh=lsGet(PK.wh)||[];
-  var el=document.getElementById('pHist');
+  renderPeriod('pYear','Jaar P&L',lsGet(PK.y));
+  renderHistBlock('pHistWeek','Historiek week',lsGet(PK.wh)||[],'week',8);
+  renderHistBlock('pHistMonth','Historiek maand',lsGet(PK.mh)||[],'month',12);
+  renderHistBlock('pHistYear','Historiek jaar',lsGet(PK.yh)||[],'year',10);
+}
+
+function renderHistBlock(elId,title,arr,key,max){
+  var el=document.getElementById(elId);
   if(!el) return;
-  if(!wh.length){el.innerHTML='<div class="stitle">Historiek week</div><div class="mu" style="font-size:13px">Geen data</div>';return;}
-  var h='<div class="stitle">Historiek week</div>';
-  wh.slice(0,8).forEach(function(w){
-    h+='<div class="prow"><span style="font-size:12px;color:var(--t2);flex:1">'+w.week+'</span>';
+  if(!arr.length){el.innerHTML='<div class="stitle">'+title+'</div><div class="mu" style="font-size:13px">Geen data</div>';return;}
+  var h='<div class="stitle">'+title+'</div>';
+  arr.slice(0,max).forEach(function(w){
+    h+='<div class="prow"><span style="font-size:12px;color:var(--t2);flex:1">'+w[key]+'</span>';
     h+='<span class="'+(w.total>=0?'up':'dn')+'" style="font-weight:600">'+fmtEur(w.total)+'</span></div>';
   });
   el.innerHTML=h;
@@ -724,6 +768,141 @@ function renderVIX(){
 }
 
 
+// ─── GRAFIEKEN ────────────────────────────────────────────────────────────────
+var TICKER_COLOR={TSLA:'#388bfd',NVDA:'#2ea76b',GOOGL:'#3fb950',PLTR:'#8957e5',AMZN:'#d29922',WULF:'#f0a500',HIMS:'#f85149',PATH:'#79c0ff',VUSA:'#a78bfa',DIET:'#c084fc'};
+var BROKER_COLOR={BUX:'#388bfd',Bolero:'#8957e5',Revolut:'#2ea76b'};
+var SINGLE_BROKER={GOOGL:'BUX',PLTR:'BUX',AMZN:'Bolero',HIMS:'Revolut',PATH:'Revolut',VUSA:'Revolut',DIET:'Revolut'};
+
+function svgDonut(segs,centerLbl,centerSub){
+  var R=38,C=2*Math.PI*R,cum=0,circles='';
+  var total=0;segs.forEach(function(s){total+=s.val;});
+  segs.forEach(function(s){
+    var pct=total>0?s.val/total:0,dash=(pct*C).toFixed(2),gap=(C-pct*C).toFixed(2),rot=(cum*360-90).toFixed(1);
+    circles+='<circle cx="55" cy="55" r="'+R+'" fill="none" stroke="'+s.col+'" stroke-width="16" stroke-dasharray="'+dash+' '+gap+'" transform="rotate('+rot+' 55 55)"/>';
+    cum+=pct;
+  });
+  var svg='<svg viewBox="0 0 110 110" width="120" height="120">'+circles+
+    '<text x="55" y="52" text-anchor="middle" fill="var(--t1)" font-size="13" font-weight="700">'+centerLbl+'</text>'+
+    '<text x="55" y="66" text-anchor="middle" fill="var(--t3)" font-size="9">'+centerSub+'</text></svg>';
+  return svg;
+}
+
+function barList(items,valKey,fmtFn,colorPos,colorNeg){
+  var mx=0;items.forEach(function(it){if(Math.abs(it[valKey])>mx) mx=Math.abs(it[valKey]);});
+  var h='';
+  items.forEach(function(it){
+    var v=it[valKey],cls=v>=0?'up':'dn',bw=mx>0?Math.abs(v)/mx*100:0,bc=v>=0?colorPos:colorNeg;
+    h+='<div class="prow">';
+    h+='<span class="ptk">'+it.ticker+'</span>';
+    h+='<div class="pbar"><div class="pbf" style="width:'+bw+'%;background:'+bc+'"></div></div>';
+    h+='<span class="pval '+cls+'" style="min-width:64px">'+fmtFn(v)+'</span>';
+    h+='</div>';
+  });
+  return h;
+}
+
+function renderCharts(){
+  // 1. Allocatie donut (USD-posities)
+  var elA=document.getElementById('chAlloc');
+  if(elA){
+    var usdItems=H.filter(function(h){return h.ccy==='USD';});
+    var usdTot=0;usdItems.forEach(function(h){usdTot+=h.shares*h.price;});
+    var segs=usdItems.map(function(h){return{val:h.shares*h.price,col:TICKER_COLOR[h.ticker]||'#6e7681'};})
+      .sort(function(a,b){return b.val-a.val;});
+    var donutSvg=svgDonut(segs,'$'+(usdTot/1000).toFixed(0)+'k',usdItems.length+' posities');
+    var legend='<div style="display:flex;flex-direction:column;gap:5px;font-size:11.5px;margin-left:14px">';
+    usdItems.slice().sort(function(a,b){return(b.shares*b.price)-(a.shares*a.price);}).forEach(function(h){
+      var pct=usdTot>0?(h.shares*h.price/usdTot*100):0;
+      legend+='<div style="display:flex;align-items:center;gap:7px">'+
+        '<span style="width:9px;height:9px;border-radius:2px;background:'+(TICKER_COLOR[h.ticker]||'#6e7681')+';flex-shrink:0"></span>'+
+        '<span style="flex:1">'+h.ticker+'</span><span style="color:var(--t2)">'+pct.toFixed(1)+'%</span></div>';
+    });
+    legend+='</div>';
+    elA.innerHTML='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">'+donutSvg+legend+'</div>';
+  }
+
+  // 2. Rendement per positie
+  var elR=document.getElementById('chRend');
+  if(elR){
+    var rItems=H.map(function(h){return{ticker:h.ticker,pl:h.pl};}).sort(function(a,b){return b.pl-a.pl;});
+    elR.innerHTML=barList(rItems,'pl',function(v){return fmtPct(v);},'var(--up)','var(--dn)');
+  }
+
+  // 3. Upside naar koersdoel
+  var elU=document.getElementById('chUpside');
+  if(elU){
+    var uItems=H.map(function(h){return{ticker:h.ticker,upside:h.upside};}).sort(function(a,b){return b.upside-a.upside;});
+    elU.innerHTML=barList(uItems,'upside',function(v){return(v>=0?'+':'\u2212')+Math.abs(v)+'%';},'var(--bl)','var(--dn)');
+  }
+
+  // 4. Ongerealiseerde P&L (EUR)
+  var elP=document.getElementById('chPnl');
+  if(elP){
+    var pItems=H.map(function(h){
+      var val=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
+      var cost=h.ccy==='USD'?h.shares*h.avg/EUR_USD:h.shares*h.avg;
+      return{ticker:h.ticker,pnl:val-cost};
+    }).sort(function(a,b){return b.pnl-a.pnl;});
+    elP.innerHTML=barList(pItems,'pnl',function(v){return fmtEur(v);},'var(--bl)','var(--dn)');
+    var totPnl=0;pItems.forEach(function(it){totPnl+=it.pnl;});
+    elP.innerHTML+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;font-size:12px">'+
+      '<span class="mu">Totaal ongerealiseerd</span><span class="'+(totPnl>=0?'up':'dn')+'" style="font-weight:600">'+fmtEur(totPnl)+'</span></div>';
+  }
+
+  // 5. Kostenbasis vs huidige waarde
+  var elB=document.getElementById('chBasis');
+  if(elB){
+    var bItems=H.map(function(h){
+      var val=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
+      var cost=h.ccy==='USD'?h.shares*h.avg/EUR_USD:h.shares*h.avg;
+      return{ticker:h.ticker,val:val,cost:cost};
+    });
+    var mxB=0;bItems.forEach(function(it){var m=Math.max(it.val,it.cost);if(m>mxB)mxB=m;});
+    var hh='';
+    bItems.forEach(function(it){
+      var wCost=mxB>0?it.cost/mxB*100:0,wVal=mxB>0?it.val/mxB*100:0;
+      var neg=it.val<it.cost;
+      hh+='<div style="margin-bottom:9px">';
+      hh+='<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="font-weight:650">'+it.ticker+'</span><span class="'+(neg?'dn':'up')+'">\u20ac'+n2(it.cost)+' \u2192 \u20ac'+n2(it.val)+'</span></div>';
+      hh+='<div style="height:6px;background:var(--p2);border-radius:2px;margin-bottom:2px;overflow:hidden"><div style="height:100%;width:'+wCost+'%;background:#2a3a5c"></div></div>';
+      hh+='<div style="height:6px;background:var(--p2);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+wVal+'%;background:'+(neg?'var(--dn)':'var(--up)')+'"></div></div>';
+      hh+='</div>';
+    });
+    elB.innerHTML=hh;
+  }
+
+  // 6. Broker-verdeling donut
+  var elK=document.getElementById('chBroker');
+  if(elK){
+    var brokerTot={BUX:0,Bolero:0,Revolut:0};
+    H.forEach(function(h){
+      if(h.brokers&&h.brokers.length>0){
+        h.brokers.forEach(function(b){
+          var v=h.ccy==='USD'?(b.sh*h.price/EUR_USD):(b.sh*h.price);
+          brokerTot[b.n]=(brokerTot[b.n]||0)+v;
+        });
+      } else {
+        var primary=SINGLE_BROKER[h.ticker]||'Revolut';
+        var v2=h.ccy==='USD'?(h.shares*h.price/EUR_USD):(h.shares*h.price);
+        brokerTot[primary]=(brokerTot[primary]||0)+v2;
+      }
+    });
+    var grandTot=0;Object.keys(brokerTot).forEach(function(k){grandTot+=brokerTot[k];});
+    var bSegs=Object.keys(brokerTot).map(function(k){return{val:brokerTot[k],col:BROKER_COLOR[k]||'#6e7681',name:k};})
+      .sort(function(a,b){return b.val-a.val;});
+    var bDonut=svgDonut(bSegs,'3 brokers','\u20ac'+(grandTot/1000).toFixed(0)+'k');
+    var bLegend='<div style="display:flex;flex-direction:column;gap:5px;font-size:11.5px;margin-left:14px">';
+    bSegs.forEach(function(s){
+      var pct2=grandTot>0?(s.val/grandTot*100):0;
+      bLegend+='<div style="display:flex;align-items:center;gap:7px">'+
+        '<span style="width:9px;height:9px;border-radius:2px;background:'+s.col+';flex-shrink:0"></span>'+
+        '<span style="flex:1">'+s.name+'</span><span style="color:var(--t2)">'+pct2.toFixed(1)+'%</span></div>';
+    });
+    bLegend+='</div>';
+    elK.innerHTML='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">'+bDonut+bLegend+'</div>';
+  }
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function init(){
   loadEurManual();
@@ -742,6 +921,12 @@ function init(){
     var mp=calcPnL(ms),mh=lsGet(PK.mh)||[];
     mh.unshift({month:ms.month,date:ms.date,total:mp?Math.round(mp.total):0});
     lsSet(PK.mh,mh.slice(0,12));lsSet(PK.m,null);
+  }
+  var ys=lsGet(PK.y);
+  if(ys&&ys.year!==isoYear(now)&&ys.live){
+    var yp=calcPnL(ys),yh=lsGet(PK.yh)||[];
+    yh.unshift({year:ys.year,date:ys.date,total:yp?Math.round(yp.total):0});
+    lsSet(PK.yh,yh.slice(0,10));lsSet(PK.y,null);
   }
 }
 
