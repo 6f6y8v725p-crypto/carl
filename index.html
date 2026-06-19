@@ -787,7 +787,7 @@ function renderDag(){
 }
 
 // ─── VOLATILITEIT (VIXY ETF-proxy via Finnhub — echte VIX-index niet gratis beschikbaar) ──
-var vixVal=null,vixErr=null,vixDP=null;
+var vixVal=null,vixErr=null,vixDP=null,vixStale=null;
 function fetchVIX(fhKey){
   if(!fhKey){vixErr=null;renderVIX();return;}
   vixErr=null;
@@ -800,11 +800,18 @@ function fetchVIX(fhKey){
         lsSet('carl-vix',{v:vixVal,dp:vixDP,d:isoDate()});
         renderVIX();
       } else {
-        vixErr='Geen data ontvangen voor VIXY';
+        var cached=lsGet('carl-vix');
+        if(cached){vixErr=null;vixStale='Kon niet verversen \u2014 toont laatste gekende waarde';}
+        else{vixErr='Geen data ontvangen voor VIXY';}
         renderVIX();
       }
     })
-    .catch(function(){vixErr='netwerkfout';renderVIX();});
+    .catch(function(){
+      var cached2=lsGet('carl-vix');
+      if(cached2){vixErr=null;vixStale='Kon niet verversen (netwerkfout) \u2014 toont laatste gekende waarde';}
+      else{vixErr='netwerkfout';}
+      renderVIX();
+    });
 }
 function renderVIX(){
   var el=document.getElementById('vixDiv');
@@ -821,6 +828,7 @@ function renderVIX(){
   var saved=vixVal;
   if(!saved){var sv=lsGet('carl-vix');if(sv){saved=sv.v;vixDP=sv.dp;}}
   vixVal=saved; // BUGFIX: globale vixVal moet gesynchroniseerd zijn vóór .toFixed() verderop
+  var staleBanner=vixStale?('<div style="background:rgba(210,153,34,.12);border:1px solid rgba(210,153,34,.3);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--am)">'+vixStale+'</div>'):'';
   if(!saved){
     el.innerHTML='<div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Klik Live koersen om de volatiliteitsproxy op te halen</div>';
     return;
@@ -840,7 +848,7 @@ function renderVIX(){
   var dateStr=sv2?sv2.d:'';
   var dpStr=(dp!==null&&dp!==undefined)?(dp>=0?'+':'\u2212')+Math.abs(dp).toFixed(2)+'%':'\u2014';
 
-  var h='<div style="text-align:center;margin-bottom:16px">';
+  var h=staleBanner+'<div style="text-align:center;margin-bottom:16px">';
   h+='<div style="font-size:13px;color:var(--t2);margin-bottom:6px">VIXY (volatiliteitsproxy)</div>';
   h+='<div style="font-size:40px;font-weight:700;color:'+zone.col+'">$'+vixVal.toFixed(2)+'</div>';
   h+='<div style="font-size:15px;font-weight:600;color:'+(dp>=0?'var(--dn)':'var(--up)')+';margin-top:2px">'+dpStr+' vandaag</div>';
