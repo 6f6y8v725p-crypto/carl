@@ -803,6 +803,7 @@ function renderVIX(){
 
   var saved=vixVal;
   if(!saved){var sv=lsGet('carl-vix');if(sv){saved=sv.v;vixDP=sv.dp;}}
+  vixVal=saved; // BUGFIX: globale vixVal moet gesynchroniseerd zijn vóór .toFixed() verderop
   if(!saved){
     el.innerHTML='<div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Klik Live koersen om de volatiliteitsproxy op te halen</div>';
     return;
