@@ -133,7 +133,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 <div class="tab-pane" id="pane-vix">
   <div class="card">
     <div class="stitle">CBOE Volatility Index (VIX)</div>
-    <div id="vixDiv"><div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Klik Live koersen om VIX op te halen</div></div>
+    <div id="vixDiv"><div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Laden...</div></div>
   </div>
   <div class="card" style="margin-top:10px">
     <div class="stitle" style="margin-bottom:6px">Wat is VIX?</div>
@@ -178,6 +178,19 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
     <div class="mrow">
       <button class="mbtn" onclick="closeKeyModal()">Annuleer</button>
       <button class="mbtn pri" onclick="saveKey()">Opslaan &amp; ophalen</button>
+    </div>
+  </div>
+</div>
+
+<!-- TWELVE DATA KEY MODAL (voor VIX) -->
+<div class="moverlay" id="tdModal">
+  <div class="mbox">
+    <div class="mtitle">Twelve Data API-sleutel (voor VIX)</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Finnhub ondersteunt geen VIX op het gratis plan. Twelve Data wel &mdash; gratis account op <strong>twelvedata.com</strong>, geen kredietkaart nodig.</div>
+    <input class="minp" id="iTd" type="text" placeholder="xxxxxxxxxxxxxxxxxxxxxxxx" autocorrect="off" autocapitalize="none" spellcheck="false">
+    <div class="mrow">
+      <button class="mbtn" onclick="closeTdModal()">Annuleer</button>
+      <button class="mbtn pri" onclick="saveTd()">Opslaan &amp; ophalen</button>
     </div>
   </div>
 </div>
@@ -311,6 +324,19 @@ function saveKey(){
   doFetch(k);
 }
 
+function openTdModal(){
+  document.getElementById('iTd').value=lsGet('carl-td')||'';
+  document.getElementById('tdModal').classList.add('open');
+}
+function closeTdModal(){document.getElementById('tdModal').classList.remove('open');}
+function saveTd(){
+  var k=document.getElementById('iTd').value.replace(/\s/g,'');
+  if(!k) return;
+  lsSet('carl-td',k);
+  closeTdModal();
+  fetchVIX();
+}
+
 // ─── LIVE FETCH ──────────────────────────────────────────────────────────────
 function onLiveClick(){
   var k=lsGet('carl-fh');
@@ -350,8 +376,8 @@ function doFetch(fhKey){
     }
   }
 
-  // Ook VIX ophalen
-  fetchVIX(fhKey);
+  // Ook VIX ophalen (eigen Twelve Data sleutel, los van Finnhub)
+  fetchVIX();
 
   USD_SYMS.forEach(function(sym){
     fetch('https://finnhub.io/api/v1/quote?symbol='+sym+'&token='+fhKey)
@@ -624,22 +650,56 @@ function renderDag(){
   }
 }
 
-// ─── VIX ─────────────────────────────────────────────────────────────────────
-var vixVal=null;
-function fetchVIX(fhKey){
-  fetch('https://finnhub.io/api/v1/quote?symbol=%5EVIX&token='+fhKey)
+// ─── VIX (via Twelve Data — Finnhub ondersteunt geen indices op gratis plan) ──
+var vixVal=null,vixErr=null;
+function fetchVIX(){
+  var tdKey=lsGet('carl-td');
+  if(!tdKey){vixErr='nokey';renderVIX();return;}
+  vixErr=null;
+  fetch('https://api.twelvedata.com/quote?symbol=VIX&apikey='+tdKey)
     .then(function(r){return r.json();})
     .then(function(d){
-      if(d&&d.c>0){vixVal=d.c;lsSet('carl-vix',{v:d.c,d:isoDate()});renderVIX();}
+      if(d&&d.close&&!d.code){
+        vixVal=parseFloat(d.close);
+        vixDP=d.percent_change?parseFloat(d.percent_change):null;
+        lsSet('carl-vix',{v:vixVal,dp:vixDP,d:isoDate()});
+        renderVIX();
+      } else {
+        vixErr=(d&&d.message)?d.message:'fout';
+        renderVIX();
+      }
     })
-    .catch(function(){});
+    .catch(function(){vixErr='netwerk';renderVIX();});
 }
+var vixDP=null;
 function renderVIX(){
   var el=document.getElementById('vixDiv');
   if(!el) return;
-  var saved=vixVal||0;
-  if(!saved){var sv=lsGet('carl-vix');if(sv) saved=sv.v;}
-  if(!saved){el.innerHTML='<div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Klik Live koersen om VIX op te halen</div>';return;}
+
+  // Check rechtstreeks op aanwezigheid van de sleutel, onafhankelijk van of fetchVIX al ooit liep
+  var tdKey=lsGet('carl-td');
+  if(!tdKey){
+    el.innerHTML='<div style="text-align:center;padding:20px 0">'+
+      '<div style="font-size:13px;color:var(--t2);margin-bottom:14px">Voor automatische VIX is een gratis Twelve Data-sleutel nodig (Finnhub ondersteunt geen indices).</div>'+
+      '<button class="mbtn pri" style="width:auto;padding:10px 20px" onclick="openTdModal()">Sleutel invoeren</button>'+
+      '</div>';
+    return;
+  }
+  if(vixErr&&vixErr!=='nokey'){
+    el.innerHTML='<div style="text-align:center;padding:20px 0">'+
+      '<div style="font-size:13px;color:var(--dn);margin-bottom:10px">Twelve Data fout: '+vixErr+'</div>'+
+      '<button class="mbtn" style="width:auto;padding:8px 16px" onclick="fetchVIX()">Opnieuw proberen</button>'+
+      '</div>';
+    return;
+  }
+
+  var saved=vixVal;
+  if(!saved){var sv=lsGet('carl-vix');if(sv){saved=sv.v;vixDP=sv.dp;}}
+  if(!saved){
+    el.innerHTML='<div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Klik Live koersen om VIX op te halen</div>';
+    return;
+  }
+
   var v=saved;
   var zones=[
     {max:12,lbl:'Extreem laag',col:'#0ea5e9',desc:'Markt zelfgenoegzaam'},
@@ -653,24 +713,26 @@ function renderVIX(){
   var zone=zones[zones.length-1];
   for(var i=0;i<zones.length;i++){if(v<=zones[i].max){zone=zones[i];break;}}
   var pct2=Math.min(v/45*100,100);
-  var saved2=lsGet('carl-vix');
-  var dateStr=saved2?saved2.d:'';
+  var sv2=lsGet('carl-vix');
+  var dateStr=sv2?sv2.d:'';
+  var dpStr=(vixDP!==null&&vixDP!==undefined)?(vixDP>=0?'+':'\u2212')+Math.abs(vixDP).toFixed(2)+'%':'';
+
   var h='<div style="text-align:center;margin-bottom:16px">';
   h+='<div style="font-size:48px;font-weight:700;color:'+zone.col+'">'+v.toFixed(2)+'</div>';
-  h+='<div style="font-size:13px;font-weight:600;color:'+zone.col+'">'+zone.lbl+'</div>';
+  if(dpStr) h+='<div style="font-size:13px;font-weight:600;color:'+(vixDP>=0?'var(--up)':'var(--dn)')+';margin-top:2px">'+dpStr+' vandaag</div>';
+  h+='<div style="font-size:13px;font-weight:600;color:'+zone.col+';margin-top:4px">'+zone.lbl+'</div>';
   h+='<div style="font-size:12px;color:var(--t2);margin-top:4px">'+zone.desc+'</div>';
-  h+='<div style="font-size:10px;color:var(--t3);margin-top:4px">'+dateStr+'</div>';
+  h+='<div style="font-size:10px;color:var(--t3);margin-top:4px">'+dateStr+' \u00b7 Twelve Data</div>';
   h+='</div>';
-  // Balk
+
   h+='<div style="background:var(--p2);border-radius:8px;height:14px;overflow:hidden;margin-bottom:16px">';
   h+='<div style="height:100%;width:'+pct2+'%;background:'+zone.col+';border-radius:8px;transition:width .4s"></div></div>';
-  // Schaalverdeling
+
   h+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-bottom:16px">';
   h+='<span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>45+</span></div>';
-  // Zones lijst
+
   h+='<div class="stitle" style="margin-bottom:8px">Referentieniveaus</div>';
   zones.slice(0,6).forEach(function(z){
-    var isCur=v>zones.indexOf(z)&&v<=(zones[zones.indexOf(z)].max);
     h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)">';
     h+='<span style="width:10px;height:10px;border-radius:50%;background:'+z.col+';flex-shrink:0;display:inline-block"></span>';
     h+='<span style="flex:1;font-size:12px">'+z.lbl+' (&lt;'+z.max+')</span>';
@@ -686,7 +748,7 @@ function init(){
   loadEurManual();
   var key=lsGet('carl-fh');
   document.getElementById('kbanner').style.display=key?'none':'block';
-  var vixCache=lsGet('carl-vix');if(vixCache) vixVal=vixCache.v;
+  var vixCache=lsGet('carl-vix');if(vixCache){vixVal=vixCache.v;vixDP=vixCache.dp;}
   renderMkt();
   updateAll();
   var now=new Date(),ws=lsGet(PK.w),ms=lsGet(PK.m);
