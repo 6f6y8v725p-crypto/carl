@@ -129,15 +129,15 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
   <div class="card" id="dagHist" style="margin-top:10px;display:none"></div>
 </div>
 
-<!-- VIX TAB -->
+<!-- VOLATILITEIT TAB -->
 <div class="tab-pane" id="pane-vix">
   <div class="card">
-    <div class="stitle">CBOE Volatility Index (VIX)</div>
+    <div class="stitle">Marktvolatiliteit</div>
     <div id="vixDiv"><div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Laden...</div></div>
   </div>
   <div class="card" style="margin-top:10px">
-    <div class="stitle" style="margin-bottom:6px">Wat is VIX?</div>
-    <div style="font-size:12px;color:var(--t2);line-height:1.7">De VIX meet de verwachte volatiliteit van de S&amp;P 500 voor de komende 30 dagen. Een hoge VIX (&gt;30) wijst op marktangst en kan koopkansen bieden voor langetermijnbeleggers.</div>
+    <div class="stitle" style="margin-bottom:6px">Waarom geen echte VIX?</div>
+    <div style="font-size:12px;color:var(--t2);line-height:1.7">De CBOE Volatility Index (VIX) zit bij alle grote gratis financi&euml;le API's (Finnhub, Twelve Data, ...) achter een betaald plan &mdash; exchange-licenties voor index-data kosten geld. VIXY is een gratis, gewoon verhandeld ETF dat volatiliteit benadert en wel beschikbaar is.</div>
   </div>
 </div>
 
@@ -178,19 +178,6 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
     <div class="mrow">
       <button class="mbtn" onclick="closeKeyModal()">Annuleer</button>
       <button class="mbtn pri" onclick="saveKey()">Opslaan &amp; ophalen</button>
-    </div>
-  </div>
-</div>
-
-<!-- TWELVE DATA KEY MODAL (voor VIX) -->
-<div class="moverlay" id="tdModal">
-  <div class="mbox">
-    <div class="mtitle">Twelve Data API-sleutel (voor VIX)</div>
-    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Finnhub ondersteunt geen VIX op het gratis plan. Twelve Data wel &mdash; gratis account op <strong>twelvedata.com</strong>, geen kredietkaart nodig.</div>
-    <input class="minp" id="iTd" type="text" placeholder="xxxxxxxxxxxxxxxxxxxxxxxx" autocorrect="off" autocapitalize="none" spellcheck="false">
-    <div class="mrow">
-      <button class="mbtn" onclick="closeTdModal()">Annuleer</button>
-      <button class="mbtn pri" onclick="saveTd()">Opslaan &amp; ophalen</button>
     </div>
   </div>
 </div>
@@ -324,19 +311,6 @@ function saveKey(){
   doFetch(k);
 }
 
-function openTdModal(){
-  document.getElementById('iTd').value=lsGet('carl-td')||'';
-  document.getElementById('tdModal').classList.add('open');
-}
-function closeTdModal(){document.getElementById('tdModal').classList.remove('open');}
-function saveTd(){
-  var k=document.getElementById('iTd').value.replace(/\s/g,'');
-  if(!k) return;
-  lsSet('carl-td',k);
-  closeTdModal();
-  fetchVIX();
-}
-
 // ─── LIVE FETCH ──────────────────────────────────────────────────────────────
 function onLiveClick(){
   var k=lsGet('carl-fh');
@@ -376,8 +350,8 @@ function doFetch(fhKey){
     }
   }
 
-  // Ook VIX ophalen (eigen Twelve Data sleutel, los van Finnhub)
-  fetchVIX();
+  // Ook volatiliteitsproxy (VIXY) ophalen, met dezelfde Finnhub-sleutel
+  fetchVIX(fhKey);
 
   USD_SYMS.forEach(function(sym){
     fetch('https://finnhub.io/api/v1/quote?symbol='+sym+'&token='+fhKey)
@@ -650,45 +624,34 @@ function renderDag(){
   }
 }
 
-// ─── VIX (via Twelve Data — Finnhub ondersteunt geen indices op gratis plan) ──
-var vixVal=null,vixErr=null;
-function fetchVIX(){
-  var tdKey=lsGet('carl-td');
-  if(!tdKey){vixErr='nokey';renderVIX();return;}
+// ─── VOLATILITEIT (VIXY ETF-proxy via Finnhub — echte VIX-index niet gratis beschikbaar) ──
+var vixVal=null,vixErr=null,vixDP=null;
+function fetchVIX(fhKey){
+  if(!fhKey){vixErr=null;renderVIX();return;}
   vixErr=null;
-  fetch('https://api.twelvedata.com/quote?symbol=VIX&apikey='+tdKey)
+  fetch('https://finnhub.io/api/v1/quote?symbol=VIXY&token='+fhKey)
     .then(function(r){return r.json();})
     .then(function(d){
-      if(d&&d.close&&!d.code){
-        vixVal=parseFloat(d.close);
-        vixDP=d.percent_change?parseFloat(d.percent_change):null;
+      if(d&&d.c>0){
+        vixVal=d.c;
+        vixDP=d.dp!==undefined?d.dp:null;
         lsSet('carl-vix',{v:vixVal,dp:vixDP,d:isoDate()});
         renderVIX();
       } else {
-        vixErr=(d&&d.message)?d.message:'fout';
+        vixErr='Geen data ontvangen voor VIXY';
         renderVIX();
       }
     })
-    .catch(function(){vixErr='netwerk';renderVIX();});
+    .catch(function(){vixErr='netwerkfout';renderVIX();});
 }
-var vixDP=null;
 function renderVIX(){
   var el=document.getElementById('vixDiv');
   if(!el) return;
 
-  // Check rechtstreeks op aanwezigheid van de sleutel, onafhankelijk van of fetchVIX al ooit liep
-  var tdKey=lsGet('carl-td');
-  if(!tdKey){
+  if(vixErr){
     el.innerHTML='<div style="text-align:center;padding:20px 0">'+
-      '<div style="font-size:13px;color:var(--t2);margin-bottom:14px">Voor automatische VIX is een gratis Twelve Data-sleutel nodig (Finnhub ondersteunt geen indices).</div>'+
-      '<button class="mbtn pri" style="width:auto;padding:10px 20px" onclick="openTdModal()">Sleutel invoeren</button>'+
-      '</div>';
-    return;
-  }
-  if(vixErr&&vixErr!=='nokey'){
-    el.innerHTML='<div style="text-align:center;padding:20px 0">'+
-      '<div style="font-size:13px;color:var(--dn);margin-bottom:10px">Twelve Data fout: '+vixErr+'</div>'+
-      '<button class="mbtn" style="width:auto;padding:8px 16px" onclick="fetchVIX()">Opnieuw proberen</button>'+
+      '<div style="font-size:13px;color:var(--dn);margin-bottom:10px">'+vixErr+'</div>'+
+      '<button class="mbtn" style="width:auto;padding:8px 16px" onclick="fetchVIX(lsGet(\'carl-fh\'))">Opnieuw proberen</button>'+
       '</div>';
     return;
   }
@@ -696,49 +659,55 @@ function renderVIX(){
   var saved=vixVal;
   if(!saved){var sv=lsGet('carl-vix');if(sv){saved=sv.v;vixDP=sv.dp;}}
   if(!saved){
-    el.innerHTML='<div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Klik Live koersen om VIX op te halen</div>';
+    el.innerHTML='<div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Klik Live koersen om de volatiliteitsproxy op te halen</div>';
     return;
   }
 
-  var v=saved;
-  var zones=[
-    {max:12,lbl:'Extreem laag',col:'#0ea5e9',desc:'Markt zelfgenoegzaam'},
-    {max:16,lbl:'Laag',col:'#22c55e',desc:'Rustige markt'},
-    {max:20,lbl:'Normaal',col:'#84cc16',desc:'Normale volatiliteit'},
-    {max:25,lbl:'Verhoogd',col:'#eab308',desc:'Enige onzekerheid'},
-    {max:30,lbl:'Hoog',col:'#f97316',desc:'Significante angst'},
-    {max:40,lbl:'Extreem hoog',col:'#ef4444',desc:'Paniek / crisis'},
-    {max:999,lbl:'Crisis',col:'#7f1d1d',desc:'Extreme marktangst'}
-  ];
-  var zone=zones[zones.length-1];
-  for(var i=0;i<zones.length;i++){if(v<=zones[i].max){zone=zones[i];break;}}
-  var pct2=Math.min(v/45*100,100);
+  var dp=vixDP;
+  var zone;
+  if(dp===null||dp===undefined) zone={lbl:'Onbekend',col:'#8b949e',desc:'Geen dagwijziging beschikbaar'};
+  else if(dp<=-3) zone={lbl:'Volatiliteit duidelijk gedaald',col:'#22c55e',desc:'Markt rustiger geworden'};
+  else if(dp<=-1) zone={lbl:'Volatiliteit licht gedaald',col:'#84cc16',desc:'Lichte ontspanning'};
+  else if(dp<1) zone={lbl:'Stabiel',col:'#eab308',desc:'Weinig verandering'};
+  else if(dp<3) zone={lbl:'Volatiliteit licht gestegen',col:'#f97316',desc:'Lichte onzekerheid'};
+  else if(dp<6) zone={lbl:'Volatiliteit duidelijk gestegen',col:'#ef4444',desc:'Toegenomen angst'};
+  else zone={lbl:'Sterke angstpiek',col:'#7f1d1d',desc:'Forse marktonrust'};
+
   var sv2=lsGet('carl-vix');
   var dateStr=sv2?sv2.d:'';
-  var dpStr=(vixDP!==null&&vixDP!==undefined)?(vixDP>=0?'+':'\u2212')+Math.abs(vixDP).toFixed(2)+'%':'';
+  var dpStr=(dp!==null&&dp!==undefined)?(dp>=0?'+':'\u2212')+Math.abs(dp).toFixed(2)+'%':'\u2014';
 
   var h='<div style="text-align:center;margin-bottom:16px">';
-  h+='<div style="font-size:48px;font-weight:700;color:'+zone.col+'">'+v.toFixed(2)+'</div>';
-  if(dpStr) h+='<div style="font-size:13px;font-weight:600;color:'+(vixDP>=0?'var(--up)':'var(--dn)')+';margin-top:2px">'+dpStr+' vandaag</div>';
-  h+='<div style="font-size:13px;font-weight:600;color:'+zone.col+';margin-top:4px">'+zone.lbl+'</div>';
+  h+='<div style="font-size:13px;color:var(--t2);margin-bottom:6px">VIXY (volatiliteitsproxy)</div>';
+  h+='<div style="font-size:40px;font-weight:700;color:'+zone.col+'">$'+vixVal.toFixed(2)+'</div>';
+  h+='<div style="font-size:15px;font-weight:600;color:'+(dp>=0?'var(--dn)':'var(--up)')+';margin-top:2px">'+dpStr+' vandaag</div>';
+  h+='<div style="font-size:13px;font-weight:600;color:'+zone.col+';margin-top:8px">'+zone.lbl+'</div>';
   h+='<div style="font-size:12px;color:var(--t2);margin-top:4px">'+zone.desc+'</div>';
-  h+='<div style="font-size:10px;color:var(--t3);margin-top:4px">'+dateStr+' \u00b7 Twelve Data</div>';
+  h+='<div style="font-size:10px;color:var(--t3);margin-top:6px">'+dateStr+' \u00b7 Finnhub</div>';
   h+='</div>';
 
-  h+='<div style="background:var(--p2);border-radius:8px;height:14px;overflow:hidden;margin-bottom:16px">';
-  h+='<div style="height:100%;width:'+pct2+'%;background:'+zone.col+';border-radius:8px;transition:width .4s"></div></div>';
+  h+='<div class="card2" style="margin-bottom:12px">';
+  h+='<div style="font-size:11px;color:var(--t2);line-height:1.6">';
+  h+='VIXY volgt VIX-futures, niet de CBOE-index zelf &mdash; de <strong>dagwijziging %</strong> is het bruikbare signaal voor marktsentiment, niet de absolute prijs (die daalt over tijd door contango).';
+  h+='</div></div>';
 
-  h+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-bottom:16px">';
-  h+='<span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>45+</span></div>';
-
-  h+='<div class="stitle" style="margin-bottom:8px">Referentieniveaus</div>';
-  zones.slice(0,6).forEach(function(z){
+  h+='<div class="stitle" style="margin-bottom:8px">Interpretatie dagwijziging</div>';
+  var refs=[
+    {r:'\u2264 \u22123%',l:'Duidelijke daling',c:'#22c55e'},
+    {r:'\u22123% tot \u22121%',l:'Lichte daling',c:'#84cc16'},
+    {r:'\u22121% tot +1%',l:'Stabiel',c:'#eab308'},
+    {r:'+1% tot +3%',l:'Lichte stijging',c:'#f97316'},
+    {r:'+3% tot +6%',l:'Duidelijke stijging',c:'#ef4444'},
+    {r:'> +6%',l:'Sterke angstpiek',c:'#7f1d1d'}
+  ];
+  refs.forEach(function(z){
     h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)">';
-    h+='<span style="width:10px;height:10px;border-radius:50%;background:'+z.col+';flex-shrink:0;display:inline-block"></span>';
-    h+='<span style="flex:1;font-size:12px">'+z.lbl+' (&lt;'+z.max+')</span>';
-    h+='<span style="font-size:11px;color:var(--t2)">'+z.desc+'</span>';
+    h+='<span style="width:10px;height:10px;border-radius:50%;background:'+z.c+';flex-shrink:0;display:inline-block"></span>';
+    h+='<span style="flex:1;font-size:12px">'+z.l+'</span>';
+    h+='<span style="font-size:11px;color:var(--t2)">'+z.r+'</span>';
     h+='</div>';
   });
+
   el.innerHTML=h;
 }
 
