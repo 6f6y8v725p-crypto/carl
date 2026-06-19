@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Portefeuille</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0d1117;--p:#161b22;--p2:#1c2128;--bd:#30363d;
+  --t1:#e6edf3;--t2:#8b949e;--t3:#6e7681;
+  --up:#2ea76b;--dn:#f85149;--am:#d29922;--bl:#388bfd;
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;overscroll-behavior:none}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+#content{flex:1;overflow-y:auto;padding:12px 12px 76px}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+#nav{position:fixed;bottom:0;left:0;right:0;background:var(--p);border-top:1px solid var(--bd);display:flex;height:60px;padding-bottom:env(safe-area-inset-bottom);z-index:100}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;color:var(--t3);cursor:pointer;font-size:9px;font-weight:600;padding:4px 0;letter-spacing:.03em}
+.nb.on{color:var(--bl)}
+.ni{font-size:22px;line-height:1}
+.card{background:var(--p);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:10px}
+.card2{background:var(--p2);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:8px}
+.stitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin-bottom:10px}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.kbox{background:var(--p2);border:1px solid var(--bd);border-radius:10px;padding:12px}
+.klbl{font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.kval{font-size:19px;font-weight:700;line-height:1.1}
+.ksub{font-size:11px;color:var(--t2);margin-top:3px}
+.lbtn{width:100%;padding:14px;border-radius:12px;border:none;background:var(--bl);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px}
+.lbtn:disabled{opacity:.5}
+.lbtn.open-m{background:#132613;border:1px solid var(--up);color:var(--up)}
+.lbtn.closed-m{background:#261313;border:1px solid var(--dn);color:var(--dn)}
+.hcard{background:var(--p);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer}
+.htop{display:flex;align-items:center;justify-content:space-between}
+.hleft{display:flex;align-items:center;gap:10px}
+.tbadge{font-size:11px;font-weight:700;background:var(--p2);border:1px solid var(--bd);border-radius:6px;padding:4px 8px;min-width:50px;text-align:center}
+.hname{font-size:12px;color:var(--t2)}
+.hcat{font-size:10px;color:var(--t3)}
+.hright{text-align:right}
+.hprice{font-size:16px;font-weight:700}
+.hpl{font-size:13px;font-weight:600}
+.hdet{border-top:1px solid var(--bd);margin-top:12px;padding-top:12px;display:none}
+.hdet.open{display:block}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ditem .dl{font-size:10px;color:var(--t3)}
+.ditem .dv{font-size:13px;font-weight:600;margin-top:2px}
+.prow{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bd)}
+.prow:last-child{border:none}
+.ptk{font-size:13px;font-weight:700;width:50px}
+.pbar{flex:1;margin:0 8px;background:var(--p2);border-radius:4px;height:6px;overflow:hidden}
+.pbf{height:100%;border-radius:4px}
+.pval{font-size:13px;font-weight:600;text-align:right;min-width:52px}
+.peur{font-size:11px;color:var(--t2);text-align:right;min-width:64px}
+.up{color:var(--up)}.dn{color:var(--dn)}.mu{color:var(--t2)}
+.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:flex-end;justify-content:center}
+.moverlay.open{display:flex}
+.mbox{background:var(--p);border:1px solid var(--bd);border-radius:12px 12px 0 0;padding:20px 16px;width:100%;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+.mtitle{font-size:16px;font-weight:700;margin-bottom:14px}
+.minp{width:100%;background:var(--p2);border:1px solid var(--bd);border-radius:8px;padding:12px;color:var(--t1);font-size:16px;margin-bottom:12px}
+.mrow{display:flex;gap:8px}
+.mbtn{flex:1;padding:13px;border-radius:8px;border:1px solid var(--bd);background:var(--p2);color:var(--t1);font-size:14px;cursor:pointer}
+.mbtn.pri{background:var(--bl);border-color:var(--bl);color:#fff;font-weight:600}
+.kbanner{background:rgba(210,153,34,.12);border:1px solid rgba(210,153,34,.3);border-radius:12px;padding:12px;margin-bottom:10px;font-size:12px;color:var(--am);cursor:pointer}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="content">
+
+<!-- DASHBOARD TAB -->
+<div class="tab-pane active" id="pane-dash">
+  <div id="kbanner" class="kbanner" onclick="openKeyModal()" style="display:none">
+    Tik hier om je Finnhub API-sleutel in te voeren
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Totale portefeuille</div>
+    <div class="kval" id="heroVal" style="font-size:30px">&#8212;</div>
+    <div class="ksub" id="heroSub">Klik Live koersen voor actuele data</div>
+  </div>
+  <button class="lbtn" id="liveBtn" onclick="onLiveClick()">&#9711; Live koersen ophalen</button>
+  <div id="liveSt" style="font-size:11px;color:var(--t2);text-align:center;margin-bottom:8px;min-height:16px"></div>
+  <div class="kgrid">
+    <div class="kbox"><div class="klbl">Kostenbasis</div><div class="kval" id="kCost">&#8212;</div></div>
+    <div class="kbox"><div class="klbl">P&amp;L totaal</div><div class="kval" id="kPnl">&#8212;</div><div class="ksub" id="kPnlP"></div></div>
+    <div class="kbox"><div class="klbl">Grootste positie</div><div class="kval" id="kBig">&#8212;</div><div class="ksub" id="kBigV"></div></div>
+    <div class="kbox"><div class="klbl">EUR/USD</div><div class="kval" id="kEur">1.1611</div><div class="ksub">wisselkoers</div></div>
+  </div>
+  <div class="card2" onclick="openEurModal()" style="cursor:pointer">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="stitle" style="margin-bottom:2px">EUR-koersen handmatig</div>
+        <div style="font-size:12px;color:var(--t2)" id="eurSt">VUSA &amp; D'Ieteren &middot; tik om in te voeren</div>
+      </div>
+      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
+    </div>
+  </div>
+  <div class="card2"><div class="stitle" style="margin-bottom:4px">Markturen NYSE/NASDAQ</div><div id="mktSt" style="font-size:13px;color:var(--t2)">&#8212;</div></div>
+</div>
+
+<!-- HOLDINGS TAB -->
+<div class="tab-pane" id="pane-hold">
+  <div class="stitle" style="margin:4px 0 8px">Core posities</div>
+  <div id="hCore"></div>
+  <div class="stitle" style="margin:4px 0 8px">Speculatief</div>
+  <div id="hSpec"></div>
+  <div class="stitle" style="margin:4px 0 8px">EUR-posities</div>
+  <div id="hEur"></div>
+  <div class="card" id="hTot"></div>
+</div>
+
+<!-- PRESTATIES TAB -->
+<div class="tab-pane" id="pane-perf">
+  <div class="card" id="pWeek" style="margin-bottom:10px"></div>
+  <div class="card" id="pMonth" style="margin-bottom:10px"></div>
+  <div class="card" id="pHist"></div>
+</div>
+
+<!-- DAG TAB -->
+<div class="tab-pane" id="pane-dag">
+  <div class="kgrid" style="margin-bottom:10px">
+    <div class="kbox"><div class="klbl">Dagresultaat</div><div class="kval" id="dagTot">&#8212;</div><div class="ksub">vs. vorig slot</div></div>
+    <div class="kbox"><div class="klbl">Beste performer</div><div class="kval up" id="dagBest">&#8212;</div><div class="ksub" id="dagBestP"></div></div>
+  </div>
+  <div class="card" id="dagTbl"></div>
+  <div class="card" id="dagHist" style="margin-top:10px;display:none"></div>
+</div>
+
+<!-- VIX TAB -->
+<div class="tab-pane" id="pane-vix">
+  <div class="card">
+    <div class="stitle">CBOE Volatility Index (VIX)</div>
+    <div id="vixDiv"><div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Klik Live koersen om VIX op te halen</div></div>
+  </div>
+  <div class="card" style="margin-top:10px">
+    <div class="stitle" style="margin-bottom:6px">Wat is VIX?</div>
+    <div style="font-size:12px;color:var(--t2);line-height:1.7">De VIX meet de verwachte volatiliteit van de S&amp;P 500 voor de komende 30 dagen. Een hoge VIX (&gt;30) wijst op marktangst en kan koopkansen bieden voor langetermijnbeleggers.</div>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<!-- BOTTOM NAV -->
+<nav id="nav">
+  <button class="nb on" onclick="go('dash',this)"><span class="ni">&#8962;</span>Dashboard</button>
+  <button class="nb"    onclick="go('hold',this)"><span class="ni">&#128200;</span>Holdings</button>
+  <button class="nb"    onclick="go('perf',this)"><span class="ni">&#128197;</span>Prestaties</button>
+  <button class="nb"    onclick="go('dag',this)"><span class="ni">&#9788;</span>Dag</button>
+  <button class="nb"    onclick="go('vix',this)"><span class="ni">&#128201;</span>VIX</button>
+</nav>
+</div>
+
+<!-- EUR MODAL -->
+<div class="moverlay" id="eurModal">
+  <div class="mbox">
+    <div class="mtitle">EUR-koersen handmatig</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">VUSA.AS en D'Ieteren (DIE.BR) &mdash; in euro</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:4px">VUSA (Vanguard S&P500 EUR)</div>
+    <input class="minp" id="iVusa" type="number" step="0.01" placeholder="bijv. 121.87">
+    <div style="font-size:12px;color:var(--t2);margin-bottom:4px">D'Ieteren Groep (DIE.BR)</div>
+    <input class="minp" id="iDiet" type="number" step="0.01" placeholder="bijv. 169.50">
+    <div class="mrow">
+      <button class="mbtn" onclick="closeEurModal()">Annuleer</button>
+      <button class="mbtn pri" onclick="saveEur()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- KEY MODAL -->
+<div class="moverlay" id="keyModal">
+  <div class="mbox">
+    <div class="mtitle">Finnhub API-sleutel</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Gratis sleutel via finnhub.io</div>
+    <input class="minp" id="iKey" type="text" placeholder="xxxxxxxxxxxxxxxxxxxxxxxx" autocorrect="off" autocapitalize="none" spellcheck="false">
+    <div class="mrow">
+      <button class="mbtn" onclick="closeKeyModal()">Annuleer</button>
+      <button class="mbtn pri" onclick="saveKey()">Opslaan &amp; ophalen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var EUR_USD = 1.1611;
+var PK = {w:'cp_w',m:'cp_m',wh:'cp_wh',mh:'cp_mh',dh:'cp_dh'};
+
+var H = [
+  {ticker:'TSLA',name:'Tesla',         cat:'core',ccy:'USD',shares:579.13,  avg:383.89,price:411.59,pc:0,pl:7.2,  pe:'400x',  fcf:'$5,3B',  target:419.94,upside:2, rating:'Buy',
+   brokers:[{n:'BUX',sh:403,avg:362.73},{n:'Bolero',sh:157,avg:438.87},{n:'Revolut',sh:19.13,avg:378.57}]},
+  {ticker:'NVDA',name:'NVIDIA',        cat:'core',ccy:'USD',shares:78.131,  avg:113.71,price:211.89,pc:0,pl:86.3, pe:'31x',   fcf:'$46,3B', target:298.93,upside:41,rating:'Strong Buy',
+   brokers:[{n:'BUX',sh:75,avg:113.769},{n:'Revolut',sh:3.131,avg:112.40}]},
+  {ticker:'GOOGL',name:'Alphabet A',   cat:'core',ccy:'USD',shares:26,      avg:193.52,price:370.81,pc:0,pl:91.6, pe:'27x',   fcf:'$64,4B', target:432.83,upside:17,rating:'Strong Buy',brokers:[]},
+  {ticker:'PLTR',name:'Palantir',      cat:'core',ccy:'USD',shares:59.54,   avg:98.83, price:134.82,pc:0,pl:36.4, pe:'144x',  fcf:'$2,7B',  target:183.73,upside:36,rating:'Buy',        brokers:[]},
+  {ticker:'AMZN',name:'Amazon',        cat:'core',ccy:'USD',shares:10,      avg:233.08,price:245.89,pc:0,pl:5.5,  pe:'32x',   fcf:'-$2,5B', target:311.55,upside:27,rating:'Strong Buy', brokers:[]},
+  {ticker:'WULF',name:'TeraWulf',      cat:'spec',ccy:'USD',shares:300.871, avg:5.94,  price:26.06, pc:0,pl:338.5,pe:'n.v.t.',fcf:'-$1,2B', target:36.54, upside:40,rating:'Strong Buy',
+   brokers:[{n:'BUX',sh:275,avg:5.19},{n:'Revolut',sh:25.871,avg:13.95}]},
+  {ticker:'HIMS',name:'Hims & Hers',   cat:'spec',ccy:'USD',shares:3.571,   avg:45.88, price:26.87, pc:0,pl:-41.4,pe:'59x',   fcf:'$174M',  target:26.82, upside:0, rating:'Hold',        brokers:[]},
+  {ticker:'PATH',name:'UiPath',        cat:'spec',ccy:'USD',shares:164.966, avg:11.76, price:10.55, pc:0,pl:-10.3,pe:'17,6x', fcf:'$328M',  target:13.31, upside:26,rating:'Hold',        brokers:[]},
+  {ticker:'VUSA',name:'Vanguard S&P500',cat:'eur', ccy:'EUR',shares:9.5276, avg:91.88, price:121.87,pc:0,pl:32.64,pe:'n.v.t.',fcf:'ETF',    target:151.00,upside:24,rating:'ETF',         brokers:[]},
+  {ticker:'DIET',name:"D'Ieteren",     cat:'eur', ccy:'EUR',shares:2.2444,  avg:200.00,price:169.50,pc:0,pl:-15.25,pe:'n.v.t.',fcf:'n.v.t.',target:232.42,upside:37,rating:'Kopen',       brokers:[]}
+];
+
+var USD_SYMS = [];
+H.forEach(function(h){ if(h.ccy==='USD') USD_SYMS.push(h.ticker); });
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function lsGet(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function isoDate(d){return(d||new Date()).toISOString().slice(0,10);}
+function isoWeek(d){
+  d=d||new Date();
+  var t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));
+  var y=new Date(Date.UTC(t.getUTCFullYear(),0,4));
+  var wn=Math.ceil((((t-y)/86400000)+1)/7);
+  return t.getUTCFullYear()+'-W'+(wn<10?'0':'')+wn;
+}
+function isoMonth(d){d=d||new Date();return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1);}
+function n2(n){return Math.round(n).toLocaleString('nl-NL');}
+function fmtEur(n){return(n>=0?'+\u20ac':'\u2212\u20ac')+n2(Math.abs(n));}
+function fmtPct(n){return(n>=0?'+':'\u2212')+Math.abs(n).toFixed(2)+'%';}
+function isOpen(){var n=new Date(),t=n.getHours()*60+n.getMinutes();return t>=15*60+30&&t<22*60;}
+
+function snapNow(live){
+  var vals={},eP={},tot=0,now=new Date();
+  H.forEach(function(h){
+    if(h.ccy==='USD'){vals[h.ticker]=h.shares*h.price;tot+=h.shares*h.price;}
+    else{eP[h.ticker]=h.shares*h.price;}
+  });
+  return{date:isoDate(),time:now.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),week:isoWeek(),month:isoMonth(),vals:vals,eP:eP,tot:tot,live:!!live};
+}
+
+function calcPnL(snap){
+  if(!snap)return null;
+  var by={},ud=0,ed=0;
+  H.forEach(function(h){
+    if(h.ccy==='USD'){
+      var cv=h.shares*h.price,pv=snap.vals?snap.vals[h.ticker]||0:0,d=cv-pv;
+      by[h.ticker]={diff:d,pct:pv>0?d/pv*100:0};ud+=d;
+    } else {
+      ed+=h.shares*h.price-(snap.eP?snap.eP[h.ticker]||0:0);
+    }
+  });
+  return{by:by,ud:ud,ed:ed,total:ud/EUR_USD+ed,from:snap.date};
+}
+
+// ─── NAVIGATIE ───────────────────────────────────────────────────────────────
+function go(id,btn){
+  var panes=document.querySelectorAll('.tab-pane');
+  for(var i=0;i<panes.length;i++) panes[i].classList.remove('active');
+  var btns=document.querySelectorAll('.nb');
+  for(var i=0;i<btns.length;i++) btns[i].classList.remove('on');
+  document.getElementById('pane-'+id).classList.add('active');
+  btn.classList.add('on');
+}
+
+// ─── MODALS ──────────────────────────────────────────────────────────────────
+function openEurModal(){
+  var s=lsGet('carl-eur-manual')||{};
+  if(s.VUSA) document.getElementById('iVusa').value=s.VUSA;
+  if(s.DIET) document.getElementById('iDiet').value=s.DIET;
+  document.getElementById('eurModal').classList.add('open');
+}
+function closeEurModal(){document.getElementById('eurModal').classList.remove('open');}
+function saveEur(){
+  var v=parseFloat(document.getElementById('iVusa').value);
+  var d=parseFloat(document.getElementById('iDiet').value);
+  var s=lsGet('carl-eur-manual')||{};
+  if(!isNaN(v)) s.VUSA=v;
+  if(!isNaN(d)) s.DIET=d;
+  s.date=isoDate();
+  lsSet('carl-eur-manual',s);
+  H.forEach(function(h){
+    if(h.ticker==='VUSA'&&!isNaN(v)) h.price=v;
+    if(h.ticker==='DIET'&&!isNaN(d)) h.price=d;
+  });
+  updateEurSt();
+  closeEurModal();
+  updateAll();
+}
+function loadEurManual(){
+  var s=lsGet('carl-eur-manual');
+  if(!s) return;
+  H.forEach(function(h){
+    if(h.ticker==='VUSA'&&s.VUSA) h.price=s.VUSA;
+    if(h.ticker==='DIET'&&s.DIET) h.price=s.DIET;
+  });
+  updateEurSt();
+}
+function updateEurSt(){
+  var s=lsGet('carl-eur-manual');
+  var el=document.getElementById('eurSt');
+  if(s&&(s.VUSA||s.DIET)){
+    el.textContent='VUSA: \u20ac'+(s.VUSA||'?')+' \u00b7 D\'Ieteren: \u20ac'+(s.DIET||'?')+' \u00b7 '+s.date;
+  } else {
+    el.textContent='VUSA & D\'Ieteren \u00b7 tik om in te voeren';
+  }
+}
+function openKeyModal(){
+  document.getElementById('iKey').value=lsGet('carl-fh')||'';
+  document.getElementById('keyModal').classList.add('open');
+}
+function closeKeyModal(){document.getElementById('keyModal').classList.remove('open');}
+function saveKey(){
+  var k=document.getElementById('iKey').value.replace(/\s/g,'');
+  if(!k) return;
+  lsSet('carl-fh',k);
+  closeKeyModal();
+  doFetch(k);
+}
+
+// ─── LIVE FETCH ──────────────────────────────────────────────────────────────
+function onLiveClick(){
+  var k=lsGet('carl-fh');
+  if(!k){openKeyModal();return;}
+  doFetch(k);
+}
+
+function doFetch(fhKey){
+  var btn=document.getElementById('liveBtn');
+  var st=document.getElementById('liveSt');
+  if(btn){btn.disabled=true;btn.textContent='\u29bf Ophalen...';}
+
+  var prog={};
+  USD_SYMS.forEach(function(s){prog[s]='\u25cc';});
+  function render(){
+    if(!st) return;
+    st.textContent=USD_SYMS.map(function(s){
+      return(prog[s]==='\u2713'?'\u2713':'\u25cc')+' '+s;
+    }).join('  ');
+  }
+  render();
+
+  var done=0,fired=false;
+  var total=USD_SYMS.length;
+
+  // Timeout-fallback: na 10s altijd afronden (iOS kan fetch laten hangen)
+  var tmr=setTimeout(function(){
+    if(!fired){fired=true;onFetchDone(btn,st);}
+  },10000);
+
+  function tick(){
+    done++;render();
+    if(done>=total&&!fired){
+      fired=true;
+      clearTimeout(tmr);
+      onFetchDone(btn,st);
+    }
+  }
+
+  // Ook VIX ophalen
+  fetchVIX(fhKey);
+
+  USD_SYMS.forEach(function(sym){
+    fetch('https://finnhub.io/api/v1/quote?symbol='+sym+'&token='+fhKey)
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d&&d.c>0){
+          H.forEach(function(h){
+            if(h.ticker===sym&&h.ccy==='USD'){
+              h.price=Math.round(d.c*100)/100;
+              h.pc=Math.round((d.pc>0?d.pc:d.c)*100)/100;
+              h.pl=(h.price-h.avg)/h.avg*100;
+              h.dayPct=d.dp||0;
+            }
+          });
+          prog[sym]='\u2713';
+        }
+        tick();
+      })
+      .catch(function(){tick();});
+  });
+}
+
+function onFetchDone(btn,st){
+  var now=new Date();
+  var ws=lsGet(PK.w);
+  if(!ws||!ws.live||ws.week!==isoWeek(now)) lsSet(PK.w,snapNow(true));
+  var ms=lsGet(PK.m);
+  if(!ms||!ms.live||ms.month!==isoMonth(now)) lsSet(PK.m,snapNow(true));
+  updateAll();
+  if(btn){
+    btn.disabled=false;
+    if(isOpen()){
+      btn.className='lbtn open-m';btn.textContent='\u29bf Markt open \u00b7 Vernieuwen';
+    } else {
+      btn.className='lbtn closed-m';btn.textContent='\u2713 Markt gesloten \u00b7 Vernieuwen';
+    }
+  }
+  setTimeout(function(){if(st) st.textContent='';},3000);
+}
+
+// ─── UPDATE ALL ──────────────────────────────────────────────────────────────
+function updateAll(){
+  updateKPI();
+  renderHoldings();
+  renderPerf();
+  renderDag();
+  renderMkt();
+  renderVIX();
+}
+
+function updateKPI(){
+  var tU=0,cU=0,tE=0,cE=0;
+  H.forEach(function(h){
+    if(h.ccy==='USD'){tU+=h.shares*h.price;cU+=h.shares*h.avg;}
+    else{tE+=h.shares*h.price;cE+=h.shares*h.avg;}
+  });
+  var tot=tU/EUR_USD+tE,cost=cU/EUR_USD+cE,pnl=tot-cost,pct=pnl/cost*100;
+  var hv=document.getElementById('heroVal');
+  if(hv){hv.textContent='\u20ac'+n2(tot);hv.className='kval '+(pnl>=0?'up':'dn');}
+  setText('heroSub','Kostenbasis \u20ac'+n2(cost)+' \u00b7 '+isoDate());
+  setText('kCost','\u20ac'+n2(cost));
+  var kp=document.getElementById('kPnl');
+  if(kp){kp.textContent='\u20ac'+n2(Math.abs(pnl));kp.className='kval '+(pnl>=0?'up':'dn');}
+  setText('kPnlP',fmtPct(pct));
+  var big=H.slice().sort(function(a,b){
+    var av=a.ccy==='USD'?a.shares*a.price/EUR_USD:a.shares*a.price;
+    var bv=b.ccy==='USD'?b.shares*b.price/EUR_USD:b.shares*b.price;
+    return bv-av;
+  })[0];
+  setText('kBig',big.ticker);
+  setText('kBigV','\u20ac'+n2(big.ccy==='USD'?big.shares*big.price/EUR_USD:big.shares*big.price));
+}
+
+function setText(id,txt){var el=document.getElementById(id);if(el) el.textContent=txt;}
+
+function renderMkt(){
+  var el=document.getElementById('mktSt');
+  if(!el) return;
+  var open=isOpen();
+  var dot=open?'\u25cf \u00a0OPEN \u00b7 sluit 22:00':'\u25cf \u00a0GESLOTEN \u00b7 opent 15:30';
+  el.textContent=dot;
+  el.className=open?'up':'dn';
+  var btn=document.getElementById('liveBtn');
+  if(btn&&btn.textContent.indexOf('ophalen')>-1){
+    btn.className=open?'lbtn open-m':'lbtn closed-m';
+  }
+}
+
+// ─── HOLDINGS ────────────────────────────────────────────────────────────────
+function renderHoldings(){
+  var cats=['core','spec','eur'];
+  var ids={core:'hCore',spec:'hSpec',eur:'hEur'};
+  cats.forEach(function(cat){
+    var html='';
+    var items=H.filter(function(h){return h.cat===cat;});
+    items.forEach(function(h,i){
+      var id='hd-'+cat+'-'+i;
+      var val=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
+      var plEur=val-(h.ccy==='USD'?h.shares*h.avg/EUR_USD:h.shares*h.avg);
+      var sym=h.ccy==='EUR'?'\u20ac':'$';
+      var pc=fmtPct(h.pl);
+      var cls=h.pl>=0?'up':'dn';
+      html+='<div class="hcard" onclick="toggleH(\''+id+'\')">';
+      html+='<div class="htop">';
+      html+='<div class="hleft">';
+      html+='<div class="tbadge">'+h.ticker+'</div>';
+      html+='<div><div class="hname">'+h.name+'</div><div class="hcat">'+h.shares+' aandelen</div></div>';
+      html+='</div>';
+      html+='<div class="hright">';
+      html+='<div class="hprice">'+sym+h.price.toFixed(2)+'</div>';
+      html+='<div class="hpl '+cls+'">'+pc+'</div>';
+      html+='</div></div>';
+      html+='<div class="hdet" id="'+id+'">';
+      html+='<div class="dgrid">';
+      html+='<div class="ditem"><div class="dl">Waarde</div><div class="dv">\u20ac'+n2(val)+'</div></div>';
+      html+='<div class="ditem"><div class="dl">P&amp;L</div><div class="dv '+cls+'">'+fmtEur(plEur)+'</div></div>';
+      html+='<div class="ditem"><div class="dl">Gem. aankoop</div><div class="dv">'+sym+h.avg.toFixed(2)+'</div></div>';
+      html+='<div class="ditem"><div class="dl">Koersdoel</div><div class="dv">'+sym+h.target.toFixed(2)+'</div></div>';
+      html+='<div class="ditem"><div class="dl">Upside</div><div class="dv up">+'+h.upside+'%</div></div>';
+      html+='<div class="ditem"><div class="dl">Rating</div><div class="dv">'+h.rating+'</div></div>';
+      html+='</div>';
+      if(h.brokers&&h.brokers.length>0){
+        html+='<div style="margin-top:8px">';
+        h.brokers.forEach(function(b){
+          var bv=b.sh*h.price/EUR_USD;
+          html+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);padding:3px 0">';
+          html+='<span>'+b.n+' ('+b.sh+' x $'+b.avg.toFixed(2)+')</span>';
+          html+='<span>\u20ac'+n2(bv)+'</span></div>';
+        });
+        html+='</div>';
+      }
+      html+='</div></div>';
+    });
+    var cont=document.getElementById(ids[cat]);
+    if(cont) cont.innerHTML=html;
+  });
+
+  var tU=0,cU=0,tE=0,cE=0;
+  H.forEach(function(h){
+    if(h.ccy==='USD'){tU+=h.shares*h.price;cU+=h.shares*h.avg;}
+    else{tE+=h.shares*h.price;cE+=h.shares*h.avg;}
+  });
+  var tot=tU/EUR_USD+tE,cost=cU/EUR_USD+cE,pnl=tot-cost;
+  var el=document.getElementById('hTot');
+  if(el){
+    el.innerHTML='<div class="stitle">Totaal portefeuille</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+      '<div><div style="font-size:22px;font-weight:700">\u20ac'+n2(tot)+'</div>'+
+      '<div style="font-size:12px;color:var(--t2)">Kostenbasis \u20ac'+n2(cost)+'</div></div>'+
+      '<div style="text-align:right">'+
+      '<div style="font-size:18px;font-weight:700" class="'+(pnl>=0?'up':'dn')+'">'+fmtEur(pnl)+'</div>'+
+      '<div style="font-size:12px;color:var(--t2)">'+fmtPct(pnl/cost*100)+'</div>'+
+      '</div></div>';
+  }
+}
+
+function toggleH(id){var el=document.getElementById(id);if(el) el.classList.toggle('open');}
+
+// ─── PRESTATIES ───────────────────────────────────────────────────────────────
+function renderPerf(){
+  renderPeriod('pWeek','Week P&L',lsGet(PK.w));
+  renderPeriod('pMonth','Maand P&L',lsGet(PK.m));
+  var wh=lsGet(PK.wh)||[];
+  var el=document.getElementById('pHist');
+  if(!el) return;
+  if(!wh.length){el.innerHTML='<div class="stitle">Historiek week</div><div class="mu" style="font-size:13px">Geen data</div>';return;}
+  var h='<div class="stitle">Historiek week</div>';
+  wh.slice(0,8).forEach(function(w){
+    h+='<div class="prow"><span style="font-size:12px;color:var(--t2);flex:1">'+w.week+'</span>';
+    h+='<span class="'+(w.total>=0?'up':'dn')+'" style="font-weight:600">'+fmtEur(w.total)+'</span></div>';
+  });
+  el.innerHTML=h;
+}
+
+function renderPeriod(elId,title,snap){
+  var el=document.getElementById(elId);
+  if(!el) return;
+  var pnl=snap?calcPnL(snap):null;
+  if(!pnl||!snap||!snap.live){
+    var msg=snap&&!snap.live?'Klik Live koersen voor de eerste meting van deze periode':'Klik Live koersen voor data';
+    el.innerHTML='<div class="stitle">'+title+'</div><div class="mu" style="font-size:13px">'+msg+'</div>';
+    return;
+  }
+  var cls=pnl.total>=0?'up':'dn';
+  var h='<div class="stitle">'+title+'</div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  h+='<div class="'+cls+'" style="font-size:22px;font-weight:700">'+fmtEur(pnl.total)+'</div>';
+  h+='<div style="font-size:11px;color:var(--t2)">vs. '+snap.date+(snap.time?' '+snap.time:'')+'</div></div>';
+  var items=[];
+  var keys=Object.keys(pnl.by);
+  keys.forEach(function(tk){items.push({ticker:tk,diff:pnl.by[tk].diff/EUR_USD,pct:pnl.by[tk].pct});});
+  items.sort(function(a,b){return b.diff-a.diff;});
+  var mx=0;
+  items.forEach(function(it){if(Math.abs(it.diff)>mx) mx=Math.abs(it.diff);});
+  items.forEach(function(it){
+    var c2=it.diff>=0?'up':'dn';
+    var bw=mx>0?Math.abs(it.diff)/mx*100:0;
+    var bc=it.diff>=0?'var(--up)':'var(--dn)';
+    h+='<div class="prow">';
+    h+='<span class="ptk">'+it.ticker+'</span>';
+    h+='<div class="pbar"><div class="pbf" style="width:'+bw+'%;background:'+bc+'"></div></div>';
+    h+='<span class="pval '+c2+'">'+fmtPct(it.pct)+'</span>';
+    h+='<span class="peur '+c2+'">'+fmtEur(it.diff)+'</span>';
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
+
+// ─── DAG RAPPORT ─────────────────────────────────────────────────────────────
+function renderDag(){
+  var items=[];
+  H.forEach(function(h){
+    if(h.ccy==='USD'&&h.price>0){
+      var pcVal=h.pc>0?h.pc:null;
+      var dagEur=pcVal?(h.price-pcVal)*h.shares/EUR_USD:0;
+      var dpct=pcVal?h.dayPct||((h.price-pcVal)/pcVal*100):null;
+      items.push({ticker:h.ticker,name:h.name,price:h.price,pc:pcVal,pct:dpct,dagEur:dagEur,hasDay:pcVal!==null});
+    }
+  });
+  items.sort(function(a,b){return b.dagEur-a.dagEur;});
+
+  var dayItems=items.filter(function(it){return it.hasDay;});
+  if(!items.length){
+    setText('dagTot','\u2014');setText('dagBest','\u2014');setText('dagBestP','\u2014');
+    var t0=document.getElementById('dagTbl');
+    if(t0) t0.innerHTML='<div class="mu" style="font-size:13px">Klik Live koersen voor dagdata</div>';
+    return;
+  }
+
+  var tot=0;
+  dayItems.forEach(function(it){tot+=it.dagEur;});
+  var best=dayItems.length?dayItems[0]:items[0];
+
+  var dt=document.getElementById('dagTot');
+  if(dt){dt.textContent=fmtEur(tot);dt.className='kval '+(tot>=0?'up':'dn');}
+  var db=document.getElementById('dagBest');
+  if(db){db.textContent=best.ticker;db.className='kval up';}
+  setText('dagBestP',fmtPct(best.pct));
+
+  var h='<div class="stitle">Dagwijzigingen</div>';
+  items.forEach(function(it){
+    var c=it.dagEur>=0?'up':'dn';
+    h+='<div class="prow">';
+    h+='<span class="ptk">'+it.ticker+'</span>';
+    var pcTxt=it.pc?'$'+it.pc.toFixed(2)+' \u2192 ':'';
+    h+='<span style="font-size:11px;color:var(--t2);flex:1">'+pcTxt+'$'+it.price.toFixed(2)+'</span>';
+    h+='<span class="pval '+c+'">'+(it.pct!==null?fmtPct(it.pct):'n/a')+'</span>';
+    h+='<span class="peur '+c+'">'+(it.hasDay?fmtEur(it.dagEur):'&#8212;')+'</span>';
+    h+='</div>';
+  });
+  var tbl=document.getElementById('dagTbl');
+  if(tbl) tbl.innerHTML=h;
+
+  var dh=lsGet(PK.dh)||[];
+  var nowH=new Date().getHours();
+  if(nowH>=22&&(!dh.length||dh[0].date!==isoDate())){
+    dh.unshift({date:isoDate(),time:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot)});
+    lsSet(PK.dh,dh.slice(0,30));
+  }
+  var dhi=document.getElementById('dagHist');
+  if(dh.length&&dhi){
+    dhi.style.display='block';
+    var hh='<div class="stitle">Historiek</div>';
+    dh.slice(0,7).forEach(function(d){
+      var c2=d.total>=0?'up':'dn';
+      hh+='<div class="prow"><span style="font-size:12px;color:var(--t2);flex:1">'+d.date+'</span>';
+      hh+='<span class="'+c2+'" style="font-weight:600">'+fmtEur(d.total)+'</span></div>';
+    });
+    dhi.innerHTML=hh;
+  }
+}
+
+// ─── VIX ─────────────────────────────────────────────────────────────────────
+var vixVal=null;
+function fetchVIX(fhKey){
+  fetch('https://finnhub.io/api/v1/quote?symbol=%5EVIX&token='+fhKey)
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d&&d.c>0){vixVal=d.c;lsSet('carl-vix',{v:d.c,d:isoDate()});renderVIX();}
+    })
+    .catch(function(){});
+}
+function renderVIX(){
+  var el=document.getElementById('vixDiv');
+  if(!el) return;
+  var saved=vixVal||0;
+  if(!saved){var sv=lsGet('carl-vix');if(sv) saved=sv.v;}
+  if(!saved){el.innerHTML='<div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Klik Live koersen om VIX op te halen</div>';return;}
+  var v=saved;
+  var zones=[
+    {max:12,lbl:'Extreem laag',col:'#0ea5e9',desc:'Markt zelfgenoegzaam'},
+    {max:16,lbl:'Laag',col:'#22c55e',desc:'Rustige markt'},
+    {max:20,lbl:'Normaal',col:'#84cc16',desc:'Normale volatiliteit'},
+    {max:25,lbl:'Verhoogd',col:'#eab308',desc:'Enige onzekerheid'},
+    {max:30,lbl:'Hoog',col:'#f97316',desc:'Significante angst'},
+    {max:40,lbl:'Extreem hoog',col:'#ef4444',desc:'Paniek / crisis'},
+    {max:999,lbl:'Crisis',col:'#7f1d1d',desc:'Extreme marktangst'}
+  ];
+  var zone=zones[zones.length-1];
+  for(var i=0;i<zones.length;i++){if(v<=zones[i].max){zone=zones[i];break;}}
+  var pct2=Math.min(v/45*100,100);
+  var saved2=lsGet('carl-vix');
+  var dateStr=saved2?saved2.d:'';
+  var h='<div style="text-align:center;margin-bottom:16px">';
+  h+='<div style="font-size:48px;font-weight:700;color:'+zone.col+'">'+v.toFixed(2)+'</div>';
+  h+='<div style="font-size:13px;font-weight:600;color:'+zone.col+'">'+zone.lbl+'</div>';
+  h+='<div style="font-size:12px;color:var(--t2);margin-top:4px">'+zone.desc+'</div>';
+  h+='<div style="font-size:10px;color:var(--t3);margin-top:4px">'+dateStr+'</div>';
+  h+='</div>';
+  // Balk
+  h+='<div style="background:var(--p2);border-radius:8px;height:14px;overflow:hidden;margin-bottom:16px">';
+  h+='<div style="height:100%;width:'+pct2+'%;background:'+zone.col+';border-radius:8px;transition:width .4s"></div></div>';
+  // Schaalverdeling
+  h+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-bottom:16px">';
+  h+='<span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>45+</span></div>';
+  // Zones lijst
+  h+='<div class="stitle" style="margin-bottom:8px">Referentieniveaus</div>';
+  zones.slice(0,6).forEach(function(z){
+    var isCur=v>zones.indexOf(z)&&v<=(zones[zones.indexOf(z)].max);
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)">';
+    h+='<span style="width:10px;height:10px;border-radius:50%;background:'+z.col+';flex-shrink:0;display:inline-block"></span>';
+    h+='<span style="flex:1;font-size:12px">'+z.lbl+' (&lt;'+z.max+')</span>';
+    h+='<span style="font-size:11px;color:var(--t2)">'+z.desc+'</span>';
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
+
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init(){
+  loadEurManual();
+  var key=lsGet('carl-fh');
+  document.getElementById('kbanner').style.display=key?'none':'block';
+  var vixCache=lsGet('carl-vix');if(vixCache) vixVal=vixCache.v;
+  renderMkt();
+  updateAll();
+  var now=new Date(),ws=lsGet(PK.w),ms=lsGet(PK.m);
+  if(ws&&ws.week!==isoWeek(now)&&ws.live){
+    var wp=calcPnL(ws),wh=lsGet(PK.wh)||[];
+    wh.unshift({week:ws.week,date:ws.date,total:wp?Math.round(wp.total):0});
+    lsSet(PK.wh,wh.slice(0,16));lsSet(PK.w,null);
+  }
+  if(ms&&ms.month!==isoMonth(now)&&ms.live){
+    var mp=calcPnL(ms),mh=lsGet(PK.mh)||[];
+    mh.unshift({month:ms.month,date:ms.date,total:mp?Math.round(mp.total):0});
+    lsSet(PK.mh,mh.slice(0,12));lsSet(PK.m,null);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
