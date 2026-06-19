@@ -98,6 +98,15 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
       <div style="font-size:22px;color:var(--t3)">&#8250;</div>
     </div>
   </div>
+  <div class="card2" onclick="openKeyModal()" style="cursor:pointer">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="stitle" style="margin-bottom:2px">Finnhub API-sleutel</div>
+        <div style="font-size:12px;color:var(--t2)" id="keySt">tik om in te voeren</div>
+      </div>
+      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
+    </div>
+  </div>
   <div class="card2">
     <div class="stitle" style="margin-bottom:6px">Marktstatus</div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bd)">
@@ -422,12 +431,20 @@ function openKeyModal(){
   document.getElementById('iKey').value=lsGet('carl-fh')||'';
   document.getElementById('keyModal').classList.add('open');
 }
+function updateKeySt(){
+  var k=lsGet('carl-fh');
+  var el=document.getElementById('keySt');
+  if(!el) return;
+  el.textContent=k?('actief \u00b7 ...'+k.slice(-4)):'tik om in te voeren';
+}
 function closeKeyModal(){document.getElementById('keyModal').classList.remove('open');}
 function saveKey(){
   var k=document.getElementById('iKey').value.replace(/\s/g,'');
   if(!k) return;
   lsSet('carl-fh',k);
   closeKeyModal();
+  updateKeySt();
+  document.getElementById('kbanner').style.display='none';
   doFetch(k);
 }
 
@@ -998,6 +1015,7 @@ function init(){
   loadEurManual();
   var key=lsGet('carl-fh');
   document.getElementById('kbanner').style.display=key?'none':'block';
+  updateKeySt();
   var vixCache=lsGet('carl-vix');if(vixCache){vixVal=vixCache.v;vixDP=vixCache.dp;}
   renderMkt();
   updateAll();
