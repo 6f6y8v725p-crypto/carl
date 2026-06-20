@@ -804,7 +804,8 @@ function renderDag(){
 
   var dh=lsGet(PK.dh)||[];
   var nowH=new Date().getHours();
-  if(nowH>=22&&(!dh.length||dh[0].date!==isoDate())){
+  var todayIsTradingDay=new Date().getDay()!==0&&new Date().getDay()!==6&&!isHolidayToday(usHolidays(new Date().getFullYear()));
+  if(todayIsTradingDay&&nowH>=22&&(!dh.length||dh[0].date!==isoDate())){
     dh.unshift({date:isoDate(),time:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot)});
     lsSet(PK.dh,dh.slice(0,30));
   }
