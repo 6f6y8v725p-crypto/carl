@@ -500,9 +500,13 @@ function doFetch(fhKey){
   // Ook volatiliteitsproxy (VIXY) ophalen, met dezelfde Finnhub-sleutel
   fetchVIX(fhKey);
 
+  var usdDiag={};
   USD_SYMS.forEach(function(sym){
     fetch('https://finnhub.io/api/v1/quote?symbol='+sym+'&token='+fhKey)
-      .then(function(r){return r.json();})
+      .then(function(r){
+        usdDiag[sym+'_http']=r.status;
+        return r.json();
+      })
       .then(function(d){
         if(d&&d.c>0){
           H.forEach(function(h){
@@ -515,14 +519,33 @@ function doFetch(fhKey){
             }
           });
           prog[sym]='\u2713';
+        } else {
+          usdDiag[sym]=d&&d.error?d.error:'leeg';
         }
         tick();
       })
-      .catch(function(){tick();});
+      .catch(function(e){usdDiag[sym]='fetch-fout: '+(e.message||e);tick();});
   });
+  window.__lastUsdDiag=usdDiag;
+  window.__lastProg=prog; // toegankelijk voor onFetchDone (echte succes-telling)
 }
 
 function onFetchDone(btn,st){
+  var diag=window.__lastUsdDiag||{};
+  var prog2=window.__lastProg||{};
+  var okCount=USD_SYMS.filter(function(s){return prog2[s]==='\u2713';}).length;
+  var anySuccess=okCount>0;
+  var httpCodes=Object.keys(diag).filter(function(k){return k.indexOf('_http')>-1;}).map(function(k){return diag[k];});
+  var uniqueHttp=httpCodes.filter(function(v,i){return httpCodes.indexOf(v)===i;});
+
+  if(!anySuccess&&uniqueHttp.length){
+    var reason='onbekende fout';
+    if(uniqueHttp.indexOf(401)>-1||uniqueHttp.indexOf(403)>-1) reason='ongeldige sleutel (HTTP '+uniqueHttp.join(',')+')';
+    else if(uniqueHttp.indexOf(429)>-1) reason='rate-limit bereikt (HTTP 429) \u2014 even wachten';
+    else if(uniqueHttp.length&&uniqueHttp[0]>=500) reason='Finnhub-serverfout (HTTP '+uniqueHttp.join(',')+')';
+    if(st) st.textContent='\u2717 '+reason+' (sleutel niet gewijzigd)';
+  }
+
   var now=new Date();
   var ws=lsGet(PK.w);
   if(!ws||!ws.live||ws.week!==isoWeek(now)) lsSet(PK.w,snapNow(true));
@@ -539,7 +562,9 @@ function onFetchDone(btn,st){
       btn.className='lbtn closed-m';btn.textContent='\u2713 VS-markt gesloten \u00b7 Vernieuwen';
     }
   }
-  setTimeout(function(){if(st) st.textContent='';},3000);
+  if(anySuccess||!uniqueHttp.length){
+    setTimeout(function(){if(st) st.textContent='';},3000);
+  }
 }
 
 // ─── UPDATE ALL ──────────────────────────────────────────────────────────────
