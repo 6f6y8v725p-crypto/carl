@@ -571,6 +571,7 @@ function onFetchDone(btn,st){
   if(!ms||!ms.live||ms.month!==isoMonth(now)) lsSet(PK.m,snapNow(true));
   var ys=lsGet(PK.y);
   if(!ys||!ys.live||ys.year!==isoYear(now)) lsSet(PK.y,snapNow(true));
+  if(anySuccess) archiveDayIfNeeded(); // dag-historiek enkel archiveren met verse data
   updateAll();
   if(btn){
     btn.disabled=false;
@@ -841,6 +842,35 @@ function renderPeriod(elId,title,snap,breakdown){
 }
 
 // ─── DAG RAPPORT ─────────────────────────────────────────────────────────────
+// ─── DAG-ARCHIVERING (enkel na een echte live fetch, nooit bij gewone page-load) ──
+function archiveDayIfNeeded(){
+  var items=[];
+  H.forEach(function(h){
+    if(h.ccy==='USD'&&h.price>0&&h.pc>0){
+      items.push({dagEur:(h.price-h.pc)*h.shares/EUR_USD});
+    }
+  });
+  if(!items.length) return; // geen verse pc-data: niets archiveren
+  var tot=0;
+  items.forEach(function(it){tot+=it.dagEur;});
+
+  var now=new Date();
+  var todayIsTradingDay=now.getDay()!==0&&now.getDay()!==6&&!isHolidayToday(usHolidays(now.getFullYear()));
+  if(!todayIsTradingDay) return;
+  if(now.getHours()<22) return; // enkel na marktslot
+
+  var dh=lsGet(PK.dh)||[];
+  if(!dh.length||dh[0].date!==isoDate()){
+    dh.unshift({date:isoDate(),time:now.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot)});
+    lsSet(PK.dh,dh.slice(0,30));
+  } else if(dh[0].date===isoDate()){
+    // Zelfde dag, nieuwe live fetch later op de avond: update met de meest recente (nauwkeurigere) waarde
+    dh[0].total=Math.round(tot);
+    dh[0].time=now.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+    lsSet(PK.dh,dh);
+  }
+}
+
 function renderDag(){
   var items=[];
   H.forEach(function(h){
@@ -886,12 +916,6 @@ function renderDag(){
   if(tbl) tbl.innerHTML=h;
 
   var dh=lsGet(PK.dh)||[];
-  var nowH=new Date().getHours();
-  var todayIsTradingDay=new Date().getDay()!==0&&new Date().getDay()!==6&&!isHolidayToday(usHolidays(new Date().getFullYear()));
-  if(todayIsTradingDay&&nowH>=22&&(!dh.length||dh[0].date!==isoDate())){
-    dh.unshift({date:isoDate(),time:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot)});
-    lsSet(PK.dh,dh.slice(0,30));
-  }
   var dhi=document.getElementById('dagHist');
   if(dh.length&&dhi){
     dhi.style.display='block';
