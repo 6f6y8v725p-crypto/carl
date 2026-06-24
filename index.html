@@ -83,6 +83,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
   </div>
   <button class="lbtn" id="liveBtn" onclick="onLiveClick()">&#9711; Live koersen ophalen</button>
   <div id="liveSt" style="font-size:11px;color:var(--t2);text-align:center;margin-bottom:8px;min-height:16px"></div>
+  <div id="targetSt" style="font-size:11px;text-align:center;margin-bottom:8px;min-height:14px"></div>
   <div class="kgrid">
     <div class="kbox"><div class="klbl">Kostenbasis</div><div class="kval" id="kCost">&#8212;</div></div>
     <div class="kbox"><div class="klbl">P&amp;L totaal</div><div class="kval" id="kPnl">&#8212;</div><div class="ksub" id="kPnlP"></div></div>
@@ -116,6 +117,20 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
     </div>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importBackup(this.files[0])">
     <div id="backupSt" style="font-size:10px;color:var(--t3);margin-top:8px;min-height:14px"></div>
+  </div>
+  <div class="card2">
+    <div class="stitle" style="margin-bottom:6px">Wisselkoers-impact EUR/USD</div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5" id="fxSens">Gevoeligheid berekenen...</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><div style="font-size:10px;color:var(--t3)">USD-posities</div><div style="font-size:14px;font-weight:600" id="fxUSD">$&#8212;</div></div>
+      <div><div style="font-size:10px;color:var(--t3)">&#8594; EUR</div><div style="font-size:14px;font-weight:600" id="fxConv">&#8364;&#8212;</div></div>
+      <div><div style="font-size:10px;color:var(--t3)">VUSA</div><div style="font-size:14px;font-weight:600;color:var(--up)" id="fxVUSA">&#8364;&#8212;</div></div>
+      <div><div style="font-size:10px;color:var(--t3)">D'Ieteren</div><div style="font-size:14px;font-weight:600;color:var(--dn)" id="fxDIET">&#8364;&#8212;</div></div>
+      <div style="grid-column:1/-1;border-top:1px solid var(--bd);padding-top:8px;margin-top:2px">
+        <div style="font-size:10px;color:var(--t3)">Totaal EUR</div>
+        <div style="font-size:18px;font-weight:700" id="fxTotal">&#8364;&#8212;</div>
+      </div>
+    </div>
   </div>
   <div class="card2">
     <div class="stitle" style="margin-bottom:6px">Marktstatus</div>
@@ -260,11 +275,12 @@ var H = [
   {ticker:'HIMS',name:'Hims & Hers',   cat:'spec',ccy:'USD',shares:3.571,   avg:45.88, price:26.87, qt:null,pc:0,pl:-41.4,pe:'59x',   fcf:'$174M',  target:26.82, upside:0, rating:'Hold',        brokers:[]},
   {ticker:'PATH',name:'UiPath',        cat:'spec',ccy:'USD',shares:164.966, avg:11.76, price:10.55, qt:null,pc:0,pl:-10.3,pe:'17,6x', fcf:'$328M',  target:13.31, upside:26,rating:'Hold',        brokers:[]},
   {ticker:'VUSA',name:'Vanguard S&P500',cat:'eur', ccy:'EUR',shares:9.5276, avg:91.88, price:121.87,qt:null,pc:0,pl:32.64,pe:'n.v.t.',fcf:'ETF',    target:151.00,upside:24,rating:'ETF',         brokers:[]},
-  {ticker:'DIET',name:"D'Ieteren",     cat:'eur', ccy:'EUR',shares:2.2444,  avg:200.00,price:169.50,qt:null,pc:0,pl:-15.25,pe:'n.v.t.',fcf:'n.v.t.',target:232.42,upside:37,rating:'Kopen',       brokers:[]}
+  {ticker:'DIET',name:"D'Ieteren",     cat:'eur', ccy:'EUR',shares:2.2444,  avg:200.00,price:169.50,qt:null,pc:0,pl:-15.25,pe:'n.v.t.',fcf:'n.v.t.',target:232.42,upside:37,rating:'Kopen',       brokers:[]},
+  {ticker:'SPCX',name:'SpaceX',        cat:'spec',ccy:'USD',shares:1.45853163,avg:157.59,price:156.20,qt:null,pc:0,pl:-0.89,pe:'n.v.t.',fcf:'n.v.t.',target:187.80,upside:13,rating:'Buy',brokers:[]}
 ];
 
 var USD_SYMS = [];
-H.forEach(function(h){ if(h.ccy==='USD') USD_SYMS.push(h.ticker); });
+H.forEach(function(h){ if(h.ccy==='USD'&&!h.manual) USD_SYMS.push(h.ticker); });
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function lsGet(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
@@ -499,6 +515,8 @@ function doFetch(fhKey){
 
   // Ook volatiliteitsproxy (VIXY) ophalen, met dezelfde Finnhub-sleutel
   fetchVIX(fhKey);
+  // Koersdoelen ophalen (experimenteel, mogelijk Premium-only)
+  fetchTargets(fhKey);
 
   var usdDiag={};
   USD_SYMS.forEach(function(sym){
@@ -599,6 +617,17 @@ function updateKPI(){
   })[0];
   setText('kBig',big.ticker);
   setText('kBigV','\u20ac'+n2(big.ccy==='USD'?big.shares*big.price/EUR_USD:big.shares*big.price));
+
+  // Wisselkoers-impact EUR/USD
+  var sens=tU*0.01/(EUR_USD*EUR_USD);
+  setText('fxSens','Gevoeligheid: elke +0,01 EUR/USD \u2248 \u2212\u20ac'+n2(sens)+' portefeuillewaarde.');
+  setText('fxUSD','$'+n2(tU));
+  setText('fxConv','\u20ac'+n2(tU/EUR_USD));
+  setText('fxTotal','\u20ac'+n2(tot));
+  var vusaH=H.find(function(h){return h.ticker==='VUSA';});
+  var dietH=H.find(function(h){return h.ticker==='DIET';});
+  if(vusaH) setText('fxVUSA','\u20ac'+n2(vusaH.shares*vusaH.price));
+  if(dietH) setText('fxDIET','\u20ac'+n2(dietH.shares*dietH.price));
 }
 
 function setText(id,txt){var el=document.getElementById(id);if(el) el.textContent=txt;}
@@ -702,10 +731,43 @@ function renderHoldings(){
 function toggleH(id){var el=document.getElementById(id);if(el) el.classList.toggle('open');}
 
 // ─── PRESTATIES ───────────────────────────────────────────────────────────────
+var periodExpanded={};
+function togglePeriodExpand(key){periodExpanded[key]=!periodExpanded[key];renderPerf();}
+
+function entriesInWeek(arr,weekStr){
+  return arr.filter(function(e){
+    if(!e.date) return false;
+    var p=e.date.split('-');
+    var d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
+    return isoWeek(d)===weekStr;
+  });
+}
+function entriesInMonth(arr,monthStr){
+  return arr.filter(function(e){return e.date&&e.date.slice(0,7)===monthStr;});
+}
+function entriesInYear(arr,yearStr){
+  return arr.filter(function(e){return e.date&&e.date.slice(0,4)===yearStr;});
+}
+
 function renderPerf(){
-  renderPeriod('pWeek','Week P&L',lsGet(PK.w));
-  renderPeriod('pMonth','Maand P&L',lsGet(PK.m));
-  renderPeriod('pYear','Jaar P&L',lsGet(PK.y));
+  renderPeriod('pWeek','Week P&L',lsGet(PK.w),{
+    toggleKey:'week',label:'Per dag',
+    getItems:function(snap){
+      return entriesInWeek(lsGet(PK.dh)||[],snap.week).map(function(e){return{label:e.date,total:e.total};});
+    }
+  });
+  renderPeriod('pMonth','Maand P&L',lsGet(PK.m),{
+    toggleKey:'month',label:'Per week',
+    getItems:function(snap){
+      return entriesInMonth(lsGet(PK.wh)||[],snap.month).map(function(e){return{label:e.week,total:e.total};});
+    }
+  });
+  renderPeriod('pYear','Jaar P&L',lsGet(PK.y),{
+    toggleKey:'year',label:'Per maand',
+    getItems:function(snap){
+      return entriesInYear(lsGet(PK.mh)||[],snap.year).map(function(e){return{label:e.month,total:e.total};});
+    }
+  });
   renderHistBlock('pHistWeek','Historiek week',lsGet(PK.wh)||[],'week',8);
   renderHistBlock('pHistMonth','Historiek maand',lsGet(PK.mh)||[],'month',12);
   renderHistBlock('pHistYear','Historiek jaar',lsGet(PK.yh)||[],'year',10);
@@ -723,7 +785,7 @@ function renderHistBlock(elId,title,arr,key,max){
   el.innerHTML=h;
 }
 
-function renderPeriod(elId,title,snap){
+function renderPeriod(elId,title,snap,breakdown){
   var el=document.getElementById(elId);
   if(!el) return;
   var pnl=snap?calcPnL(snap):null;
@@ -754,6 +816,27 @@ function renderPeriod(elId,title,snap){
     h+='<span class="peur '+c2+'">'+fmtEur(it.diff)+'</span>';
     h+='</div>';
   });
+
+  if(breakdown){
+    var isOpen2=!!periodExpanded[breakdown.toggleKey];
+    h+='<div onclick="togglePeriodExpand(\''+breakdown.toggleKey+'\')" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:11.5px;color:var(--bl)">';
+    h+='<span>'+breakdown.label+'</span><span>'+(isOpen2?'\u25b2 verberg':'\u25bc toon')+'</span></div>';
+    if(isOpen2){
+      var subItems=breakdown.getItems(snap);
+      if(!subItems.length){
+        h+='<div class="mu" style="font-size:12px;padding:8px 0">Nog geen detaildata beschikbaar voor deze periode</div>';
+      } else {
+        subItems.forEach(function(si){
+          var c3=si.total>=0?'up':'dn';
+          h+='<div class="prow" style="padding:6px 0">';
+          h+='<span style="font-size:12px;color:var(--t2);flex:1">'+si.label+'</span>';
+          h+='<span class="'+c3+'" style="font-weight:600;font-size:12px">'+fmtEur(si.total)+'</span>';
+          h+='</div>';
+        });
+      }
+    }
+  }
+
   el.innerHTML=h;
 }
 
@@ -920,9 +1003,9 @@ function renderVIX(){
 
 
 // ─── GRAFIEKEN ────────────────────────────────────────────────────────────────
-var TICKER_COLOR={TSLA:'#388bfd',NVDA:'#2ea76b',GOOGL:'#3fb950',PLTR:'#8957e5',AMZN:'#d29922',WULF:'#f0a500',HIMS:'#f85149',PATH:'#79c0ff',VUSA:'#a78bfa',DIET:'#c084fc'};
+var TICKER_COLOR={TSLA:'#388bfd',NVDA:'#2ea76b',GOOGL:'#3fb950',PLTR:'#8957e5',AMZN:'#d29922',WULF:'#f0a500',HIMS:'#f85149',PATH:'#79c0ff',VUSA:'#a78bfa',DIET:'#c084fc',SPCX:'#ff6b35'};
 var BROKER_COLOR={BUX:'#388bfd',Bolero:'#8957e5',Revolut:'#2ea76b'};
-var SINGLE_BROKER={GOOGL:'BUX',PLTR:'BUX',AMZN:'Bolero',HIMS:'Revolut',PATH:'Revolut',VUSA:'Revolut',DIET:'Revolut'};
+var SINGLE_BROKER={GOOGL:'BUX',PLTR:'BUX',AMZN:'Bolero',HIMS:'Revolut',PATH:'Revolut',VUSA:'Revolut',DIET:'Revolut',SPCX:'Revolut'};
 
 function svgDonut(segs,centerLbl,centerSub){
   var R=38,C=2*Math.PI*R,cum=0,circles='';
@@ -1097,8 +1180,61 @@ function importBackup(file){
   reader.readAsText(file);
 }
 
+// ─── BOOTSTRAP HISTORIEK (eenmalig, enkel als sleutel nog niet lokaal bestaat) ──
+function bootstrapHistory(){
+  var seed={"cp_w": {"date": "2026-06-22", "time": "06:12", "week": "2026-W25", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231935.7737, "NVDA": 16461.42039, "GOOGL": 9568.78, "PLTR": 7649.1038, "AMZN": 2443.9, "WULF": 8719.24158, "HIMS": 126.66337, "PATH": 1694.20082, "SPCX": 229.85}, "eP": {"VUSA": 1179.707432, "DIET": 363.14392}, "tot": 278828.93, "live": true}, "cp_m": {"date": "2026-06-20", "time": "16:43", "week": "2026-W24", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231958.93889999998, "NVDA": 16464.54563, "GOOGL": 9569.82, "PLTR": 7650.89, "AMZN": 2444.3, "WULF": 8725.259, "HIMS": 126.69908, "PATH": 1695.85048, "SPCX": 229.85}, "eP": {"VUSA": 1161.128612, "DIET": 380.4258}, "tot": 278866.15, "live": true}, "cp_y": {"date": "2026-06-20", "time": "16:43", "week": "2026-W24", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231958.93889999998, "NVDA": 16464.54563, "GOOGL": 9569.82, "PLTR": 7650.89, "AMZN": 2444.3, "WULF": 8725.259, "HIMS": 126.69908, "PATH": 1695.85048, "SPCX": 229.85}, "eP": {"VUSA": 1161.128612, "DIET": 380.4258}, "tot": 278866.15, "live": true}, "cp_dh": [{"date": "2026-06-23", "time": "23:30", "total": 0}, {"date": "2026-06-22", "time": "22:01", "total": 1072}, {"date": "2026-06-19", "time": "22:12", "total": 2807}], "cp_wh": [{"week": "2026-W24", "date": "2026-06-20", "total": 5244}], "carl-eur-manual": {"VUSA": 123.76, "DIET": 165.1, "date": "2026-06-22"}, "carl-vix": {"v": 22.89, "dp": -0.3916, "d": "2026-06-24"}};
+  Object.keys(seed).forEach(function(k){
+    try{
+      if(localStorage.getItem(k)===null){
+        lsSet(k,seed[k]);
+        console.log('[Bootstrap] '+k+' ingeladen uit eerdere backup');
+      }
+    }catch(e){}
+  });
+}
+
+// ─── KOERSDOELEN (analisten) — experimenteel, sommige Finnhub-plannen vereisen Premium ──
+var targetStatus={ok:0,fail:0,premiumBlocked:false};
+function fetchTargets(fhKey){
+  targetStatus={ok:0,fail:0,premiumBlocked:false};
+  var promises=USD_SYMS.map(function(sym){
+    return fetch('https://finnhub.io/api/v1/stock/price-target?symbol='+sym+'&token='+fhKey)
+      .then(function(r){
+        if(r.status===403||r.status===401){targetStatus.premiumBlocked=true;targetStatus.fail++;return null;}
+        return r.json();
+      })
+      .then(function(d){
+        if(d&&d.targetMean>0){
+          H.forEach(function(h){
+            if(h.ticker===sym){
+              h.target=Math.round(d.targetMean*100)/100;
+              h.upside=Math.round((h.target-h.price)/h.price*100);
+            }
+          });
+          targetStatus.ok++;
+        } else { targetStatus.fail++; }
+      })
+      .catch(function(){targetStatus.fail++;});
+  });
+  return Promise.all(promises).then(function(){
+    var st=document.getElementById('targetSt');
+    if(!st) return;
+    if(targetStatus.ok>0){
+      st.textContent='\u2713 Koersdoelen bijgewerkt voor '+targetStatus.ok+' van '+USD_SYMS.length+' posities';
+      st.className='up';
+    } else if(targetStatus.premiumBlocked){
+      st.textContent='\u2717 Koersdoelen vereisen Finnhub Premium op dit plan \u2014 bestaande waarden behouden';
+      st.className='dn';
+    } else {
+      st.textContent='\u2717 Geen koersdoel-data ontvangen \u2014 bestaande waarden behouden';
+      st.className='dn';
+    }
+  });
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function init(){
+  bootstrapHistory();
   loadEurManual();
   var key=lsGet('carl-fh');
   document.getElementById('kbanner').style.display=key?'none':'block';
