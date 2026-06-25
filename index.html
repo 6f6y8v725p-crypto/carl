@@ -108,6 +108,15 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
       <div style="font-size:22px;color:var(--t3)">&#8250;</div>
     </div>
   </div>
+  <div class="card2" onclick="openFmpModal()" style="cursor:pointer">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="stitle" style="margin-bottom:2px">FMP API-sleutel (koersdoelen)</div>
+        <div style="font-size:12px;color:var(--t2)" id="fmpKeySt">tik om in te voeren &middot; gratis op financialmodelingprep.com</div>
+      </div>
+      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
+    </div>
+  </div>
   <div class="card2">
     <div class="stitle" style="margin-bottom:8px">Backup &amp; herstel</div>
     <div style="font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5">Bewaar je volledige historiek (dag/week/maand/jaar + sleutels) los van GitHub-updates.</div>
@@ -254,6 +263,19 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
     <div class="mrow">
       <button class="mbtn" onclick="closeKeyModal()">Annuleer</button>
       <button class="mbtn pri" onclick="saveKey()">Opslaan &amp; ophalen</button>
+    </div>
+  </div>
+</div>
+
+<!-- FMP KEY MODAL -->
+<div class="moverlay" id="fmpModal">
+  <div class="mbox">
+    <div class="mtitle">FMP API-sleutel (koersdoelen)</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Gratis sleutel via financialmodelingprep.com (250 calls/dag)</div>
+    <input class="minp" id="iFmp" type="text" placeholder="xxxxxxxxxxxxxxxxxxxxxxxx" autocorrect="off" autocapitalize="none" spellcheck="false">
+    <div class="mrow">
+      <button class="mbtn" onclick="closeFmpModal()">Annuleer</button>
+      <button class="mbtn pri" onclick="saveFmp()">Opslaan &amp; testen</button>
     </div>
   </div>
 </div>
@@ -462,6 +484,26 @@ function updateKeySt(){
   var el=document.getElementById('keySt');
   if(!el) return;
   el.textContent=k?('actief \u00b7 ...'+k.slice(-4)):'tik om in te voeren';
+}
+function openFmpModal(){
+  document.getElementById('iFmp').value=lsGet('carl-fmp')||'';
+  document.getElementById('fmpModal').classList.add('open');
+}
+function closeFmpModal(){document.getElementById('fmpModal').classList.remove('open');}
+function saveFmp(){
+  var k=document.getElementById('iFmp').value.replace(/\s/g,'');
+  if(!k) return;
+  lsSet('carl-fmp',k);
+  closeFmpModal();
+  updateFmpKeySt();
+  var fhKey=lsGet('carl-fh');
+  if(fhKey) fetchTargets(fhKey);
+}
+function updateFmpKeySt(){
+  var k=lsGet('carl-fmp');
+  var el=document.getElementById('fmpKeySt');
+  if(!el) return;
+  el.textContent=k?('actief \u00b7 ...'+k.slice(-4)):'tik om in te voeren \u00b7 gratis op financialmodelingprep.com';
 }
 function closeKeyModal(){document.getElementById('keyModal').classList.remove('open');}
 function saveKey(){
@@ -1217,10 +1259,55 @@ function bootstrapHistory(){
   });
 }
 
-// ─── KOERSDOELEN (analisten) — experimenteel, sommige Finnhub-plannen vereisen Premium ──
-var targetStatus={ok:0,fail:0,premiumBlocked:false};
+// ─── KOERSDOELEN (analisten) — FMP primair, Finnhub als terugval ─────────────
+var targetStatus={ok:0,fail:0,premiumBlocked:false,source:''};
 function fetchTargets(fhKey){
-  targetStatus={ok:0,fail:0,premiumBlocked:false};
+  var fmpKey=lsGet('carl-fmp');
+  if(fmpKey) return fetchTargetsFMP(fmpKey);
+  return fetchTargetsFinnhub(fhKey);
+}
+
+function fetchTargetsFMP(fmpKey){
+  targetStatus={ok:0,fail:0,premiumBlocked:false,source:'FMP'};
+  var promises=USD_SYMS.map(function(sym){
+    return fetch('https://financialmodelingprep.com/stable/price-target-consensus?symbol='+sym+'&apikey='+fmpKey)
+      .then(function(r){
+        if(r.status===403||r.status===401){targetStatus.premiumBlocked=true;targetStatus.fail++;return null;}
+        return r.json();
+      })
+      .then(function(d){
+        var rec=Array.isArray(d)?d[0]:d;
+        var tgt=rec&&(rec.targetConsensus||rec.targetMedian);
+        if(rec&&tgt>0){
+          H.forEach(function(h){
+            if(h.ticker===sym){
+              h.target=Math.round(tgt*100)/100;
+              h.upside=Math.round((h.target-h.price)/h.price*100);
+            }
+          });
+          targetStatus.ok++;
+        } else { targetStatus.fail++; }
+      })
+      .catch(function(){targetStatus.fail++;});
+  });
+  return Promise.all(promises).then(function(){
+    var st=document.getElementById('targetSt');
+    if(!st) return;
+    if(targetStatus.ok>0){
+      st.textContent='\u2713 Koersdoelen (FMP) bijgewerkt voor '+targetStatus.ok+' van '+USD_SYMS.length+' posities';
+      st.className='up';
+    } else if(targetStatus.premiumBlocked){
+      st.textContent='\u2717 FMP-sleutel ongeldig of limiet bereikt \u2014 bestaande waarden behouden';
+      st.className='dn';
+    } else {
+      st.textContent='\u2717 Geen koersdoel-data van FMP ontvangen \u2014 bestaande waarden behouden';
+      st.className='dn';
+    }
+  });
+}
+
+function fetchTargetsFinnhub(fhKey){
+  targetStatus={ok:0,fail:0,premiumBlocked:false,source:'Finnhub'};
   var promises=USD_SYMS.map(function(sym){
     return fetch('https://finnhub.io/api/v1/stock/price-target?symbol='+sym+'&token='+fhKey)
       .then(function(r){
@@ -1263,6 +1350,7 @@ function init(){
   var key=lsGet('carl-fh');
   document.getElementById('kbanner').style.display=key?'none':'block';
   updateKeySt();
+  updateFmpKeySt();
   var vixCache=lsGet('carl-vix');if(vixCache){vixVal=vixCache.v;vixDP=vixCache.dp;}
   renderMkt();
   updateAll();
