@@ -887,28 +887,32 @@ function renderPeriod(elId,title,snap,breakdown){
 // ─── DAG-ARCHIVERING (enkel na een echte live fetch, nooit bij gewone page-load) ──
 function archiveDayIfNeeded(){
   var items=[];
+  var latestQt=0;
   H.forEach(function(h){
     if(h.ccy==='USD'&&h.price>0&&h.pc>0){
       items.push({dagEur:(h.price-h.pc)*h.shares/EUR_USD});
+      if(h.qt&&h.qt>latestQt) latestQt=h.qt;
     }
   });
   if(!items.length) return; // geen verse pc-data: niets archiveren
   var tot=0;
   items.forEach(function(it){tot+=it.dagEur;});
 
-  var now=new Date();
-  var todayIsTradingDay=now.getDay()!==0&&now.getDay()!==6&&!isHolidayToday(usHolidays(now.getFullYear()));
-  if(!todayIsTradingDay) return;
-  if(now.getHours()<22) return; // enkel na marktslot
+  // Datum van de koers afleiden uit de Finnhub-tijdstempel zelf, niet uit 'nu'
+  // (zo blijft archivering correct, ook als je pas de volgende ochtend vóór beursopening checkt)
+  var quoteDate=latestQt?new Date(latestQt*1000):new Date();
+  var dateStr=isoDate(quoteDate);
+  var dayOfWeek=quoteDate.getDay();
+  if(dayOfWeek===0||dayOfWeek===6) return; // veiligheidsnet: weekend-tijdstempel negeren
 
   var dh=lsGet(PK.dh)||[];
-  if(!dh.length||dh[0].date!==isoDate()){
-    dh.unshift({date:isoDate(),time:now.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot)});
+  if(!dh.length||dh[0].date!==dateStr){
+    dh.unshift({date:dateStr,time:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot)});
     lsSet(PK.dh,dh.slice(0,30));
-  } else if(dh[0].date===isoDate()){
-    // Zelfde dag, nieuwe live fetch later op de avond: update met de meest recente (nauwkeurigere) waarde
+  } else if(dh[0].date===dateStr){
+    // Zelfde handelsdag, latere/nauwkeurigere fetch: bijwerken i.p.v. negeren
     dh[0].total=Math.round(tot);
-    dh[0].time=now.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+    dh[0].time=new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
     lsSet(PK.dh,dh);
   }
 }
@@ -1303,6 +1307,7 @@ function fetchTargetsFMP(fmpKey){
       st.textContent='\u2717 Geen koersdoel-data van FMP ontvangen \u2014 bestaande waarden behouden';
       st.className='dn';
     }
+    if(targetStatus.ok>0){renderHoldings();renderCharts();}
   });
 }
 
@@ -1340,6 +1345,7 @@ function fetchTargetsFinnhub(fhKey){
       st.textContent='\u2717 Geen koersdoel-data ontvangen \u2014 bestaande waarden behouden';
       st.className='dn';
     }
+    if(targetStatus.ok>0){renderHoldings();renderCharts();}
   });
 }
 
