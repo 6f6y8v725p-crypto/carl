@@ -2,547 +2,1385 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Portefeuille Live — Carl Berquin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Portefeuille</title>
 <style>
-:root{--bg:#0d1117;--p:#161b22;--p2:#1c2230;--bd:#2a3140;--t:#e6edf3;--t2:#9aa5b1;--t3:#6e7681;
-  --g:#2ea76b;--r:#e5534b;--b:#388bfd;--a:#d29922;--ac:#58a6ff;--pu:#8957e5;}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:20px;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1120px;margin:0 auto}
-.card{background:var(--p);border:1px solid var(--bd);border-radius:10px;padding:14px 16px}
-.btn{background:var(--p2);border:1px solid var(--bd);color:var(--t2);padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit}
-.btn:hover{background:var(--bd);color:var(--t)} .btn:disabled{opacity:.5;cursor:not-allowed}
-.up{color:var(--g)} .dn{color:var(--r)} .mu{color:var(--t3)}
-.badge{font-size:10px;padding:2px 7px;border-radius:5px;font-weight:600;display:inline-block}
-.b-sb{background:#0d2a1a;color:#3fb950} .b-buy{background:#10243e;color:#58a6ff}
-.b-hold{background:#2a2410;color:#d29922} .b-etf{background:#1a1a2e;color:#a78bfa} .b-kp{background:#1a1e2e;color:#79c0ff}
-.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
-.hero .card .lbl{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
-.hero .card .big{font-size:24px;font-weight:700;letter-spacing:-.02em}
-.hero .card .sm{font-size:12px;margin-top:4px}
-.module{margin-bottom:16px}
-.mod-head{display:flex;align-items:center;gap:9px;padding:4px 2px 10px;cursor:grab;user-select:none}
-.mod-head:active{cursor:grabbing}
-.grip{color:var(--t3);font-size:16px}
-.mod-title{font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.05em}
-.mod-badge{font-size:9px;color:var(--t3);margin-left:6px;text-transform:none;letter-spacing:0;font-weight:400}
-.module.dragover{box-shadow:0 0 0 2px var(--ac);border-radius:12px}
-.module.dragging{opacity:.35}
-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--p);border:1px solid var(--bd);border-radius:10px;overflow:hidden}
-thead th{background:var(--p2);color:var(--t2);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
-thead th:first-child{text-align:left} thead th.sa{color:var(--ac)}
-tbody td{padding:10px 12px;text-align:right;border-top:1px solid var(--bd);white-space:nowrap}
-tbody td:first-child{text-align:left} tbody tr:hover{background:var(--p2)}
-.sr td{background:var(--p2);font-size:10.5px;text-transform:uppercase;color:var(--t2);font-weight:600;padding:6px 12px;text-align:left}
-.tr td{border-top:2px solid var(--bd);font-weight:700;background:var(--p2)}
-.br-row td{background:rgba(56,139,253,.04);border-top:1px dashed var(--bd);padding:7px 12px}
-.rate{font-variant-numeric:tabular-nums}
-.eur-tag{font-size:9px;background:#1a1a2e;color:#a78bfa;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:600}
-.chart-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-@media(max-width:900px){.chart-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:580px){.chart-grid{grid-template-columns:1fr}}
-.cc{background:var(--p);border:1px solid var(--bd);border-radius:10px;padding:16px;cursor:grab;position:relative;transition:box-shadow .15s,opacity .15s}
-.cc:active{cursor:grabbing} .cc.dragging{opacity:.35} .cc.dragover{box-shadow:0 0 0 2px var(--ac)}
-.cgrip{position:absolute;top:10px;right:10px;color:var(--t3);font-size:13px;user-select:none}
-.ctitle{font-size:11.5px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:14px;padding-right:20px}
-.hrow{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11px}
-.hlab{width:50px;font-weight:600;flex-shrink:0}
-.htrack{flex:1;height:14px;background:var(--p2);border-radius:3px;overflow:hidden}
-.hfill{height:100%;border-radius:3px}
-.hval{width:68px;text-align:right;flex-shrink:0}
-.legend{display:flex;flex-direction:column;gap:5px;font-size:11.5px}
-.legend .li{display:flex;align-items:center;gap:7px}
-.legend .sw{width:9px;height:9px;border-radius:2px;flex-shrink:0}
-.legend .nm{flex:1} .legend .vl{color:var(--t2);font-variant-numeric:tabular-nums}
-.news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:10px}
-.ni{background:var(--p);border:1px solid var(--bd);border-radius:9px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;transition:border-color .15s}
-.ni:hover{border-color:var(--ac)}
-.ntk{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px}
-.modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:9999;display:none;align-items:center;justify-content:center}
-.modal-box{background:var(--p);border:1px solid var(--bd);border-radius:14px;padding:28px;max-width:460px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.6)}
-.modal-title{font-size:17px;font-weight:600;margin-bottom:14px}
-.modal-info{font-size:12px;color:var(--t2);line-height:1.75;margin-bottom:14px;background:var(--p2);border-radius:8px;padding:12px}
-.modal-input{width:100%;padding:10px 13px;background:var(--p2);border:1px solid var(--bd);border-radius:8px;color:var(--t);font-size:13px;font-family:monospace;margin-bottom:10px;outline:none;box-sizing:border-box}
-.modal-foot{font-size:11px;color:var(--t3);margin-bottom:12px}
-.modal-btns{display:flex;gap:10px;justify-content:flex-end}
-.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle}
-.dot-open{background:#2ea76b;box-shadow:0 0 6px #2ea76b} .dot-closed{background:#6e7681}
-.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;font-size:12px;color:var(--t3);padding:9px 12px;background:var(--p);border:1px solid var(--bd);border-radius:9px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0d1117;--p:#161b22;--p2:#1c2128;--bd:#30363d;
+  --t1:#e6edf3;--t2:#8b949e;--t3:#6e7681;
+  --up:#2ea76b;--dn:#f85149;--am:#d29922;--bl:#388bfd;
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;overscroll-behavior:none}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+#content{flex:1;overflow-y:auto;padding:12px 12px 76px}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+#nav{position:fixed;bottom:0;left:0;right:0;background:var(--p);border-top:1px solid var(--bd);display:flex;height:60px;padding-bottom:env(safe-area-inset-bottom);z-index:100}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;color:var(--t3);cursor:pointer;font-size:9px;font-weight:600;padding:4px 0;letter-spacing:.03em}
+.nb.on{color:var(--bl)}
+.ni{font-size:22px;line-height:1}
+.card{background:var(--p);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:10px}
+.card2{background:var(--p2);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:8px}
+.stitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin-bottom:10px}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.kbox{background:var(--p2);border:1px solid var(--bd);border-radius:10px;padding:12px}
+.klbl{font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.kval{font-size:19px;font-weight:700;line-height:1.1}
+.ksub{font-size:11px;color:var(--t2);margin-top:3px}
+.lbtn{width:100%;padding:14px;border-radius:12px;border:none;background:var(--bl);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px}
+.lbtn:disabled{opacity:.5}
+.lbtn.open-m{background:#132613;border:1px solid var(--up);color:var(--up)}
+.lbtn.closed-m{background:#261313;border:1px solid var(--dn);color:var(--dn)}
+.hcard{background:var(--p);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer}
+.htop{display:flex;align-items:center;justify-content:space-between}
+.hleft{display:flex;align-items:center;gap:10px}
+.tbadge{font-size:11px;font-weight:700;background:var(--p2);border:1px solid var(--bd);border-radius:6px;padding:4px 8px;min-width:50px;text-align:center}
+.hname{font-size:12px;color:var(--t2)}
+.hcat{font-size:10px;color:var(--t3)}
+.hright{text-align:right}
+.hprice{font-size:16px;font-weight:700}
+.hpl{font-size:13px;font-weight:600}
+.hdet{border-top:1px solid var(--bd);margin-top:12px;padding-top:12px;display:none}
+.hdet.open{display:block}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ditem .dl{font-size:10px;color:var(--t3)}
+.ditem .dv{font-size:13px;font-weight:600;margin-top:2px}
+.prow{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bd)}
+.prow:last-child{border:none}
+.ptk{font-size:13px;font-weight:700;width:50px}
+.pbar{flex:1;margin:0 8px;background:var(--p2);border-radius:4px;height:6px;overflow:hidden}
+.pbf{height:100%;border-radius:4px}
+.pval{font-size:13px;font-weight:600;text-align:right;min-width:52px}
+.peur{font-size:11px;color:var(--t2);text-align:right;min-width:64px}
+.up{color:var(--up)}.dn{color:var(--dn)}.mu{color:var(--t2)}
+.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:flex-end;justify-content:center}
+.moverlay.open{display:flex}
+.mbox{background:var(--p);border:1px solid var(--bd);border-radius:12px 12px 0 0;padding:20px 16px;width:100%;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+.mtitle{font-size:16px;font-weight:700;margin-bottom:14px}
+.minp{width:100%;background:var(--p2);border:1px solid var(--bd);border-radius:8px;padding:12px;color:var(--t1);font-size:16px;margin-bottom:12px}
+.mrow{display:flex;gap:8px}
+.mbtn{flex:1;padding:13px;border-radius:8px;border:1px solid var(--bd);background:var(--p2);color:var(--t1);font-size:14px;cursor:pointer}
+.mbtn.pri{background:var(--bl);border-color:var(--bl);color:#fff;font-weight:600}
+.kbanner{background:rgba(210,153,34,.12);border:1px solid rgba(210,153,34,.3);border-radius:12px;padding:12px;margin-bottom:10px;font-size:12px;color:var(--am);cursor:pointer}
 </style>
 </head>
 <body>
+<div id="app">
+<div id="content">
 
-<!-- MODAL: Finnhub -->
-<div class="modal-bg" id="mFH">
-  <div class="modal-box">
-    <div class="modal-title">&#128273; Finnhub &mdash; USD-posities</div>
-    <div class="modal-info">
-      1. Ga naar <a href="https://finnhub.io" target="_blank" style="color:var(--ac)">finnhub.io</a> &rarr; <em>Get free API key</em><br>
-      2. Registreer gratis &mdash; geen creditcard nodig<br>
-      3. Kopieer je sleutel en plak hieronder
-    </div>
-    <input class="modal-input" id="fhInput" type="text" placeholder="Plak hier je Finnhub-sleutel..." onkeydown="if(event.key==='Enter')saveFH()">
-    <div class="modal-foot">Gratis tier: 60 calls/min &middot; alle 8 USD-posities &middot; werkt lokaal</div>
-    <div class="modal-btns">
-      <button class="btn" onclick="closeModal('mFH')">Annuleren</button>
-      <button class="btn" style="background:#10243e;color:#58a6ff;border-color:#1f3a5e;font-weight:600" onclick="saveFH()">Opslaan &amp; ophalen</button>
-    </div>
+<!-- DASHBOARD TAB -->
+<div class="tab-pane active" id="pane-dash">
+  <div id="kbanner" class="kbanner" onclick="openKeyModal()" style="display:none">
+    Tik hier om je Finnhub API-sleutel in te voeren
   </div>
-</div>
-
-<div class="modal-bg" id="mFMP">
-  <div class="modal-box">
-    <div class="modal-title">&#128273; FMP &mdash; Koersdoelen</div>
-    <div class="modal-info">
-      1. Ga naar <a href="https://financialmodelingprep.com" target="_blank" style="color:var(--ac)">financialmodelingprep.com</a> &rarr; <em>Get free API key</em><br>
-      2. Registreer gratis &mdash; 250 calls/dag<br>
-      3. Kopieer je sleutel en plak hieronder
-    </div>
-    <input class="modal-input" id="fmpInput" type="text" placeholder="Plak hier je FMP-sleutel..." onkeydown="if(event.key==='Enter')saveFMP()">
-    <div class="modal-foot">Gratis tier: 250 calls/dag &middot; analisten-koersdoelen &middot; terugval naar Finnhub indien afwezig</div>
-    <div class="modal-btns">
-      <button class="btn" onclick="closeModal('mFMP')">Annuleren</button>
-      <button class="btn" style="background:#1a1a2e;color:#a78bfa;border-color:#2a2050;font-weight:600" onclick="saveFMP()">Opslaan &amp; testen</button>
-    </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Totale portefeuille</div>
+    <div style="display:flex;align-items:baseline;gap:8px"><div class="kval" id="heroVal" style="font-size:30px">&#8212;</div><span id="heroTrend" style="font-size:14px;font-weight:600"></span></div>
+    <div class="ksub" id="heroSub">Klik Live koersen voor actuele data</div>
   </div>
-</div>
-
-<!-- EUR prijzen modal -->
-<div class="modal-bg" id="mTD">
-  <div class="modal-box">
-    <div class="modal-title">&#8364; EUR-posities bijwerken</div>
-    <div style="font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:16px">
-      Haal de koersen op uit Revolut en typ ze hieronder in.<br>
-      Alles (tabel, grafieken, totalen) herberekent automatisch.
-    </div>
-    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:12px">
-        <span style="width:110px;font-size:13px;font-weight:600">VUSA (&#8364;)</span>
-        <input id="inpVUSA" type="number" step="0.01" placeholder="bv. 121.87"
-          style="flex:1;padding:9px 12px;background:var(--p2);border:1px solid var(--bd);border-radius:8px;color:var(--t);font-size:14px;outline:none">
+  <button class="lbtn" id="liveBtn" onclick="onLiveClick()">&#9711; Live koersen ophalen</button>
+  <div id="liveSt" style="font-size:11px;color:var(--t2);text-align:center;margin-bottom:8px;min-height:16px"></div>
+  <div id="targetSt" style="font-size:11px;text-align:center;margin-bottom:8px;min-height:14px"></div>
+  <div class="kgrid">
+    <div class="kbox"><div class="klbl">Kostenbasis</div><div class="kval" id="kCost">&#8212;</div></div>
+    <div class="kbox"><div class="klbl">P&amp;L totaal</div><div class="kval" id="kPnl">&#8212;</div><div class="ksub" id="kPnlP"></div></div>
+    <div class="kbox"><div class="klbl">Grootste positie</div><div class="kval" id="kBig">&#8212;</div><div class="ksub" id="kBigV"></div></div>
+    <div class="kbox"><div class="klbl">EUR/USD</div><div class="kval" id="kEur">1.1611</div><div class="ksub" id="kEurSub">wisselkoers</div></div>
+  </div>
+  <div class="card2" onclick="openEurModal()" style="cursor:pointer">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="stitle" style="margin-bottom:2px">EUR-koersen handmatig</div>
+        <div style="font-size:12px;color:var(--t2)" id="eurSt">VUSA &amp; D'Ieteren &middot; tik om in te voeren</div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px">
-        <span style="width:110px;font-size:13px;font-weight:600">D&#39;Ieteren (&#8364;)</span>
-        <input id="inpDIET" type="number" step="0.01" placeholder="bv. 169.50"
-          style="flex:1;padding:9px 12px;background:var(--p2);border:1px solid var(--bd);border-radius:8px;color:var(--t);font-size:14px;outline:none">
+      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
+    </div>
+  </div>
+  <div class="card2" onclick="openKeyModal()" style="cursor:pointer">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="stitle" style="margin-bottom:2px">Finnhub API-sleutel</div>
+        <div style="font-size:12px;color:var(--t2)" id="keySt">tik om in te voeren</div>
+      </div>
+      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
+    </div>
+  </div>
+  <div class="card2" onclick="openFmpModal()" style="cursor:pointer">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="stitle" style="margin-bottom:2px">FMP API-sleutel (koersdoelen)</div>
+        <div style="font-size:12px;color:var(--t2)" id="fmpKeySt">tik om in te voeren &middot; gratis op financialmodelingprep.com</div>
+      </div>
+      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
+    </div>
+  </div>
+  <div class="card2">
+    <div class="stitle" style="margin-bottom:8px">Backup &amp; herstel</div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5">Bewaar je volledige historiek (dag/week/maand/jaar + sleutels) los van GitHub-updates.</div>
+    <div style="display:flex;gap:8px">
+      <button class="mbtn" style="flex:1" onclick="exportBackup()">&#11015; Exporteer</button>
+      <button class="mbtn" style="flex:1" onclick="document.getElementById('importFile').click()">&#11014; Importeer</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importBackup(this.files[0])">
+    <div id="backupSt" style="font-size:10px;color:var(--t3);margin-top:8px;min-height:14px"></div>
+  </div>
+  <div class="card2">
+    <div class="stitle" style="margin-bottom:6px">Wisselkoers-impact EUR/USD</div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5" id="fxSens">Gevoeligheid berekenen...</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><div style="font-size:10px;color:var(--t3)">USD-posities</div><div style="font-size:14px;font-weight:600" id="fxUSD">$&#8212;</div></div>
+      <div><div style="font-size:10px;color:var(--t3)">&#8594; EUR</div><div style="font-size:14px;font-weight:600" id="fxConv">&#8364;&#8212;</div></div>
+      <div><div style="font-size:10px;color:var(--t3)">VUSA</div><div style="font-size:14px;font-weight:600;color:var(--up)" id="fxVUSA">&#8364;&#8212;</div></div>
+      <div><div style="font-size:10px;color:var(--t3)">D'Ieteren</div><div style="font-size:14px;font-weight:600;color:var(--dn)" id="fxDIET">&#8364;&#8212;</div></div>
+      <div style="grid-column:1/-1;border-top:1px solid var(--bd);padding-top:8px;margin-top:2px">
+        <div style="font-size:10px;color:var(--t3)">Totaal EUR</div>
+        <div style="font-size:18px;font-weight:700" id="fxTotal">&#8364;&#8212;</div>
       </div>
     </div>
-    <div style="font-size:10.5px;color:var(--t3);margin-bottom:14px">
-      Waarden worden lokaal opgeslagen en herladen bij volgende opening.
+  </div>
+  <div class="card2">
+    <div class="stitle" style="margin-bottom:6px">Marktstatus</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bd)">
+      <span style="font-size:12px;color:var(--t2)">VS (NYSE/NASDAQ)</span>
+      <span id="mktUS" style="font-size:12px;font-weight:600">&#8212;</span>
     </div>
-    <div class="modal-btns">
-      <button class="btn" onclick="closeModal('mTD')">Annuleren</button>
-      <button class="btn" style="background:#1a1a2e;color:#a78bfa;border-color:#2a2050;font-weight:600" onclick="saveEurManual()">&#10003; Bijwerken</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+      <span style="font-size:12px;color:var(--t2)">Europa (Euronext)</span>
+      <span id="mktEU" style="font-size:12px;font-weight:600">&#8212;</span>
     </div>
   </div>
 </div>
 
+<!-- HOLDINGS TAB -->
+<div class="tab-pane" id="pane-hold">
+  <div class="stitle" style="margin:4px 0 8px">Core posities</div>
+  <div id="hCore"></div>
+  <div class="stitle" style="margin:4px 0 8px">Speculatief</div>
+  <div id="hSpec"></div>
+  <div class="stitle" style="margin:4px 0 8px">EUR-posities</div>
+  <div id="hEur"></div>
+  <div class="card" id="hTot"></div>
 </div>
 
-<div class="wrap">
-<header style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:14px;border-bottom:1px solid var(--bd);padding-bottom:16px">
-  <div>
-    <h1 style="font-size:20px;font-weight:600;letter-spacing:-.01em">Portefeuille Dashboard</h1>
-    <div id="subtitle" style="color:var(--t3);font-size:12px;margin-top:3px">Slotkoers 15 jun 2026 &middot; EUR/USD 1,1611 &middot; Open lokaal in browser &rarr; klik Live koersen</div>
+<!-- PRESTATIES TAB -->
+<div class="tab-pane" id="pane-perf">
+  <div class="card" id="pWeek" style="margin-bottom:10px"></div>
+  <div class="card" id="pMonth" style="margin-bottom:10px"></div>
+  <div class="card" id="pYear" style="margin-bottom:10px"></div>
+  <div class="card" id="pHistWeek" style="margin-bottom:10px"></div>
+  <div class="card" id="pHistMonth" style="margin-bottom:10px"></div>
+  <div class="card" id="pHistYear"></div>
+</div>
+
+<!-- DAG TAB -->
+<div class="tab-pane" id="pane-dag">
+  <div class="kgrid" style="margin-bottom:10px">
+    <div class="kbox"><div class="klbl">Dagresultaat</div><div class="kval" id="dagTot">&#8212;</div><div class="ksub">vs. vorig slot</div></div>
+    <div class="kbox"><div class="klbl">Beste performer</div><div class="kval up" id="dagBest">&#8212;</div><div class="ksub" id="dagBestP"></div></div>
   </div>
-  <div style="text-align:right">
-    <div style="color:var(--t3);font-size:12px">Totale waarde</div>
-    <div id="hdrTotal" style="font-size:24px;font-weight:700;letter-spacing:-.02em">&#8364;---</div>
-    <div id="hdrTrend" style="font-size:11px;min-height:15px"></div>
-  </div>
-</header>
-
-<div class="toolbar">
-  <span class="live-dot dot-closed" id="mDot"></span>
-  <span id="mLabel" style="font-size:11px">VS gesloten</span>
-  <span style="color:var(--bd)">|</span>
-  <span class="live-dot dot-closed" id="mDotEU"></span>
-  <span id="mLabelEU" style="font-size:11px">Europa gesloten</span>
-  <span style="color:var(--bd)">|</span>
-  <span id="cdTxt" style="font-size:11px;color:var(--t3)">&#8212;</span>
-  <span style="flex:1"></span>
-  <button class="btn" id="liveBtn" style="background:#10243e;color:#58a6ff;border-color:#1f3a5e" onclick="onLiveClick()">&#9711; Live koersen</button>
-  <span id="liveSt" style="font-size:11px;max-width:500px"></span>
-  <span id="targetSt" style="font-size:11px;max-width:400px"></span>
-  <button class="btn" onclick="openModal('mFH')" style="font-size:10px;padding:4px 9px">&#128273; Finnhub</button>
-  <button class="btn" onclick="openModal('mFMP')" style="font-size:10px;padding:4px 9px;background:#1a1a2e;color:#a78bfa;border-color:#2a2050">&#128273; FMP (koersdoelen)</button>
-  <button class="btn" onclick="openModal('mTD')" style="font-size:10px;padding:4px 9px;background:#1a1a2e;color:#a78bfa;border-color:#2a2050">&#8364; EUR-koersen</button>
-  <button class="btn" onclick="exportBackup()" style="font-size:10px;padding:4px 9px;background:#0d2a1a;color:#3fb950;border-color:#1a3a26">&#11015; Backup</button>
-  <button class="btn" onclick="document.getElementById('importFile').click()" style="font-size:10px;padding:4px 9px;background:#2a1a0d;color:#d29922;border-color:#3a2a1a">&#11014; Herstel</button>
-  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importBackup(this.files[0])">
-  <button class="btn" onclick="resetLayout()" style="font-size:11px">&#8635; Standaard</button>
-</div>
-<div id="backupSt" style="font-size:10.5px;color:var(--t3);margin:-8px 0 12px;min-height:14px"></div>
-
-<div id="board">
-
-<div class="module" draggable="true" data-mod="kpis">
-  <div class="mod-head"><span class="grip">&#9776;</span><span class="mod-title">Kerncijfers</span></div>
-  <div class="hero">
-    <div class="card"><div class="lbl">Totale waarde USD</div><div class="big" id="kUSD">$---</div><div class="sm" id="kPNL">---</div></div>
-    <div class="card"><div class="lbl">Totale waarde EUR</div><div class="big" id="kEUR">&#8364;---</div><div class="sm mu" id="kEURsub">---</div></div>
-    <div class="card"><div class="lbl">Kostenbasis USD</div><div class="big" id="kCost">$---</div><div class="sm mu">Totale inleg alle posities</div></div>
-    <div class="card"><div class="lbl">VUSA (Revolut)</div><div class="big up">+32,6%</div><div class="sm mu">&#8364;1.161 &middot; 9,528 sh @ &#8364;121,87</div></div>
-  </div>
+  <div class="card" id="dagTbl"></div>
+  <div class="card" id="dagFx" style="margin-top:10px"></div>
+  <div class="card" id="dagHist" style="margin-top:10px;display:none"></div>
 </div>
 
-<div class="module" draggable="true" data-mod="vix">
-  <div class="mod-head"><span class="grip">&#9776;</span><span class="mod-title">Volatiliteit <span class="mod-badge">VIXY-proxy via Finnhub &middot; echte VIX-index niet gratis beschikbaar</span></span></div>
-  <div class="card" id="vixDiv">
-    <div style="font-size:12px;color:var(--t3);text-align:center;padding:20px 0">Klik Live koersen om de volatiliteitsproxy op te halen</div>
-  </div>
-</div>
-
-<div class="module" draggable="true" data-mod="holdings">
-  <div class="mod-head"><span class="grip">&#9776;</span><span class="mod-title">Posities <span class="mod-badge">klik kolomkop &middot; &#9658; brokerdetail</span></span></div>
-  <table>
-    <thead><tr>
-      <th data-k="ticker" data-t="s">Positie &#8645;</th>
-      <th data-k="shares" data-t="n">Aandelen &#8645;</th>
-      <th data-k="avg" data-t="n">Gem. prijs &#8645;</th>
-      <th data-k="price" data-t="n">Koers &#8645;</th>
-      <th data-k="value" data-t="n">Waarde &#8645;</th>
-      <th data-k="pl" data-t="n">P&amp;L% &#8645;</th>
-      <th data-k="pe" data-t="s">P/E &#8645;</th>
-      <th data-k="fcf" data-t="s">FCF &#8645;</th>
-      <th data-k="upside" data-t="n">Koersdoel &#8645;</th>
-      <th data-k="rating" data-t="s">Rating &#8645;</th>
-    </tr></thead>
-    <tbody id="holdBody"></tbody>
-  </table>
-  <div style="margin-top:8px;font-size:10.5px;color:var(--t3)">Koersdoelen = analistenconsensus. Niet beleggingsadvies.</div>
-</div>
-
-<div class="module" draggable="true" data-mod="fx">
-  <div class="mod-head"><span class="grip">&#9776;</span><span class="mod-title">Wisselkoers EUR/USD</span></div>
+<!-- VOLATILITEIT TAB -->
+<div class="tab-pane" id="pane-vix">
   <div class="card">
-    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px">
-      <span style="font-size:24px;font-weight:700" id="fxLiveRate">1,1611</span>
-      <span style="font-size:12px" id="fxLiveChg"></span>
-    </div>
-    <div style="font-size:12px;color:var(--t2);line-height:1.7">
-      Gevoeligheid: elke +0,01 EUR/USD &#8776; −€2.110 portefeuillewaarde.
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px">
-        <div><div style="font-size:10.5px;color:var(--t3)">USD-posities</div><div style="font-size:15px;font-weight:600" id="fxUSD">$---</div></div>
-        <div><div style="font-size:10.5px;color:var(--t3)" id="fxConvLbl">&rarr; EUR @1,1611</div><div style="font-size:15px;font-weight:600" id="fxConv">&#8364;---</div></div>
-        <div><div style="font-size:10.5px;color:var(--t3)">VUSA (Revolut)</div><div style="font-size:15px;font-weight:600;color:var(--g)" id="fxVUSA">&#8364;---</div></div>
-        <div><div style="font-size:10.5px;color:var(--t3)">D&#39;Ieteren (Revolut)</div><div style="font-size:15px;font-weight:600;color:var(--r)" id="fxDIET">&#8364;---</div></div>
-        <div style="grid-column:1/-1;border-top:1px solid var(--bd);padding-top:8px;margin-top:4px">
-          <div style="font-size:10.5px;color:var(--t3)">Totaal EUR</div>
-          <div style="font-size:20px;font-weight:700" id="fxTotal">&#8364;---</div>
-        </div>
-      </div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);font-size:11px;color:var(--t3)">
-        EUR-posities ophalen: <button class="btn" onclick="openModal('mTD')" style="font-size:10px;padding:3px 8px;background:#1a1a2e;color:#a78bfa;border-color:#2a2050">&#128273; EUR-koersen instellen</button>
-        <span id="tdStatus" style="margin-left:8px"></span>
-      </div>
+    <div class="stitle">Marktvolatiliteit</div>
+    <div id="vixDiv"><div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Laden...</div></div>
+  </div>
+  <div class="card" style="margin-top:10px">
+    <div class="stitle" style="margin-bottom:6px">Waarom geen echte VIX?</div>
+    <div style="font-size:12px;color:var(--t2);line-height:1.7">De CBOE Volatility Index (VIX) zit bij alle grote gratis financi&euml;le API's (Finnhub, Twelve Data, ...) achter een betaald plan &mdash; exchange-licenties voor index-data kosten geld. VIXY is een gratis, gewoon verhandeld ETF dat volatiliteit benadert en wel beschikbaar is.</div>
+  </div>
+</div>
+
+<!-- GRAFIEKEN TAB -->
+<div class="tab-pane" id="pane-charts">
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Allocatie (USD-posities)</div>
+    <div id="chAlloc"></div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Rendement per positie</div>
+    <div id="chRend"></div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Upside &#8594; koersdoel</div>
+    <div id="chUpside"></div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Ongerealiseerde P&amp;L</div>
+    <div id="chPnl"></div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="stitle">Kostenbasis vs huidige waarde</div>
+    <div id="chBasis"></div>
+  </div>
+  <div class="card">
+    <div class="stitle">Verdeling per broker</div>
+    <div id="chBroker"></div>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<!-- BOTTOM NAV -->
+<nav id="nav">
+  <button class="nb on" onclick="go('dash',this)"><span class="ni">&#8962;</span>Dashboard</button>
+  <button class="nb"    onclick="go('hold',this)"><span class="ni">&#128200;</span>Holdings</button>
+  <button class="nb"    onclick="go('perf',this)"><span class="ni">&#128197;</span>Prestaties</button>
+  <button class="nb"    onclick="go('dag',this)"><span class="ni">&#9788;</span>Dag</button>
+  <button class="nb"    onclick="go('vix',this)"><span class="ni">&#128201;</span>VIX</button>
+  <button class="nb"    onclick="go('charts',this)"><span class="ni">&#128202;</span>Grafieken</button>
+</nav>
+</div>
+
+<!-- EUR MODAL -->
+<div class="moverlay" id="eurModal">
+  <div class="mbox">
+    <div class="mtitle">EUR-koersen handmatig</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">VUSA.AS en D'Ieteren (DIE.BR) &mdash; in euro</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:4px">VUSA (Vanguard S&P500 EUR)</div>
+    <input class="minp" id="iVusa" type="number" step="0.01" placeholder="bijv. 121.87">
+    <div style="font-size:12px;color:var(--t2);margin-bottom:4px">D'Ieteren Groep (DIE.BR)</div>
+    <input class="minp" id="iDiet" type="number" step="0.01" placeholder="bijv. 169.50">
+    <div class="mrow">
+      <button class="mbtn" onclick="closeEurModal()">Annuleer</button>
+      <button class="mbtn pri" onclick="saveEur()">Opslaan</button>
     </div>
   </div>
 </div>
 
-<div class="module" draggable="true" data-mod="charts">
-  <div class="mod-head"><span class="grip">&#9776;</span><span class="mod-title">Grafieken <span class="mod-badge">live &middot; herschikbaar</span></span></div>
-  <div class="chart-grid" id="chartGrid">
-    <div class="cc" draggable="true" data-ch="alloc"><span class="cgrip">&#9776;</span><div class="ctitle">Allocatie portefeuille</div><div id="cAlloc"></div></div>
-    <div class="cc" draggable="true" data-ch="rend"><span class="cgrip">&#9776;</span><div class="ctitle">Rendement per positie (%)</div><div id="cRend"></div></div>
-    <div class="cc" draggable="true" data-ch="upside"><span class="cgrip">&#9776;</span><div class="ctitle">Upside &rarr; koersdoel</div><div id="cUpside"></div></div>
-    <div class="cc" draggable="true" data-ch="pnl"><span class="cgrip">&#9776;</span><div class="ctitle">Ongerealiseerde P&amp;L (EUR)</div><div id="cPnL"></div></div>
-    <div class="cc" draggable="true" data-ch="basis"><span class="cgrip">&#9776;</span><div class="ctitle">Kostenbasis vs huidige waarde</div><div id="cBasis"></div></div>
-    <div class="cc" draggable="true" data-ch="broker"><span class="cgrip">&#9776;</span><div class="ctitle">Verdeling per broker</div><div id="cBroker"></div></div>
+<!-- KEY MODAL -->
+<div class="moverlay" id="keyModal">
+  <div class="mbox">
+    <div class="mtitle">Finnhub API-sleutel</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Gratis sleutel via finnhub.io</div>
+    <input class="minp" id="iKey" type="text" placeholder="xxxxxxxxxxxxxxxxxxxxxxxx" autocorrect="off" autocapitalize="none" spellcheck="false">
+    <div class="mrow">
+      <button class="mbtn" onclick="closeKeyModal()">Annuleer</button>
+      <button class="mbtn pri" onclick="saveKey()">Opslaan &amp; ophalen</button>
+    </div>
   </div>
 </div>
 
-<div class="module" draggable="true" data-mod="dag">
-  <div class="mod-head"><span class="grip">&#9776;</span><span class="mod-title">Dagelijks Prestatierapport <span class="mod-badge">vs. vorig slot &middot; auto-snapshot 22:00</span></span></div>
-  <div id="dagDiv"></div>
+<!-- FMP KEY MODAL -->
+<div class="moverlay" id="fmpModal">
+  <div class="mbox">
+    <div class="mtitle">FMP API-sleutel (koersdoelen)</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Gratis sleutel via financialmodelingprep.com (250 calls/dag)</div>
+    <input class="minp" id="iFmp" type="text" placeholder="xxxxxxxxxxxxxxxxxxxxxxxx" autocorrect="off" autocapitalize="none" spellcheck="false">
+    <div class="mrow">
+      <button class="mbtn" onclick="closeFmpModal()">Annuleer</button>
+      <button class="mbtn pri" onclick="saveFmp()">Opslaan &amp; testen</button>
+    </div>
+  </div>
 </div>
-
-<div class="module" draggable="true" data-mod="news">
-  <div class="mod-head"><span class="grip">&#9776;</span><span class="mod-title">Nieuwsflash <span class="mod-badge">klik titel voor artikel</span></span></div>
-  <div class="news-grid" id="newsGrid"></div>
-</div>
-
-<div class="module" draggable="true" data-mod="perf">
-  <div class="mod-head"><span class="grip">&#9776;</span><span class="mod-title">Prestatie-analyse <span class="mod-badge">alle brokers &middot; auto-bijgewerkt</span></span></div>
-  <div id="perfDiv"></div>
-</div>
-
-</div><!-- /board -->
-
-<div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:12px;font-size:10.5px;color:var(--t3);line-height:1.7">
-  Bronnen: Finnhub (USD live) &middot; Yahoo Finance via CORS-proxy (EUR live: VUSA.AS + DIE.BR) &middot; geen sleutel nodig &middot; stockanalysis.com &middot; Revolut. Informatief &mdash; geen beleggingsadvies.
-</div>
-</div><!-- /wrap -->
 
 <script>
-"use strict";
-// ═══ DATA ═══════════════════════════════════════════════════════════════════
 var EUR_USD = 1.1611;
-var BKR = {BUX:"#388bfd", Bolero:"#8957e5", Revolut:"#2ea76b"};
+var PK = {w:'cp_w',m:'cp_m',y:'cp_y',wh:'cp_wh',mh:'cp_mh',yh:'cp_yh',dh:'cp_dh'};
+
 var H = [
-  {ticker:"TSLA", name:"Tesla",          cat:"core", ccy:"USD", shares:579.13,   avg:383.89, price:411.59, pc:0,pl:7.2,   pe:"400x",    fcf:"$5,3B",    target:419.94, upside:2,  rating:"Buy",        rcls:"b-buy",
-   brokers:[{name:"BUX",shares:403,avg:362.73},{name:"Bolero",shares:157,avg:438.87},{name:"Revolut",shares:19.13,avg:378.57}]},
-  {ticker:"NVDA", name:"NVIDIA",         cat:"core", ccy:"USD", shares:78.131,   avg:113.71, price:211.89, pc:0,pl:86.3,  pe:"31x",     fcf:"$46,3B",   target:298.93, upside:41, rating:"Strong Buy",  rcls:"b-sb",
-   brokers:[{name:"BUX",shares:75,avg:113.769},{name:"Revolut",shares:3.131,avg:112.40}]},
-  {ticker:"GOOGL",name:"Alphabet A",     cat:"core", ccy:"USD", shares:26,       avg:193.52, price:370.81, pc:0,pl:91.6,  pe:"27x",     fcf:"$64,4B",   target:432.83, upside:17, rating:"Strong Buy",  rcls:"b-sb",  brokers:[]},
-  {ticker:"PLTR", name:"Palantir",       cat:"core", ccy:"USD", shares:59.54,    avg:98.83,  price:134.82, pc:0,pl:36.4,  pe:"144x",    fcf:"$2,7B",    target:183.73, upside:36, rating:"Buy",        rcls:"b-buy", brokers:[]},
-  {ticker:"AMZN", name:"Amazon",         cat:"core", ccy:"USD", shares:10,       avg:233.08, price:245.89, pc:0,pl:5.5,   pe:"32x",     fcf:"-$2,5B",   target:311.55, upside:27, rating:"Strong Buy",  rcls:"b-sb",  brokers:[]},
-  {ticker:"WULF", name:"TeraWulf",       cat:"spec", ccy:"USD", shares:300.871,  avg:5.94,   price:26.06,  pc:0,pl:338.5, pe:"n.v.t.", fcf:"-$1,2B",   target:36.54,  upside:40, rating:"Strong Buy",  rcls:"b-sb",
-   brokers:[{name:"BUX",shares:275,avg:5.19},{name:"Revolut",shares:25.871,avg:13.95}]},
-  {ticker:"HIMS", name:"Hims & Hers",    cat:"spec", ccy:"USD", shares:3.571,    avg:45.88,  price:26.87,  pc:0,pl:-41.4, pe:"59x",     fcf:"$174M",    target:26.82,  upside:0,  rating:"Hold",       rcls:"b-hold",brokers:[]},
-  {ticker:"PATH", name:"UiPath",         cat:"spec", ccy:"USD", shares:164.966,  avg:11.76,  price:10.55,  pc:0,pl:-10.3, pe:"17,6x",   fcf:"$328M",    target:13.31,  upside:26, rating:"Hold",       rcls:"b-hold",brokers:[]},
-  {ticker:"VUSA", name:"Vanguard S&P500",cat:"eur",  ccy:"EUR", shares:9.5276,   avg:91.88,  price:121.87, pc:0,pl:32.64, pe:"n.v.t.", fcf:"ETF",      target:151.00, upside:24, rating:"ETF",        rcls:"b-etf", brokers:[]},
-  {ticker:"DIET", name:"D'Ieteren Groep",cat:"eur",  ccy:"EUR", shares:2.2444,   avg:200.00, price:169.50, pc:0,pl:-15.25,pe:"n.v.t.", fcf:"n.v.t.",   target:232.42, upside:37, rating:"Kopen",      rcls:"b-kp",  brokers:[]},
-  {ticker:"SPCX", name:"SpaceX",         cat:"spec", ccy:"USD", shares:1.45853163,avg:157.59,price:156.20, pc:0,pl:-0.89, pe:"n.v.t.", fcf:"n.v.t.",   target:187.80, upside:13, rating:"Buy",        rcls:"b-buy", brokers:[]}
-];
-var EUR_MAP = [
-  {ticker:"VUSA", yf:"VUSA.AS"},
-  {ticker:"DIET", yf:"DIE.BR"}
-];
-var NEWS = [
-  {tk:"TSLA",bg:"#10243e",cl:"#58a6ff",dt:"15 jun",hl:"Tesla cleared by feds — NHTSA closes Park-Seek probe on remote self-driving feature",src:"TechCrunch",url:"https://techcrunch.com/tag/tesla/"},
-  {tk:"NVDA",bg:"#1a2e10",cl:"#56d364",dt:"12 jun",hl:"NVDA Q1 +85% YoY to $81.6B — $80B buyback and dividend hike signal enduring AI momentum",src:"Seeking Alpha",url:"https://seekingalpha.com/"},
-  {tk:"GOOGL",bg:"#1f1a0a",cl:"#d29922",dt:"15 jun",hl:"Alphabet +3.5% — US-Iran ceasefire, TD Cowen raises PT to $475, dividend $0.22 paid",src:"TradingKey",url:"https://www.tradingkey.com/"},
-  {tk:"PLTR",bg:"#1e0e2e",cl:"#bc8cff",dt:"15 jun",hl:"Palantir +5.3% — Wall Street returns to AI names; 2026 guidance raised to $7.66B ARR",src:"Seeking Alpha",url:"https://seekingalpha.com/"},
-  {tk:"AMZN",bg:"#0e2020",cl:"#3fb950",dt:"12 jun",hl:"Amazon raises C$13.9B in Canadian bonds for AI data center buildout",src:"Reuters",url:"https://robinhood.com/us/en/stocks/AMZN/"},
-  {tk:"WULF",bg:"#2a1f00",cl:"#f0a500",dt:"12 jun",hl:"TeraWulf: Morgan Stanley PT $42, Bernstein Outperform — AI datacenter pivot + KKR/Helix deal",src:"Benzinga",url:"https://stockanalysis.com/stocks/wulf/"},
-  {tk:"HIMS",bg:"#2a0e0e",cl:"#f85149",dt:"21 apr",hl:"Hims & Hers: $2.35B revenue (+59%), 2.5M subscribers — GLP-1 competition intensifies",src:"24/7 Wall Street",url:"https://247wallst.com/"},
-  {tk:"PATH",bg:"#0e1a2a",cl:"#79c0ff",dt:"11 jun",hl:"UiPath: first GAAP-profitable Q1 — ARR nears $2B, Morgan Stanley cuts PT to $15",src:"Seeking Alpha",url:"https://seekingalpha.com/"},
-  {tk:"VUSA",bg:"#1a1a2e",cl:"#a78bfa",dt:"13 jun",hl:"Vanguard S&P 500 UCITS ETF: +32.64% — €1.161 waarde op basis van Revolut-koers €121,87",src:"Revolut · Vanguard",url:"https://www.vanguard.co.uk/"},
-  {tk:"DIET",bg:"#1a0e2e",cl:"#c084fc",dt:"jan 26",hl:"Belron IPO gepland eind 2026 — alle 12 analisten adviseren Kopen, consensusdoel €232",src:"DividendNieuws.be · FT",url:"https://www.dividendnieuws.be/"}
+  {ticker:'TSLA',name:'Tesla',         cat:'core',ccy:'USD',shares:579.13,  avg:383.89,price:411.59,qt:null,pc:0,pl:7.2,  pe:'400x',  fcf:'$5,3B',  target:419.94,upside:2, rating:'Buy',
+   brokers:[{n:'BUX',sh:403,avg:362.73},{n:'Bolero',sh:157,avg:438.87},{n:'Revolut',sh:19.13,avg:378.57}]},
+  {ticker:'NVDA',name:'NVIDIA',        cat:'core',ccy:'USD',shares:78.131,  avg:113.71,price:211.89,qt:null,pc:0,pl:86.3, pe:'31x',   fcf:'$46,3B', target:298.93,upside:41,rating:'Strong Buy',
+   brokers:[{n:'BUX',sh:75,avg:113.769},{n:'Revolut',sh:3.131,avg:112.40}]},
+  {ticker:'GOOGL',name:'Alphabet A',   cat:'core',ccy:'USD',shares:26,      avg:193.52,price:370.81,qt:null,pc:0,pl:91.6, pe:'27x',   fcf:'$64,4B', target:432.83,upside:17,rating:'Strong Buy',brokers:[]},
+  {ticker:'PLTR',name:'Palantir',      cat:'core',ccy:'USD',shares:59.54,   avg:98.83, price:134.82,qt:null,pc:0,pl:36.4, pe:'144x',  fcf:'$2,7B',  target:183.73,upside:36,rating:'Buy',        brokers:[]},
+  {ticker:'AMZN',name:'Amazon',        cat:'core',ccy:'USD',shares:10,      avg:233.08,price:245.89,qt:null,pc:0,pl:5.5,  pe:'32x',   fcf:'-$2,5B', target:311.55,upside:27,rating:'Strong Buy', brokers:[]},
+  {ticker:'WULF',name:'TeraWulf',      cat:'spec',ccy:'USD',shares:300.871, avg:5.94,  price:26.06, qt:null,pc:0,pl:338.5,pe:'n.v.t.',fcf:'-$1,2B', target:36.54, upside:40,rating:'Strong Buy',
+   brokers:[{n:'BUX',sh:275,avg:5.19},{n:'Revolut',sh:25.871,avg:13.95}]},
+  {ticker:'HIMS',name:'Hims & Hers',   cat:'spec',ccy:'USD',shares:3.571,   avg:45.88, price:26.87, qt:null,pc:0,pl:-41.4,pe:'59x',   fcf:'$174M',  target:26.82, upside:0, rating:'Hold',        brokers:[]},
+  {ticker:'PATH',name:'UiPath',        cat:'spec',ccy:'USD',shares:164.966, avg:11.76, price:10.55, qt:null,pc:0,pl:-10.3,pe:'17,6x', fcf:'$328M',  target:13.31, upside:26,rating:'Hold',        brokers:[]},
+  {ticker:'VUSA',name:'Vanguard S&P500',cat:'eur', ccy:'EUR',shares:9.5276, avg:91.88, price:121.87,qt:null,pc:0,pl:32.64,pe:'n.v.t.',fcf:'ETF',    target:151.00,upside:24,rating:'ETF',         brokers:[]},
+  {ticker:'DIET',name:"D'Ieteren",     cat:'eur', ccy:'EUR',shares:2.2444,  avg:200.00,price:169.50,qt:null,pc:0,pl:-15.25,pe:'n.v.t.',fcf:'n.v.t.',target:232.42,upside:37,rating:'Kopen',       brokers:[]},
+  {ticker:'SPCX',name:'SpaceX',        cat:'spec',ccy:'USD',shares:1.45853163,avg:157.59,price:156.20,qt:null,pc:0,pl:-0.89,pe:'n.v.t.',fcf:'n.v.t.',target:187.80,upside:13,rating:'Buy',brokers:[]}
 ];
 
-// ═══ HELPERS ════════════════════════════════════════════════════════════════
-function N(n,d){return n.toLocaleString("nl-NL",{minimumFractionDigits:d||0,maximumFractionDigits:d||2});}
-function clr(v){return v>=0?"var(--g)":"var(--r)";}
-function sgn(v){return v>=0?"+":"−";}
-function plSpan(v){return "<span style=\"color:"+clr(v)+"\">"+sgn(v)+Math.abs(v).toFixed(1)+"%</span>";}
+var USD_SYMS = [];
+H.forEach(function(h){ if(h.ccy==='USD'&&!h.manual) USD_SYMS.push(h.ticker); });
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
 function lsGet(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function isoDate(d){return(d||new Date()).toISOString().slice(0,10);}
+function isoWeek(d){
+  d=d||new Date();
+  var t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));
+  var y=new Date(Date.UTC(t.getUTCFullYear(),0,4));
+  var wn=Math.ceil((((t-y)/86400000)+1)/7);
+  return t.getUTCFullYear()+'-W'+(wn<10?'0':'')+wn;
+}
+function isoMonth(d){d=d||new Date();return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1);}
+function isoYear(d){d=d||new Date();return String(d.getFullYear());}
+function n2(n){return Math.round(n).toLocaleString('nl-NL');}
+function fmtEur(n){return(n>=0?'+\u20ac':'\u2212\u20ac')+n2(Math.abs(n));}
+function fmtPct(n){return(n>=0?'+':'\u2212')+Math.abs(n).toFixed(2)+'%';}
+// ─── MARKTKALENDER (VS + Europa, incl. feestdagen) ───────────────────────────
+function easterSunday(y){
+  // Anonieme Gregoriaanse algoritme
+  var a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,
+      f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,
+      i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+      month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
+  return new Date(y,month-1,day);
+}
+function sameYMD(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+function nthWeekday(y,m,weekday,n){ // n-de gegeven weekdag (0=zo) van maand m (0-index)
+  var d=new Date(y,m,1),cnt=0;
+  while(true){if(d.getDay()===weekday){cnt++;if(cnt===n)return new Date(d);}d.setDate(d.getDate()+1);}
+}
+function lastWeekday(y,m,weekday){
+  var d=new Date(y,m+1,0); // laatste dag van de maand
+  while(d.getDay()!==weekday) d.setDate(d.getDate()-1);
+  return d;
+}
+function observedUS(d){ // VS: feestdag op za \u2192 vrijdag ervoor, op zo \u2192 maandag erna
+  if(d.getDay()===6) return new Date(d.getFullYear(),d.getMonth(),d.getDate()-1);
+  if(d.getDay()===0) return new Date(d.getFullYear(),d.getMonth(),d.getDate()+1);
+  return d;
+}
+function usHolidays(y){
+  var easter=easterSunday(y);
+  var goodFriday=new Date(easter);goodFriday.setDate(easter.getDate()-2);
+  return [
+    observedUS(new Date(y,0,1)),               // Nieuwjaar
+    nthWeekday(y,0,1,3),                       // MLK Day - 3e maandag januari
+    nthWeekday(y,1,1,3),                       // Presidents Day - 3e maandag februari
+    goodFriday,                                // Goede Vrijdag (markt dicht, geen observance-regel nodig)
+    lastWeekday(y,4,1),                        // Memorial Day - laatste maandag mei
+    observedUS(new Date(y,5,19)),               // Juneteenth
+    observedUS(new Date(y,6,4)),                 // Independence Day
+    nthWeekday(y,8,1,1),                       // Labor Day - 1e maandag september
+    nthWeekday(y,10,4,4),                      // Thanksgiving - 4e donderdag november
+    observedUS(new Date(y,11,25))                // Kerstmis
+  ];
+}
+function euHolidays(y){
+  var easter=easterSunday(y);
+  var easterMonday=new Date(easter);easterMonday.setDate(easter.getDate()+1);
+  var goodFriday=new Date(easter);goodFriday.setDate(easter.getDate()-2);
+  return [
+    new Date(y,0,1),     // Nieuwjaar
+    goodFriday,          // Goede Vrijdag (Euronext dicht)
+    easterMonday,        // Paasmaandag
+    new Date(y,4,1),     // Dag van de Arbeid
+    new Date(y,11,25),   // Kerstmis
+    new Date(y,11,26)    // 2e Kerstdag
+  ];
+}
+function isHolidayToday(holidayList){
+  var now=new Date();
+  return holidayList.some(function(h){return sameYMD(h,now);});
+}
+function isUSOpen(){
+  var n=new Date(),t=n.getHours()*60+n.getMinutes(),d=n.getDay();
+  if(d===0||d===6) return false; // weekend
+  if(isHolidayToday(usHolidays(n.getFullYear()))) return false;
+  return t>=15*60+30&&t<22*60;
+}
+function isEUOpen(){
+  var n=new Date(),t=n.getHours()*60+n.getMinutes(),d=n.getDay();
+  if(d===0||d===6) return false; // weekend
+  if(isHolidayToday(euHolidays(n.getFullYear()))) return false;
+  return t>=9*60&&t<17*60+30; // Euronext Amsterdam/Brussel: 09:00-17:30 (zelfde tijdzone als Carl)
+}
+function isOpen(){return isUSOpen();} // backwards compatible alias
+function fmtQt(unixSec){
+  if(!unixSec) return '';
+  var d=new Date(unixSec*1000);
+  var now=new Date();
+  var sameDay=d.toDateString()===now.toDateString();
+  var timeStr=d.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+  return sameDay?timeStr:(d.toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit'})+' '+timeStr);
+}
 
-// ═══ COMPUTED ═══════════════════════════════════════════════════════════════
-function usdTot(){return H.filter(function(h){return h.ccy==="USD";}).reduce(function(s,h){return s+h.shares*h.price;},0);}
-function eurPos(){return H.filter(function(h){return h.ccy==="EUR";}).reduce(function(s,h){return s+h.shares*h.price;},0);}
-function eurTot(){return usdTot()/EUR_USD+eurPos();}
-function costUSD(){return H.filter(function(h){return h.ccy==="USD";}).reduce(function(s,h){return s+h.shares*h.avg;},0);}
+function snapNow(live){
+  var vals={},eP={},tot=0,now=new Date();
+  H.forEach(function(h){
+    if(h.ccy==='USD'){vals[h.ticker]=h.shares*h.price;tot+=h.shares*h.price;}
+    else{eP[h.ticker]=h.shares*h.price;}
+  });
+  return{date:isoDate(),time:now.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),week:isoWeek(),month:isoMonth(),year:isoYear(),vals:vals,eP:eP,tot:tot,live:!!live,eurUsd:EUR_USD};
+}
 
-// ═══ MODAL ══════════════════════════════════════════════════════════════════
-function openModal(id){
-  var m=document.getElementById(id);
-  if(!m)return;
-  m.style.display="flex";
-  var inp=m.querySelector(".modal-input");
-  if(inp)setTimeout(function(){inp.focus();},80);
+function calcPnL(snap){
+  if(!snap)return null;
+  var by={},ud=0,ed=0;
+  H.forEach(function(h){
+    if(h.ccy==='USD'){
+      var cv=h.shares*h.price,pv=snap.vals?snap.vals[h.ticker]||0:0,d=cv-pv;
+      by[h.ticker]={diff:d,pct:pv>0?d/pv*100:0};ud+=d;
+    } else {
+      ed+=h.shares*h.price-(snap.eP?snap.eP[h.ticker]||0:0);
+    }
+  });
+  return{by:by,ud:ud,ed:ed,total:ud/EUR_USD+ed,from:snap.date};
 }
-function closeModal(id){
-  var m=document.getElementById(id);
-  if(m)m.style.display="none";
+
+// ─── FX-IMPACT (wisselkoers-effect op de portefeuille, los van koersbewegingen) ──
+function fxImpact(oldRate,currentUsdTotal){
+  if(!oldRate||!currentUsdTotal) return null;
+  var eurAtOld=currentUsdTotal/oldRate;
+  var eurAtNew=currentUsdTotal/EUR_USD;
+  var impact=eurAtNew-eurAtOld; // positief = EUR-waarde gestegen door wisselkoers
+  var ratePct=(EUR_USD-oldRate)/oldRate*100;
+  return{ratePct:ratePct,impact:impact,oldRate:oldRate,newRate:EUR_USD};
 }
-function saveFH(){
-  var inp=document.getElementById("fhInput");
-  if(!inp)return;
-  var k=inp.value.trim();
-  if(!k)return;
-  lsSet("carl-fh",k);
-  closeModal("mFH");
-  doFetch(k);
+function currentUsdTotal(){
+  var t=0;H.forEach(function(h){if(h.ccy==='USD')t+=h.shares*h.price;});return t;
 }
-function saveFMP(){
-  var inp=document.getElementById("fmpInput");
-  if(!inp)return;
-  var k=inp.value.trim();
-  if(!k)return;
-  lsSet("carl-fmp",k);
-  closeModal("mFMP");
-  var fhKey=lsGet("carl-fh");
+
+// ─── NAVIGATIE ───────────────────────────────────────────────────────────────
+function go(id,btn){
+  var panes=document.querySelectorAll('.tab-pane');
+  for(var i=0;i<panes.length;i++) panes[i].classList.remove('active');
+  var btns=document.querySelectorAll('.nb');
+  for(var i=0;i<btns.length;i++) btns[i].classList.remove('on');
+  document.getElementById('pane-'+id).classList.add('active');
+  btn.classList.add('on');
+}
+
+// ─── MODALS ──────────────────────────────────────────────────────────────────
+function openEurModal(){
+  var s=lsGet('carl-eur-manual')||{};
+  if(s.VUSA) document.getElementById('iVusa').value=s.VUSA;
+  if(s.DIET) document.getElementById('iDiet').value=s.DIET;
+  document.getElementById('eurModal').classList.add('open');
+}
+function closeEurModal(){document.getElementById('eurModal').classList.remove('open');}
+function saveEur(){
+  var v=parseFloat(document.getElementById('iVusa').value);
+  var d=parseFloat(document.getElementById('iDiet').value);
+  var s=lsGet('carl-eur-manual')||{};
+  if(!isNaN(v)) s.VUSA=v;
+  if(!isNaN(d)) s.DIET=d;
+  s.date=isoDate();
+  lsSet('carl-eur-manual',s);
+  H.forEach(function(h){
+    if(h.ticker==='VUSA'&&!isNaN(v)) h.price=v;
+    if(h.ticker==='DIET'&&!isNaN(d)) h.price=d;
+  });
+  updateEurSt();
+  closeEurModal();
+  updateAll();
+}
+function loadEurManual(){
+  var s=lsGet('carl-eur-manual');
+  if(!s) return;
+  H.forEach(function(h){
+    if(h.ticker==='VUSA'&&s.VUSA) h.price=s.VUSA;
+    if(h.ticker==='DIET'&&s.DIET) h.price=s.DIET;
+  });
+  updateEurSt();
+}
+function updateEurSt(){
+  var s=lsGet('carl-eur-manual');
+  var el=document.getElementById('eurSt');
+  if(s&&(s.VUSA||s.DIET)){
+    el.textContent='VUSA: \u20ac'+(s.VUSA||'?')+' \u00b7 D\'Ieteren: \u20ac'+(s.DIET||'?')+' \u00b7 '+s.date;
+  } else {
+    el.textContent='VUSA & D\'Ieteren \u00b7 tik om in te voeren';
+  }
+}
+function openKeyModal(){
+  document.getElementById('iKey').value=lsGet('carl-fh')||'';
+  document.getElementById('keyModal').classList.add('open');
+}
+function updateKeySt(){
+  var k=lsGet('carl-fh');
+  var el=document.getElementById('keySt');
+  if(!el) return;
+  el.textContent=k?('actief \u00b7 ...'+k.slice(-4)):'tik om in te voeren';
+}
+function openFmpModal(){
+  document.getElementById('iFmp').value=lsGet('carl-fmp')||'';
+  document.getElementById('fmpModal').classList.add('open');
+}
+function closeFmpModal(){document.getElementById('fmpModal').classList.remove('open');}
+function saveFmp(){
+  var k=document.getElementById('iFmp').value.replace(/\s/g,'');
+  if(!k) return;
+  lsSet('carl-fmp',k);
+  closeFmpModal();
+  updateFmpKeySt();
+  var fhKey=lsGet('carl-fh');
   if(fhKey) fetchTargets(fhKey);
 }
-function saveTD(){
-  var inp=document.getElementById("tdInput");
-  if(!inp)return;
-  var k=inp.value.trim();
-  if(!k)return;
-  lsSet("carl-td",k);
-  closeModal("mTD");
-  var st=document.getElementById("tdStatus");
-  if(st)st.innerHTML="<span style=\"color:#2ea76b\">✓ Actief</span>";
+function updateFmpKeySt(){
+  var k=lsGet('carl-fmp');
+  var el=document.getElementById('fmpKeySt');
+  if(!el) return;
+  el.textContent=k?('actief \u00b7 ...'+k.slice(-4)):'tik om in te voeren \u00b7 gratis op financialmodelingprep.com';
 }
-
-// ═══ LIVE FETCH ══════════════════════════════════════════════════════════════
-var USD_SYMS=["TSLA","NVDA","GOOGL","PLTR","AMZN","WULF","HIMS","PATH","SPCX"];
-var EUR_TICKERS=["VUSA","DIET"];
-
-function onLiveClick(){
-  var k=lsGet("carl-fh");
-  if(!k){openModal("mFH");return;}
+function closeKeyModal(){document.getElementById('keyModal').classList.remove('open');}
+function saveKey(){
+  var k=document.getElementById('iKey').value.replace(/\s/g,'');
+  if(!k) return;
+  lsSet('carl-fh',k);
+  closeKeyModal();
+  updateKeySt();
+  document.getElementById('kbanner').style.display='none';
   doFetch(k);
 }
 
-// ═══ VOLATILITEIT (VIXY ETF-proxy via Finnhub — echte VIX-index niet gratis beschikbaar) ══
-var vixVal=null,vixDP=null,vixErr=null,vixStale=null;
+// ─── LIVE FETCH ──────────────────────────────────────────────────────────────
+function onLiveClick(){
+  var k=lsGet('carl-fh');
+  if(!k){openKeyModal();return;}
+  doFetch(k);
+}
+
+function doFetch(fhKey){
+  var btn=document.getElementById('liveBtn');
+  var st=document.getElementById('liveSt');
+  if(btn){btn.disabled=true;btn.textContent='\u29bf Ophalen...';}
+
+  var prog={};
+  USD_SYMS.forEach(function(s){prog[s]='\u25cc';});
+  function render(){
+    if(!st) return;
+    st.textContent=USD_SYMS.map(function(s){
+      return(prog[s]==='\u2713'?'\u2713':'\u25cc')+' '+s;
+    }).join('  ');
+  }
+  render();
+
+  var done=0,fired=false;
+  var total=USD_SYMS.length;
+
+  // Timeout-fallback: na 10s altijd afronden (iOS kan fetch laten hangen)
+  var tmr=setTimeout(function(){
+    if(!fired){fired=true;onFetchDone(btn,st);}
+  },10000);
+
+  function tick(){
+    done++;render();
+    if(done>=total&&!fired){
+      fired=true;
+      clearTimeout(tmr);
+      onFetchDone(btn,st);
+    }
+  }
+
+  // Ook volatiliteitsproxy (VIXY) ophalen, met dezelfde Finnhub-sleutel
+  fetchVIX(fhKey);
+  // Koersdoelen ophalen (experimenteel, mogelijk Premium-only)
+  fetchTargets(fhKey);
+  // Live EUR/USD wisselkoers ophalen
+  fetchEurUsd(fhKey);
+
+  var usdDiag={};
+  USD_SYMS.forEach(function(sym){
+    fetch('https://finnhub.io/api/v1/quote?symbol='+sym+'&token='+fhKey)
+      .then(function(r){
+        usdDiag[sym+'_http']=r.status;
+        return r.json();
+      })
+      .then(function(d){
+        if(d&&d.c>0){
+          H.forEach(function(h){
+            if(h.ticker===sym&&h.ccy==='USD'){
+              h.price=Math.round(d.c*100)/100;
+              h.pc=Math.round((d.pc>0?d.pc:d.c)*100)/100;
+              h.pl=(h.price-h.avg)/h.avg*100;
+              h.dayPct=d.dp||0;
+              h.qt=d.t||null; // Unix timestamp van de quote (toont of dit voorbeurs/na-beurs is bijgewerkt)
+            }
+          });
+          prog[sym]='\u2713';
+        } else {
+          usdDiag[sym]=d&&d.error?d.error:'leeg';
+        }
+        tick();
+      })
+      .catch(function(e){usdDiag[sym]='fetch-fout: '+(e.message||e);tick();});
+  });
+  window.__lastUsdDiag=usdDiag;
+  window.__lastProg=prog; // toegankelijk voor onFetchDone (echte succes-telling)
+}
+
+function onFetchDone(btn,st){
+  var diag=window.__lastUsdDiag||{};
+  var prog2=window.__lastProg||{};
+  var okCount=USD_SYMS.filter(function(s){return prog2[s]==='\u2713';}).length;
+  var anySuccess=okCount>0;
+  var httpCodes=Object.keys(diag).filter(function(k){return k.indexOf('_http')>-1;}).map(function(k){return diag[k];});
+  var uniqueHttp=httpCodes.filter(function(v,i){return httpCodes.indexOf(v)===i;});
+
+  if(!anySuccess&&uniqueHttp.length){
+    var reason='onbekende fout';
+    if(uniqueHttp.indexOf(401)>-1||uniqueHttp.indexOf(403)>-1) reason='ongeldige sleutel (HTTP '+uniqueHttp.join(',')+')';
+    else if(uniqueHttp.indexOf(429)>-1) reason='rate-limit bereikt (HTTP 429) \u2014 even wachten';
+    else if(uniqueHttp.length&&uniqueHttp[0]>=500) reason='Finnhub-serverfout (HTTP '+uniqueHttp.join(',')+')';
+    if(st) st.textContent='\u2717 '+reason+' (sleutel niet gewijzigd)';
+  }
+
+  var now=new Date();
+  var ws=lsGet(PK.w);
+  if(!ws||!ws.live||ws.week!==isoWeek(now)) lsSet(PK.w,snapNow(true));
+  var ms=lsGet(PK.m);
+  if(!ms||!ms.live||ms.month!==isoMonth(now)) lsSet(PK.m,snapNow(true));
+  var ys=lsGet(PK.y);
+  if(!ys||!ys.live||ys.year!==isoYear(now)) lsSet(PK.y,snapNow(true));
+  if(anySuccess) archiveDayIfNeeded(); // dag-historiek enkel archiveren met verse data
+  // Sla de huidige totale waarde op als referentie voor de VOLGENDE fetch
+  if(anySuccess){
+    var curTot=0;
+    H.forEach(function(h){
+      if(h.ccy==='USD') curTot+=h.shares*h.price/EUR_USD;
+      else curTot+=h.shares*h.price;
+    });
+    lsSet('carl-lastval',{v:curTot,t:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})+' '+isoDate()});
+  }
+  updateAll();
+  if(btn){
+    btn.disabled=false;
+    if(isUSOpen()){
+      btn.className='lbtn open-m';btn.textContent='\u29bf VS-markt open \u00b7 Vernieuwen';
+    } else {
+      btn.className='lbtn closed-m';btn.textContent='\u2713 VS-markt gesloten \u00b7 Vernieuwen';
+    }
+  }
+  if(anySuccess||!uniqueHttp.length){
+    setTimeout(function(){if(st) st.textContent='';},3000);
+  }
+}
+
+// ─── UPDATE ALL ──────────────────────────────────────────────────────────────
+function updateAll(){
+  updateKPI();
+  renderHoldings();
+  renderPerf();
+  renderDag();
+  renderMkt();
+  renderVIX();
+  renderCharts();
+}
+
+function updateKPI(){
+  var tU=0,cU=0,tE=0,cE=0;
+  H.forEach(function(h){
+    if(h.ccy==='USD'){tU+=h.shares*h.price;cU+=h.shares*h.avg;}
+    else{tE+=h.shares*h.price;cE+=h.shares*h.avg;}
+  });
+  var tot=tU/EUR_USD+tE,cost=cU/EUR_USD+cE,pnl=tot-cost,pct=pnl/cost*100;
+  var hv=document.getElementById('heroVal');
+  if(hv){hv.textContent='\u20ac'+n2(tot);hv.className='kval '+(pnl>=0?'up':'dn');}
+  setText('heroSub','Kostenbasis \u20ac'+n2(cost)+' \u00b7 '+isoDate());
+  setText('kCost','\u20ac'+n2(cost));
+  var kp=document.getElementById('kPnl');
+  if(kp){kp.textContent='\u20ac'+n2(Math.abs(pnl));kp.className='kval '+(pnl>=0?'up':'dn');}
+  setText('kPnlP',fmtPct(pct));
+  var big=H.slice().sort(function(a,b){
+    var av=a.ccy==='USD'?a.shares*a.price/EUR_USD:a.shares*a.price;
+    var bv=b.ccy==='USD'?b.shares*b.price/EUR_USD:b.shares*b.price;
+    return bv-av;
+  })[0];
+  setText('kBig',big.ticker);
+  setText('kBigV','\u20ac'+n2(big.ccy==='USD'?big.shares*big.price/EUR_USD:big.shares*big.price));
+
+  // Stijg/daal-indicator vs vorige opgehaalde waarde
+  var lastVal=lsGet('carl-lastval');
+  var trendEl=document.getElementById('heroTrend');
+  if(trendEl&&lastVal&&lastVal.v>0){
+    var diff=tot-lastVal.v,diffPct=diff/lastVal.v*100;
+    var arrow=diff>=0?'\u25b2':'\u25bc';
+    var cls=diff>=0?'up':'dn';
+    trendEl.innerHTML='<span class="'+cls+'">'+arrow+' '+fmtEur(diff)+' ('+fmtPct(diffPct)+')</span><div style="font-size:9px;color:var(--t3);margin-top:1px">vs. '+lastVal.t+'</div>';
+  } else if(trendEl){
+    trendEl.textContent='';
+  }
+
+  // Wisselkoers-impact EUR/USD
+  var sens=tU*0.01/(EUR_USD*EUR_USD);
+  setText('fxSens','Gevoeligheid: elke +0,01 EUR/USD \u2248 \u2212\u20ac'+n2(sens)+' portefeuillewaarde.');
+  setText('fxUSD','$'+n2(tU));
+  setText('fxConv','\u20ac'+n2(tU/EUR_USD));
+  setText('fxTotal','\u20ac'+n2(tot));
+  var vusaH=H.find(function(h){return h.ticker==='VUSA';});
+  var dietH=H.find(function(h){return h.ticker==='DIET';});
+  if(vusaH) setText('fxVUSA','\u20ac'+n2(vusaH.shares*vusaH.price));
+  if(dietH) setText('fxDIET','\u20ac'+n2(dietH.shares*dietH.price));
+}
+
+function setText(id,txt){var el=document.getElementById(id);if(el) el.textContent=txt;}
+
+function renderMkt(){
+  var now=new Date();
+  var usHolidayToday=isHolidayToday(usHolidays(now.getFullYear()));
+  var euHolidayToday=isHolidayToday(euHolidays(now.getFullYear()));
+  var usOpen=isUSOpen(),euOpen=isEUOpen();
+
+  var elUS=document.getElementById('mktUS');
+  if(elUS){
+    var usTxt=usOpen?'\u25cf OPEN \u00b7 sluit 22:00':(usHolidayToday?'\u25cf GESLOTEN \u00b7 feestdag':'\u25cf GESLOTEN \u00b7 opent 15:30');
+    elUS.textContent=usTxt;elUS.className=usOpen?'up':'dn';
+  }
+  var elEU=document.getElementById('mktEU');
+  if(elEU){
+    var euTxt=euOpen?'\u25cf OPEN \u00b7 sluit 17:30':(euHolidayToday?'\u25cf GESLOTEN \u00b7 feestdag':'\u25cf GESLOTEN \u00b7 opent 09:00');
+    elEU.textContent=euTxt;elEU.className=euOpen?'up':'dn';
+  }
+
+  var btn=document.getElementById('liveBtn');
+  if(btn&&btn.textContent.indexOf('ophalen')>-1){
+    btn.className=usOpen?'lbtn open-m':'lbtn closed-m';
+  }
+}
+
+// ─── HOLDINGS ────────────────────────────────────────────────────────────────
+function renderHoldings(){
+  var cats=['core','spec','eur'];
+  var ids={core:'hCore',spec:'hSpec',eur:'hEur'};
+  cats.forEach(function(cat){
+    var html='';
+    var items=H.filter(function(h){return h.cat===cat;});
+    items.forEach(function(h,i){
+      var id='hd-'+cat+'-'+i;
+      var val=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
+      var plEur=val-(h.ccy==='USD'?h.shares*h.avg/EUR_USD:h.shares*h.avg);
+      var sym=h.ccy==='EUR'?'\u20ac':'$';
+      var pc=fmtPct(h.pl);
+      var cls=h.pl>=0?'up':'dn';
+      html+='<div class="hcard" onclick="toggleH(\''+id+'\')">';
+      html+='<div class="htop">';
+      html+='<div class="hleft">';
+      html+='<div class="tbadge">'+h.ticker+'</div>';
+      html+='<div><div class="hname">'+h.name+'</div><div class="hcat">'+h.shares+' aandelen</div></div>';
+      html+='</div>';
+      var qtLine=(h.ccy==='USD'&&h.qt)?fmtQt(h.qt):'';
+      html+='<div class="hright">';
+      html+='<div class="hprice">'+sym+h.price.toFixed(2)+'</div>';
+      html+='<div class="hpl '+cls+'">'+pc+'</div>';
+      if(qtLine) html+='<div style="font-size:9px;color:var(--t3);margin-top:2px">'+qtLine+'</div>';
+      html+='</div></div>';
+      html+='<div class="hdet" id="'+id+'">';
+      html+='<div class="dgrid">';
+      html+='<div class="ditem"><div class="dl">Waarde</div><div class="dv">\u20ac'+n2(val)+'</div></div>';
+      html+='<div class="ditem"><div class="dl">P&amp;L</div><div class="dv '+cls+'">'+fmtEur(plEur)+'</div></div>';
+      html+='<div class="ditem"><div class="dl">Gem. aankoop</div><div class="dv">'+sym+h.avg.toFixed(2)+'</div></div>';
+      html+='<div class="ditem"><div class="dl">Koersdoel</div><div class="dv">'+sym+h.target.toFixed(2)+'</div></div>';
+      html+='<div class="ditem"><div class="dl">Upside</div><div class="dv up">+'+h.upside+'%</div></div>';
+      html+='<div class="ditem"><div class="dl">P/E</div><div class="dv">'+h.pe+'</div></div>';
+      html+='<div class="ditem"><div class="dl">Free Cash Flow</div><div class="dv">'+h.fcf+'</div></div>';
+      html+='<div class="ditem"><div class="dl">Rating</div><div class="dv">'+h.rating+'</div></div>';
+      if(h.ccy==='USD'&&h.qt) html+='<div class="ditem"><div class="dl">Laatste koers-update</div><div class="dv" style="font-size:11px">'+fmtQt(h.qt)+'</div></div>';
+      html+='</div>';
+      if(h.brokers&&h.brokers.length>0){
+        html+='<div style="margin-top:8px">';
+        h.brokers.forEach(function(b){
+          var bv=b.sh*h.price/EUR_USD;
+          html+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);padding:3px 0">';
+          html+='<span>'+b.n+' ('+b.sh+' x $'+b.avg.toFixed(2)+')</span>';
+          html+='<span>\u20ac'+n2(bv)+'</span></div>';
+        });
+        html+='</div>';
+      }
+      html+='</div></div>';
+    });
+    var cont=document.getElementById(ids[cat]);
+    if(cont) cont.innerHTML=html;
+  });
+
+  var tU=0,cU=0,tE=0,cE=0;
+  H.forEach(function(h){
+    if(h.ccy==='USD'){tU+=h.shares*h.price;cU+=h.shares*h.avg;}
+    else{tE+=h.shares*h.price;cE+=h.shares*h.avg;}
+  });
+  var tot=tU/EUR_USD+tE,cost=cU/EUR_USD+cE,pnl=tot-cost;
+  var el=document.getElementById('hTot');
+  if(el){
+    el.innerHTML='<div class="stitle">Totaal portefeuille</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+      '<div><div style="font-size:22px;font-weight:700">\u20ac'+n2(tot)+'</div>'+
+      '<div style="font-size:12px;color:var(--t2)">Kostenbasis \u20ac'+n2(cost)+'</div></div>'+
+      '<div style="text-align:right">'+
+      '<div style="font-size:18px;font-weight:700" class="'+(pnl>=0?'up':'dn')+'">'+fmtEur(pnl)+'</div>'+
+      '<div style="font-size:12px;color:var(--t2)">'+fmtPct(pnl/cost*100)+'</div>'+
+      '</div></div>';
+  }
+}
+
+function toggleH(id){var el=document.getElementById(id);if(el) el.classList.toggle('open');}
+
+// ─── PRESTATIES ───────────────────────────────────────────────────────────────
+var periodExpanded={};
+function togglePeriodExpand(key){periodExpanded[key]=!periodExpanded[key];renderPerf();}
+
+function entriesInWeek(arr,weekStr){
+  return arr.filter(function(e){
+    if(!e.date) return false;
+    var p=e.date.split('-');
+    var d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
+    return isoWeek(d)===weekStr;
+  });
+}
+function entriesInMonth(arr,monthStr){
+  return arr.filter(function(e){return e.date&&e.date.slice(0,7)===monthStr;});
+}
+function entriesInYear(arr,yearStr){
+  return arr.filter(function(e){return e.date&&e.date.slice(0,4)===yearStr;});
+}
+
+function renderPerf(){
+  renderPeriod('pWeek','Week P&L',lsGet(PK.w),{
+    toggleKey:'week',label:'Per dag',
+    getItems:function(snap){
+      return entriesInWeek(lsGet(PK.dh)||[],snap.week).map(function(e){return{label:e.date,total:e.total};});
+    }
+  });
+  renderPeriod('pMonth','Maand P&L',lsGet(PK.m),{
+    toggleKey:'month',label:'Per week',
+    getItems:function(snap){
+      return entriesInMonth(lsGet(PK.wh)||[],snap.month).map(function(e){return{label:e.week,total:e.total};});
+    }
+  });
+  renderPeriod('pYear','Jaar P&L',lsGet(PK.y),{
+    toggleKey:'year',label:'Per maand',
+    getItems:function(snap){
+      return entriesInYear(lsGet(PK.mh)||[],snap.year).map(function(e){return{label:e.month,total:e.total};});
+    }
+  });
+  renderHistBlock('pHistWeek','Historiek week',lsGet(PK.wh)||[],'week',8);
+  renderHistBlock('pHistMonth','Historiek maand',lsGet(PK.mh)||[],'month',12);
+  renderHistBlock('pHistYear','Historiek jaar',lsGet(PK.yh)||[],'year',10);
+}
+
+function renderHistBlock(elId,title,arr,key,max){
+  var el=document.getElementById(elId);
+  if(!el) return;
+  if(!arr.length){el.innerHTML='<div class="stitle">'+title+'</div><div class="mu" style="font-size:13px">Geen data</div>';return;}
+  var h='<div class="stitle">'+title+'</div>';
+  arr.slice(0,max).forEach(function(w){
+    h+='<div class="prow"><span style="font-size:12px;color:var(--t2);flex:1">'+w[key]+'</span>';
+    h+='<span class="'+(w.total>=0?'up':'dn')+'" style="font-weight:600">'+fmtEur(w.total)+'</span></div>';
+  });
+  el.innerHTML=h;
+}
+
+function renderPeriod(elId,title,snap,breakdown){
+  var el=document.getElementById(elId);
+  if(!el) return;
+  var pnl=snap?calcPnL(snap):null;
+  if(!pnl||!snap||!snap.live){
+    var msg=snap&&!snap.live?'Klik Live koersen voor de eerste meting van deze periode':'Klik Live koersen voor data';
+    el.innerHTML='<div class="stitle">'+title+'</div><div class="mu" style="font-size:13px">'+msg+'</div>';
+    return;
+  }
+  var cls=pnl.total>=0?'up':'dn';
+  var h='<div class="stitle">'+title+'</div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  h+='<div class="'+cls+'" style="font-size:22px;font-weight:700">'+fmtEur(pnl.total)+'</div>';
+  h+='<div style="font-size:11px;color:var(--t2)">vs. '+snap.date+(snap.time?' '+snap.time:'')+'</div></div>';
+
+  // FX-impact sinds deze snapshot
+  var fxP=fxImpact(snap.eurUsd||1.1611,currentUsdTotal());
+  if(fxP){
+    var fcP=fxP.impact>=0?'up':'dn';
+    var arrP=fxP.ratePct>=0?'\u25b2':'\u25bc';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;background:var(--p2);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11px">'+
+      '<span style="color:var(--t2)">EUR/USD '+fxP.oldRate.toFixed(4)+' \u2192 '+fxP.newRate.toFixed(4)+' <span class="'+fcP+'">'+arrP+' '+(fxP.ratePct>=0?'+':'')+fxP.ratePct.toFixed(2)+'%</span></span>'+
+      '<span class="'+fcP+'" style="font-weight:700">FX: '+fmtEur(fxP.impact)+'</span></div>';
+  }
+
+  var items=[];
+  var keys=Object.keys(pnl.by);
+  keys.forEach(function(tk){items.push({ticker:tk,diff:pnl.by[tk].diff/EUR_USD,pct:pnl.by[tk].pct});});
+  items.sort(function(a,b){return b.diff-a.diff;});
+  var mx=0;
+  items.forEach(function(it){if(Math.abs(it.diff)>mx) mx=Math.abs(it.diff);});
+  items.forEach(function(it){
+    var c2=it.diff>=0?'up':'dn';
+    var bw=mx>0?Math.abs(it.diff)/mx*100:0;
+    var bc=it.diff>=0?'var(--up)':'var(--dn)';
+    h+='<div class="prow">';
+    h+='<span class="ptk">'+it.ticker+'</span>';
+    h+='<div class="pbar"><div class="pbf" style="width:'+bw+'%;background:'+bc+'"></div></div>';
+    h+='<span class="pval '+c2+'">'+fmtPct(it.pct)+'</span>';
+    h+='<span class="peur '+c2+'">'+fmtEur(it.diff)+'</span>';
+    h+='</div>';
+  });
+
+  if(breakdown){
+    var isOpen2=!!periodExpanded[breakdown.toggleKey];
+    h+='<div onclick="togglePeriodExpand(\''+breakdown.toggleKey+'\')" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:11.5px;color:var(--bl)">';
+    h+='<span>'+breakdown.label+'</span><span>'+(isOpen2?'\u25b2 verberg':'\u25bc toon')+'</span></div>';
+    if(isOpen2){
+      var subItems=breakdown.getItems(snap);
+      if(!subItems.length){
+        h+='<div class="mu" style="font-size:12px;padding:8px 0">Nog geen detaildata beschikbaar voor deze periode</div>';
+      } else {
+        subItems.forEach(function(si){
+          var c3=si.total>=0?'up':'dn';
+          h+='<div class="prow" style="padding:6px 0">';
+          h+='<span style="font-size:12px;color:var(--t2);flex:1">'+si.label+'</span>';
+          h+='<span class="'+c3+'" style="font-weight:600;font-size:12px">'+fmtEur(si.total)+'</span>';
+          h+='</div>';
+        });
+      }
+    }
+  }
+
+  el.innerHTML=h;
+}
+
+// ─── DAG RAPPORT ─────────────────────────────────────────────────────────────
+// ─── DAG-ARCHIVERING (enkel na een echte live fetch, nooit bij gewone page-load) ──
+function archiveDayIfNeeded(){
+  var items=[];
+  var latestQt=0;
+  H.forEach(function(h){
+    if(h.ccy==='USD'&&h.price>0&&h.pc>0){
+      items.push({dagEur:(h.price-h.pc)*h.shares/EUR_USD});
+      if(h.qt&&h.qt>latestQt) latestQt=h.qt;
+    }
+  });
+  if(!items.length) return; // geen verse pc-data: niets archiveren
+  var tot=0;
+  items.forEach(function(it){tot+=it.dagEur;});
+
+  // Datum van de koers afleiden uit de Finnhub-tijdstempel zelf, niet uit 'nu'
+  // (zo blijft archivering correct, ook als je pas de volgende ochtend vóór beursopening checkt)
+  var quoteDate=latestQt?new Date(latestQt*1000):new Date();
+  var dateStr=isoDate(quoteDate);
+  var dayOfWeek=quoteDate.getDay();
+  if(dayOfWeek===0||dayOfWeek===6) return; // veiligheidsnet: weekend-tijdstempel negeren
+
+  var dh=lsGet(PK.dh)||[];
+  if(!dh.length||dh[0].date!==dateStr){
+    dh.unshift({date:dateStr,time:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot)});
+    lsSet(PK.dh,dh.slice(0,30));
+  } else if(dh[0].date===dateStr){
+    // Zelfde handelsdag, latere/nauwkeurigere fetch: bijwerken i.p.v. negeren
+    dh[0].total=Math.round(tot);
+    dh[0].time=new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+    lsSet(PK.dh,dh);
+  }
+}
+
+function renderDag(){
+  var items=[];
+  H.forEach(function(h){
+    if(h.ccy==='USD'&&h.price>0){
+      var pcVal=h.pc>0?h.pc:null;
+      var dagEur=pcVal?(h.price-pcVal)*h.shares/EUR_USD:0;
+      var dpct=pcVal?h.dayPct||((h.price-pcVal)/pcVal*100):null;
+      items.push({ticker:h.ticker,name:h.name,price:h.price,pc:pcVal,pct:dpct,dagEur:dagEur,hasDay:pcVal!==null});
+    }
+  });
+  items.sort(function(a,b){return b.dagEur-a.dagEur;});
+
+  var dayItems=items.filter(function(it){return it.hasDay;});
+  if(!items.length){
+    setText('dagTot','\u2014');setText('dagBest','\u2014');setText('dagBestP','\u2014');
+    var t0=document.getElementById('dagTbl');
+    if(t0) t0.innerHTML='<div class="mu" style="font-size:13px">Klik Live koersen voor dagdata</div>';
+    return;
+  }
+
+  var tot=0;
+  dayItems.forEach(function(it){tot+=it.dagEur;});
+  var best=dayItems.length?dayItems[0]:items[0];
+
+  var dt=document.getElementById('dagTot');
+  if(dt){dt.textContent=fmtEur(tot);dt.className='kval '+(tot>=0?'up':'dn');}
+  var db=document.getElementById('dagBest');
+  if(db){db.textContent=best.ticker;db.className='kval up';}
+  setText('dagBestP',fmtPct(best.pct));
+
+  var h='<div class="stitle">Dagwijzigingen</div>';
+  items.forEach(function(it){
+    var c=it.dagEur>=0?'up':'dn';
+    h+='<div class="prow">';
+    h+='<span class="ptk">'+it.ticker+'</span>';
+    var pcTxt=it.pc?'$'+it.pc.toFixed(2)+' \u2192 ':'';
+    h+='<span style="font-size:11px;color:var(--t2);flex:1">'+pcTxt+'$'+it.price.toFixed(2)+'</span>';
+    h+='<span class="pval '+c+'">'+(it.pct!==null?fmtPct(it.pct):'n/a')+'</span>';
+    h+='<span class="peur '+c+'">'+(it.hasDay?fmtEur(it.dagEur):'&#8212;')+'</span>';
+    h+='</div>';
+  });
+  var tbl=document.getElementById('dagTbl');
+  if(tbl) tbl.innerHTML=h;
+
+  // FX-impact vandaag
+  var fxEl=document.getElementById('dagFx');
+  if(fxEl){
+    var fx=eurUsdPrevClose?fxImpact(eurUsdPrevClose,currentUsdTotal()):null;
+    if(fx){
+      var fc=fx.impact>=0?'up':'dn';
+      var arrow=fx.ratePct>=0?'\u25b2':'\u25bc';
+      fxEl.innerHTML='<div class="stitle">Wisselkoers-impact vandaag</div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<span style="font-size:12px;color:var(--t2)">EUR/USD '+fx.oldRate.toFixed(4)+' \u2192 '+fx.newRate.toFixed(4)+' <span class="'+fc+'">'+arrow+' '+(fx.ratePct>=0?'+':'')+fx.ratePct.toFixed(2)+'%</span></span>'+
+        '<span class="'+fc+'" style="font-weight:700;font-size:14px">'+fmtEur(fx.impact)+'</span></div>';
+    } else {
+      fxEl.innerHTML='<div class="stitle">Wisselkoers-impact vandaag</div><div class="mu" style="font-size:12px">Nog geen vorig-slot beschikbaar</div>';
+    }
+  }
+
+  var dh=lsGet(PK.dh)||[];
+  var dhi=document.getElementById('dagHist');
+  if(dh.length&&dhi){
+    dhi.style.display='block';
+    var hh='<div class="stitle">Historiek</div>';
+    dh.slice(0,7).forEach(function(d){
+      var c2=d.total>=0?'up':'dn';
+      hh+='<div class="prow"><span style="font-size:12px;color:var(--t2);flex:1">'+d.date+'</span>';
+      hh+='<span class="'+c2+'" style="font-weight:600">'+fmtEur(d.total)+'</span></div>';
+    });
+    dhi.innerHTML=hh;
+  }
+}
+
+// ─── VOLATILITEIT (VIXY ETF-proxy via Finnhub — echte VIX-index niet gratis beschikbaar) ──
+var vixVal=null,vixErr=null,vixDP=null,vixStale=null;
 // ─── EUR/USD WISSELKOERS (live via Finnhub forex) ────────────────────────────
 var eurUsdPrevClose=null;
 function fetchEurUsd(fhKey){
   if(!fhKey) return;
-  fetch("https://finnhub.io/api/v1/quote?symbol=OANDA:EUR_USD&token="+fhKey)
+  fetch('https://finnhub.io/api/v1/quote?symbol=OANDA:EUR_USD&token='+fhKey)
     .then(function(r){return r.json();})
     .then(function(d){
-      var rateEl=document.getElementById("fxLiveRate");
-      var chgEl=document.getElementById("fxLiveChg");
-      var convLbl=document.getElementById("fxConvLbl");
+      var el=document.getElementById('kEur');
+      var sub=document.getElementById('kEurSub');
       if(d&&d.c>0){
         EUR_USD=d.c;
         eurUsdPrevClose=d.pc||null;
-        if(rateEl) rateEl.textContent=EUR_USD.toFixed(4).replace(".",",");
-        if(convLbl) convLbl.innerHTML="&rarr; EUR @"+EUR_USD.toFixed(4).replace(".",",");
-        if(chgEl){
+        if(el) el.textContent=EUR_USD.toFixed(4);
+        if(sub){
           var chg=d.dp;
           if(chg!==undefined&&chg!==null){
-            var arrow=chg>=0?"\u25b2":"\u25bc";
-            var col=chg>=0?"var(--g)":"var(--r)";
-            chgEl.innerHTML="<span style=\"color:"+col+"\">"+arrow+" "+(chg>=0?"+":"")+chg.toFixed(2)+"%</span> vs. vorig slot";
+            var arrow=chg>=0?'\u25b2':'\u25bc';
+            var cls=chg>=0?'up':'dn';
+            sub.innerHTML='<span class="'+cls+'">'+arrow+' '+(chg>=0?'+':'')+chg.toFixed(2)+'%</span> vs. vorig slot';
           } else {
-            chgEl.textContent="live wisselkoers";
+            sub.textContent='live wisselkoers';
           }
         }
-        updateAll(); // EUR-totalen, FX-module en grafieken herberekenen met nieuwe koers
-      } else if(chgEl){
-        chgEl.innerHTML="<span style=\"color:var(--r)\">geen live koers \u2014 statische waarde</span>";
+        renderHoldings();renderCharts();updateKPI(); // EUR-totalen herberekenen met nieuwe koers
+      } else if(sub){
+        sub.innerHTML='<span class="dn">geen live koers \u2014 statische waarde</span>';
       }
     })
     .catch(function(){
-      var chgEl=document.getElementById("fxLiveChg");
-      if(chgEl) chgEl.innerHTML="<span style=\"color:var(--r)\">netwerkfout \u2014 statische waarde</span>";
+      var sub=document.getElementById('kEurSub');
+      if(sub) sub.innerHTML='<span class="dn">netwerkfout \u2014 statische waarde</span>';
     });
 }
 
 function fetchVIX(fhKey){
-  if(!fhKey){renderVIX();return;}
+  if(!fhKey){vixErr=null;renderVIX();return;}
   vixErr=null;
-  fetch("https://finnhub.io/api/v1/quote?symbol=VIXY&token="+fhKey)
+  fetch('https://finnhub.io/api/v1/quote?symbol=VIXY&token='+fhKey)
     .then(function(r){return r.json();})
     .then(function(d){
       if(d&&d.c>0){
         vixVal=d.c;
         vixDP=d.dp!==undefined?d.dp:null;
-        lsSet("carl-vix",{v:vixVal,dp:vixDP,d:isoDate(),t:new Date().toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})});
+        lsSet('carl-vix',{v:vixVal,dp:vixDP,d:isoDate()});
+        renderVIX();
       } else {
-        var cached=lsGet("carl-vix");
-        if(cached){vixErr=null;vixStale="Kon niet verversen \u2014 toont laatste gekende waarde";}
-        else{vixErr="Geen data ontvangen voor VIXY";}
+        var cached=lsGet('carl-vix');
+        if(cached){vixErr=null;vixStale='Kon niet verversen \u2014 toont laatste gekende waarde';}
+        else{vixErr='Geen data ontvangen voor VIXY';}
+        renderVIX();
       }
-      renderVIX();
     })
     .catch(function(){
-      var cached2=lsGet("carl-vix");
-      if(cached2){vixErr=null;vixStale="Kon niet verversen (netwerkfout) \u2014 toont laatste gekende waarde";}
-      else{vixErr="netwerkfout";}
+      var cached2=lsGet('carl-vix');
+      if(cached2){vixErr=null;vixStale='Kon niet verversen (netwerkfout) \u2014 toont laatste gekende waarde';}
+      else{vixErr='netwerkfout';}
       renderVIX();
     });
 }
-
 function renderVIX(){
-  var el=document.getElementById("vixDiv");
-  if(!el)return;
+  var el=document.getElementById('vixDiv');
+  if(!el) return;
 
   if(vixErr){
-    el.innerHTML="<div style=\"text-align:center;padding:18px 0\">"+
-      "<div style=\"font-size:12px;color:var(--dn);margin-bottom:10px\">Finnhub fout: "+vixErr+"</div>"+
-      "<button class=\"btn\" onclick=\"fetchVIX(lsGet('carl-fh'))\">Opnieuw proberen</button>"+
-      "</div>";
+    el.innerHTML='<div style="text-align:center;padding:20px 0">'+
+      '<div style="font-size:13px;color:var(--dn);margin-bottom:10px">'+vixErr+'</div>'+
+      '<button class="mbtn" style="width:auto;padding:8px 16px" onclick="fetchVIX(lsGet(\'carl-fh\'))">Opnieuw proberen</button>'+
+      '</div>';
     return;
   }
 
   var saved=vixVal;
-  if(saved===null){var sv=lsGet("carl-vix");if(sv){saved=sv.v;vixDP=sv.dp;}}
+  if(!saved){var sv=lsGet('carl-vix');if(sv){saved=sv.v;vixDP=sv.dp;}}
   vixVal=saved; // BUGFIX: globale vixVal moet gesynchroniseerd zijn vóór .toFixed() verderop
-  var staleBanner=vixStale?("<div style=\"background:rgba(210,153,34,.12);border:1px solid rgba(210,153,34,.3);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:11.5px;color:var(--am)\">"+vixStale+"</div>"):"";
-  if(saved===null){
-    el.innerHTML="<div style=\"font-size:12px;color:var(--t3);text-align:center;padding:20px 0\">Klik Live koersen om de volatiliteitsproxy op te halen</div>";
+  var staleBanner=vixStale?('<div style="background:rgba(210,153,34,.12);border:1px solid rgba(210,153,34,.3);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--am)">'+vixStale+'</div>'):'';
+  if(!saved){
+    el.innerHTML='<div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Klik Live koersen om de volatiliteitsproxy op te halen</div>';
     return;
   }
 
   var dp=vixDP;
   var zone;
-  if(dp===null||dp===undefined) zone={lbl:"Onbekend",col:"#6e7681",desc:"Geen dagwijziging beschikbaar",idx:2};
-  else if(dp<=-3) zone={lbl:"Duidelijke daling",col:"#2ea76b",desc:"Markt rustiger geworden",idx:0};
-  else if(dp<=-1) zone={lbl:"Lichte daling",col:"#85c132",desc:"Lichte ontspanning",idx:1};
-  else if(dp<1)   zone={lbl:"Stabiel",col:"#d29922",desc:"Weinig verandering",idx:2};
-  else if(dp<3)   zone={lbl:"Lichte stijging",col:"#e87e1e",desc:"Lichte onzekerheid",idx:3};
-  else if(dp<6)   zone={lbl:"Duidelijke stijging",col:"#e5534b",desc:"Toegenomen angst",idx:4};
-  else            zone={lbl:"Sterke angstpiek",col:"#7b0000",desc:"Forse marktonrust",idx:5};
+  if(dp===null||dp===undefined) zone={lbl:'Onbekend',col:'#8b949e',desc:'Geen dagwijziging beschikbaar'};
+  else if(dp<=-3) zone={lbl:'Volatiliteit duidelijk gedaald',col:'#22c55e',desc:'Markt rustiger geworden'};
+  else if(dp<=-1) zone={lbl:'Volatiliteit licht gedaald',col:'#84cc16',desc:'Lichte ontspanning'};
+  else if(dp<1) zone={lbl:'Stabiel',col:'#eab308',desc:'Weinig verandering'};
+  else if(dp<3) zone={lbl:'Volatiliteit licht gestegen',col:'#f97316',desc:'Lichte onzekerheid'};
+  else if(dp<6) zone={lbl:'Volatiliteit duidelijk gestegen',col:'#ef4444',desc:'Toegenomen angst'};
+  else zone={lbl:'Sterke angstpiek',col:'#7f1d1d',desc:'Forse marktonrust'};
 
-  var sv2=lsGet("carl-vix");
-  var dateStr=sv2?(sv2.d+(sv2.t?" "+sv2.t:"")):"";
-  var dpStr=(dp!==null&&dp!==undefined)?(dp>=0?"+":"\u2212")+Math.abs(dp).toFixed(2)+"%":"\u2014";
-  var dpCol=(dp>=0)?"var(--dn)":"var(--up)"; // stijging VIXY = rood (slecht voor markt), daling = groen
+  var sv2=lsGet('carl-vix');
+  var dateStr=sv2?sv2.d:'';
+  var dpStr=(dp!==null&&dp!==undefined)?(dp>=0?'+':'\u2212')+Math.abs(dp).toFixed(2)+'%':'\u2014';
 
-  // Marker-positie op vaste schaal -8% tot +8%
-  var clamped=Math.max(-8,Math.min(8,dp||0));
-  var markerX=((clamped+8)/16*420).toFixed(1);
+  var h=staleBanner+'<div style="text-align:center;margin-bottom:16px">';
+  h+='<div style="font-size:13px;color:var(--t2);margin-bottom:6px">VIXY (volatiliteitsproxy)</div>';
+  h+='<div style="font-size:40px;font-weight:700;color:'+zone.col+'">$'+vixVal.toFixed(2)+'</div>';
+  h+='<div style="font-size:15px;font-weight:600;color:'+(dp>=0?'var(--dn)':'var(--up)')+';margin-top:2px">'+dpStr+' vandaag</div>';
+  h+='<div style="font-size:13px;font-weight:600;color:'+zone.col+';margin-top:8px">'+zone.lbl+'</div>';
+  h+='<div style="font-size:12px;color:var(--t2);margin-top:4px">'+zone.desc+'</div>';
+  h+='<div style="font-size:10px;color:var(--t3);margin-top:6px">'+dateStr+' \u00b7 Finnhub</div>';
+  h+='</div>';
 
-  var html=staleBanner+"<div style=\"display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px\">";
-  html+="<div>";
-  html+="<div style=\"font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px\">VIXY \u00b7 "+dateStr+"</div>";
-  html+="<div style=\"display:flex;align-items:baseline;gap:10px\"><span style=\"font-size:36px;font-weight:700\">$"+vixVal.toFixed(2)+"</span><span style=\"font-size:14px;font-weight:600;color:"+dpCol+"\">"+dpStr+" vandaag</span></div>";
-  html+="</div>";
-  html+="<div style=\"margin-left:auto;text-align:center\"><div style=\"background:"+zone.col+"22;color:"+zone.col+";font-size:13px;font-weight:700;padding:6px 16px;border-radius:8px;border:1px solid "+zone.col+"44\">"+zone.lbl.toUpperCase()+"</div><div style=\"font-size:10px;color:var(--t3);margin-top:4px\">dagwijziging-zone</div></div>";
-  html+="<div style=\"font-size:11.5px;color:var(--t2);max-width:230px;line-height:1.6;border-left:2px solid var(--bd);padding-left:12px\">"+zone.desc+". VIXY volgt VIX-futures, niet de index zelf &mdash; de dagwijziging % is het bruikbare signaal, niet de absolute prijs.</div>";
-  html+="</div>";
+  h+='<div class="card2" style="margin-bottom:12px">';
+  h+='<div style="font-size:11px;color:var(--t2);line-height:1.6">';
+  h+='VIXY volgt VIX-futures, niet de CBOE-index zelf &mdash; de <strong>dagwijziging %</strong> is het bruikbare signaal voor marktsentiment, niet de absolute prijs (die daalt over tijd door contango).';
+  h+='</div></div>';
 
-  html+="<svg viewBox=\"0 0 420 52\" width=\"100%\" style=\"display:block;margin-bottom:8px\">";
-  html+="<defs><clipPath id=\"gc2\"><rect x=\"0\" y=\"0\" width=\"420\" height=\"24\" rx=\"6\"/></clipPath></defs>";
-  html+="<g clip-path=\"url(#gc2)\">";
-  html+="<rect x=\"0\" y=\"0\" width=\"140\" height=\"24\" fill=\"#2ea76b\"/>";
-  html+="<rect x=\"140\" y=\"0\" width=\"46.7\" height=\"24\" fill=\"#85c132\"/>";
-  html+="<rect x=\"186.7\" y=\"0\" width=\"46.7\" height=\"24\" fill=\"#d29922\"/>";
-  html+="<rect x=\"233.3\" y=\"0\" width=\"46.7\" height=\"24\" fill=\"#e87e1e\"/>";
-  html+="<rect x=\"280\" y=\"0\" width=\"93.3\" height=\"24\" fill=\"#e5534b\"/>";
-  html+="<rect x=\"373.3\" y=\"0\" width=\"46.7\" height=\"24\" fill=\"#7b0000\"/>";
-  html+="</g>";
-  html+="<polygon points=\""+markerX+",30 "+(markerX-6)+",39 "+(Number(markerX)+6)+",39\" fill=\""+zone.col+"\"/>";
-  html+="<circle cx=\""+markerX+"\" cy=\"12\" r=\"5\" fill=\""+zone.col+"\" stroke=\"#0d1117\" stroke-width=\"1.5\"/>";
-  html+="<text x=\"70\" y=\"50\" text-anchor=\"middle\" fill=\"#6e7681\" font-size=\"8\">\u2264&#8722;3%</text>";
-  html+="<text x=\"163\" y=\"50\" text-anchor=\"middle\" fill=\"#6e7681\" font-size=\"8\">&#8722;3 tot &#8722;1%</text>";
-  html+="<text x=\"210\" y=\"50\" text-anchor=\"middle\" fill=\"#6e7681\" font-size=\"8\">&#8722;1 tot +1%</text>";
-  html+="<text x=\"257\" y=\"50\" text-anchor=\"middle\" fill=\"#6e7681\" font-size=\"8\">+1 tot +3%</text>";
-  html+="<text x=\"327\" y=\"50\" text-anchor=\"middle\" fill=\"#6e7681\" font-size=\"8\">+3 tot +6%</text>";
-  html+="<text x=\"397\" y=\"50\" text-anchor=\"middle\" fill=\"#6e7681\" font-size=\"8\">&gt;+6%</text>";
-  html+="</svg>";
+  h+='<div class="stitle" style="margin-bottom:8px">Interpretatie dagwijziging</div>';
+  var refs=[
+    {r:'\u2264 \u22123%',l:'Duidelijke daling',c:'#22c55e'},
+    {r:'\u22123% tot \u22121%',l:'Lichte daling',c:'#84cc16'},
+    {r:'\u22121% tot +1%',l:'Stabiel',c:'#eab308'},
+    {r:'+1% tot +3%',l:'Lichte stijging',c:'#f97316'},
+    {r:'+3% tot +6%',l:'Duidelijke stijging',c:'#ef4444'},
+    {r:'> +6%',l:'Sterke angstpiek',c:'#7f1d1d'}
+  ];
+  refs.forEach(function(z){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)">';
+    h+='<span style="width:10px;height:10px;border-radius:50%;background:'+z.c+';flex-shrink:0;display:inline-block"></span>';
+    h+='<span style="flex:1;font-size:12px">'+z.l+'</span>';
+    h+='<span style="font-size:11px;color:var(--t2)">'+z.r+'</span>';
+    h+='</div>';
+  });
 
-  html+="<div style=\"display:grid;grid-template-columns:repeat(3,1fr);gap:6px 12px;font-size:10.5px;color:var(--t2)\">";
-  html+="<span>&#128994; <strong style=\"color:var(--t)\">Duidelijke daling</strong> \u2264\u22123%</span>";
-  html+="<span>&#128994; <strong style=\"color:var(--t)\">Lichte daling</strong> \u22123 tot \u22121%</span>";
-  html+="<span>&#128993; <strong style=\"color:var(--t)\">Stabiel</strong> \u22121 tot +1%</span>";
-  html+="<span>&#128992; <strong style=\"color:var(--t)\">Lichte stijging</strong> +1 tot +3%</span>";
-  html+="<span>&#128308; <strong style=\"color:var(--t)\">Duidelijke stijging</strong> +3 tot +6%</span>";
-  html+="<span>&#128308; <strong style=\"color:var(--t)\">Sterke angstpiek</strong> &gt;+6%</span>";
-  html+="</div>";
+  el.innerHTML=h;
+}
 
-  el.innerHTML=html;
+
+// ─── GRAFIEKEN ────────────────────────────────────────────────────────────────
+var TICKER_COLOR={TSLA:'#388bfd',NVDA:'#2ea76b',GOOGL:'#3fb950',PLTR:'#8957e5',AMZN:'#d29922',WULF:'#f0a500',HIMS:'#f85149',PATH:'#79c0ff',VUSA:'#a78bfa',DIET:'#c084fc',SPCX:'#ff6b35'};
+var BROKER_COLOR={BUX:'#388bfd',Bolero:'#8957e5',Revolut:'#2ea76b'};
+var SINGLE_BROKER={GOOGL:'BUX',PLTR:'BUX',AMZN:'Bolero',HIMS:'Revolut',PATH:'Revolut',VUSA:'Revolut',DIET:'Revolut',SPCX:'Revolut'};
+
+function svgDonut(segs,centerLbl,centerSub){
+  var R=38,C=2*Math.PI*R,cum=0,circles='';
+  var total=0;segs.forEach(function(s){total+=s.val;});
+  segs.forEach(function(s){
+    var pct=total>0?s.val/total:0,dash=(pct*C).toFixed(2),gap=(C-pct*C).toFixed(2),rot=(cum*360-90).toFixed(1);
+    circles+='<circle cx="55" cy="55" r="'+R+'" fill="none" stroke="'+s.col+'" stroke-width="16" stroke-dasharray="'+dash+' '+gap+'" transform="rotate('+rot+' 55 55)"/>';
+    cum+=pct;
+  });
+  var svg='<svg viewBox="0 0 110 110" width="120" height="120">'+circles+
+    '<text x="55" y="52" text-anchor="middle" fill="var(--t1)" font-size="13" font-weight="700">'+centerLbl+'</text>'+
+    '<text x="55" y="66" text-anchor="middle" fill="var(--t3)" font-size="9">'+centerSub+'</text></svg>';
+  return svg;
+}
+
+function barList(items,valKey,fmtFn,colorPos,colorNeg){
+  var mx=0;items.forEach(function(it){if(Math.abs(it[valKey])>mx) mx=Math.abs(it[valKey]);});
+  var h='';
+  items.forEach(function(it){
+    var v=it[valKey],cls=v>=0?'up':'dn',bw=mx>0?Math.abs(v)/mx*100:0,bc=v>=0?colorPos:colorNeg;
+    h+='<div class="prow">';
+    h+='<span class="ptk">'+it.ticker+'</span>';
+    h+='<div class="pbar"><div class="pbf" style="width:'+bw+'%;background:'+bc+'"></div></div>';
+    h+='<span class="pval '+cls+'" style="min-width:64px">'+fmtFn(v)+'</span>';
+    h+='</div>';
+  });
+  return h;
+}
+
+function renderCharts(){
+  // 1. Allocatie donut (USD-posities)
+  var elA=document.getElementById('chAlloc');
+  if(elA){
+    var usdItems=H.filter(function(h){return h.ccy==='USD';});
+    var usdTot=0;usdItems.forEach(function(h){usdTot+=h.shares*h.price;});
+    var segs=usdItems.map(function(h){return{val:h.shares*h.price,col:TICKER_COLOR[h.ticker]||'#6e7681'};})
+      .sort(function(a,b){return b.val-a.val;});
+    var donutSvg=svgDonut(segs,'$'+(usdTot/1000).toFixed(0)+'k',usdItems.length+' posities');
+    var legend='<div style="display:flex;flex-direction:column;gap:5px;font-size:11.5px;margin-left:14px">';
+    usdItems.slice().sort(function(a,b){return(b.shares*b.price)-(a.shares*a.price);}).forEach(function(h){
+      var pct=usdTot>0?(h.shares*h.price/usdTot*100):0;
+      legend+='<div style="display:flex;align-items:center;gap:7px">'+
+        '<span style="width:9px;height:9px;border-radius:2px;background:'+(TICKER_COLOR[h.ticker]||'#6e7681')+';flex-shrink:0"></span>'+
+        '<span style="flex:1">'+h.ticker+'</span><span style="color:var(--t2)">'+pct.toFixed(1)+'%</span></div>';
+    });
+    legend+='</div>';
+    elA.innerHTML='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">'+donutSvg+legend+'</div>';
+  }
+
+  // 2. Rendement per positie
+  var elR=document.getElementById('chRend');
+  if(elR){
+    var rItems=H.map(function(h){return{ticker:h.ticker,pl:h.pl};}).sort(function(a,b){return b.pl-a.pl;});
+    elR.innerHTML=barList(rItems,'pl',function(v){return fmtPct(v);},'var(--up)','var(--dn)');
+  }
+
+  // 3. Upside naar koersdoel
+  var elU=document.getElementById('chUpside');
+  if(elU){
+    var uItems=H.map(function(h){return{ticker:h.ticker,upside:h.upside};}).sort(function(a,b){return b.upside-a.upside;});
+    elU.innerHTML=barList(uItems,'upside',function(v){return(v>=0?'+':'\u2212')+Math.abs(v)+'%';},'var(--bl)','var(--dn)');
+  }
+
+  // 4. Ongerealiseerde P&L (EUR)
+  var elP=document.getElementById('chPnl');
+  if(elP){
+    var pItems=H.map(function(h){
+      var val=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
+      var cost=h.ccy==='USD'?h.shares*h.avg/EUR_USD:h.shares*h.avg;
+      return{ticker:h.ticker,pnl:val-cost};
+    }).sort(function(a,b){return b.pnl-a.pnl;});
+    elP.innerHTML=barList(pItems,'pnl',function(v){return fmtEur(v);},'var(--bl)','var(--dn)');
+    var totPnl=0;pItems.forEach(function(it){totPnl+=it.pnl;});
+    elP.innerHTML+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;font-size:12px">'+
+      '<span class="mu">Totaal ongerealiseerd</span><span class="'+(totPnl>=0?'up':'dn')+'" style="font-weight:600">'+fmtEur(totPnl)+'</span></div>';
+  }
+
+  // 5. Kostenbasis vs huidige waarde
+  var elB=document.getElementById('chBasis');
+  if(elB){
+    var bItems=H.map(function(h){
+      var val=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
+      var cost=h.ccy==='USD'?h.shares*h.avg/EUR_USD:h.shares*h.avg;
+      return{ticker:h.ticker,val:val,cost:cost};
+    });
+    var mxB=0;bItems.forEach(function(it){var m=Math.max(it.val,it.cost);if(m>mxB)mxB=m;});
+    var hh='';
+    bItems.forEach(function(it){
+      var wCost=mxB>0?it.cost/mxB*100:0,wVal=mxB>0?it.val/mxB*100:0;
+      var neg=it.val<it.cost;
+      hh+='<div style="margin-bottom:9px">';
+      hh+='<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="font-weight:650">'+it.ticker+'</span><span class="'+(neg?'dn':'up')+'">\u20ac'+n2(it.cost)+' \u2192 \u20ac'+n2(it.val)+'</span></div>';
+      hh+='<div style="height:6px;background:var(--p2);border-radius:2px;margin-bottom:2px;overflow:hidden"><div style="height:100%;width:'+wCost+'%;background:#2a3a5c"></div></div>';
+      hh+='<div style="height:6px;background:var(--p2);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+wVal+'%;background:'+(neg?'var(--dn)':'var(--up)')+'"></div></div>';
+      hh+='</div>';
+    });
+    elB.innerHTML=hh;
+  }
+
+  // 6. Broker-verdeling donut
+  var elK=document.getElementById('chBroker');
+  if(elK){
+    var brokerTot={BUX:0,Bolero:0,Revolut:0};
+    H.forEach(function(h){
+      if(h.brokers&&h.brokers.length>0){
+        h.brokers.forEach(function(b){
+          var v=h.ccy==='USD'?(b.sh*h.price/EUR_USD):(b.sh*h.price);
+          brokerTot[b.n]=(brokerTot[b.n]||0)+v;
+        });
+      } else {
+        var primary=SINGLE_BROKER[h.ticker]||'Revolut';
+        var v2=h.ccy==='USD'?(h.shares*h.price/EUR_USD):(h.shares*h.price);
+        brokerTot[primary]=(brokerTot[primary]||0)+v2;
+      }
+    });
+    var grandTot=0;Object.keys(brokerTot).forEach(function(k){grandTot+=brokerTot[k];});
+    var bSegs=Object.keys(brokerTot).map(function(k){return{val:brokerTot[k],col:BROKER_COLOR[k]||'#6e7681',name:k};})
+      .sort(function(a,b){return b.val-a.val;});
+    var bDonut=svgDonut(bSegs,'3 brokers','\u20ac'+(grandTot/1000).toFixed(0)+'k');
+    var bLegend='<div style="display:flex;flex-direction:column;gap:5px;font-size:11.5px;margin-left:14px">';
+    bSegs.forEach(function(s){
+      var pct2=grandTot>0?(s.val/grandTot*100):0;
+      bLegend+='<div style="display:flex;align-items:center;gap:7px">'+
+        '<span style="width:9px;height:9px;border-radius:2px;background:'+s.col+';flex-shrink:0"></span>'+
+        '<span style="flex:1">'+s.name+'</span><span style="color:var(--t2)">'+pct2.toFixed(1)+'%</span></div>';
+    });
+    bLegend+='</div>';
+    elK.innerHTML='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">'+bDonut+bLegend+'</div>';
+  }
+}
+
+// ─── BACKUP & HERSTEL ─────────────────────────────────────────────────────────
+function exportBackup(){
+  try{
+    var data={};
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      data[k]=localStorage.getItem(k);
+    }
+    var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download='portfolio-backup-'+isoDate()+'.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    var st=document.getElementById('backupSt');
+    if(st) st.textContent='\u2713 Backup gedownload \u00b7 '+new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    var st2=document.getElementById('backupSt');
+    if(st2) st2.textContent='\u2717 Export mislukt: '+e.message;
+  }
+}
+function importBackup(file){
+  if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=JSON.parse(e.target.result);
+      var n=0;
+      Object.keys(data).forEach(function(k){localStorage.setItem(k,data[k]);n++;});
+      var st=document.getElementById('backupSt');
+      if(st) st.textContent='\u2713 '+n+' items hersteld \u2014 pagina herlaadt...';
+      setTimeout(function(){location.reload();},1200);
+    }catch(err){
+      var st2=document.getElementById('backupSt');
+      if(st2) st2.textContent='\u2717 Ongeldig backup-bestand';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ─── BOOTSTRAP HISTORIEK (eenmalig, enkel als sleutel nog niet lokaal bestaat) ──
+function bootstrapHistory(){
+  var seed={"cp_w": {"date": "2026-06-22", "time": "06:12", "week": "2026-W25", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231935.7737, "NVDA": 16461.42039, "GOOGL": 9568.78, "PLTR": 7649.1038, "AMZN": 2443.9, "WULF": 8719.24158, "HIMS": 126.66337, "PATH": 1694.20082, "SPCX": 229.85}, "eP": {"VUSA": 1179.707432, "DIET": 363.14392}, "tot": 278828.93, "live": true}, "cp_m": {"date": "2026-06-20", "time": "16:43", "week": "2026-W24", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231958.93889999998, "NVDA": 16464.54563, "GOOGL": 9569.82, "PLTR": 7650.89, "AMZN": 2444.3, "WULF": 8725.259, "HIMS": 126.69908, "PATH": 1695.85048, "SPCX": 229.85}, "eP": {"VUSA": 1161.128612, "DIET": 380.4258}, "tot": 278866.15, "live": true}, "cp_y": {"date": "2026-06-20", "time": "16:43", "week": "2026-W24", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231958.93889999998, "NVDA": 16464.54563, "GOOGL": 9569.82, "PLTR": 7650.89, "AMZN": 2444.3, "WULF": 8725.259, "HIMS": 126.69908, "PATH": 1695.85048, "SPCX": 229.85}, "eP": {"VUSA": 1161.128612, "DIET": 380.4258}, "tot": 278866.15, "live": true}, "cp_dh": [{"date": "2026-06-23", "time": "23:30", "total": 0}, {"date": "2026-06-22", "time": "22:01", "total": 1072}, {"date": "2026-06-19", "time": "22:12", "total": 2807}], "cp_wh": [{"week": "2026-W24", "date": "2026-06-20", "total": 5244}], "carl-eur-manual": {"VUSA": 123.76, "DIET": 165.1, "date": "2026-06-22"}, "carl-vix": {"v": 22.89, "dp": -0.3916, "d": "2026-06-24"}};
+  Object.keys(seed).forEach(function(k){
+    try{
+      if(localStorage.getItem(k)===null){
+        lsSet(k,seed[k]);
+        console.log('[Bootstrap] '+k+' ingeladen uit eerdere backup');
+      }
+    }catch(e){}
+  });
 }
 
 // ─── KOERSDOELEN (analisten) — FMP primair, Finnhub als terugval ─────────────
-var targetStatus={ok:0,fail:0,premiumBlocked:false,source:""};
+var targetStatus={ok:0,fail:0,premiumBlocked:false,source:''};
 function fetchTargets(fhKey){
-  var fmpKey=lsGet("carl-fmp");
+  var fmpKey=lsGet('carl-fmp');
   if(fmpKey) return fetchTargetsFMP(fmpKey);
   return fetchTargetsFinnhub(fhKey);
 }
 
 function fetchTargetsFMP(fmpKey){
-  targetStatus={ok:0,fail:0,premiumBlocked:false,source:"FMP"};
+  targetStatus={ok:0,fail:0,premiumBlocked:false,source:'FMP'};
   var failedTickers=[];
   var promises=USD_SYMS.map(function(sym){
-    return fetch("https://financialmodelingprep.com/stable/price-target-consensus?symbol="+sym+"&apikey="+fmpKey)
+    return fetch('https://financialmodelingprep.com/stable/price-target-consensus?symbol='+sym+'&apikey='+fmpKey)
       .then(function(r){
-        if(r.status===403||r.status===401){targetStatus.premiumBlocked=true;targetStatus.fail++;failedTickers.push(sym+" (geblokkeerd)");return null;}
-        if(r.status===429){targetStatus.fail++;failedTickers.push(sym+" (limiet)");return null;}
+        if(r.status===403||r.status===401){targetStatus.premiumBlocked=true;targetStatus.fail++;failedTickers.push(sym+' (geblokkeerd)');return null;}
+        if(r.status===429){targetStatus.fail++;failedTickers.push(sym+' (limiet)');return null;}
         return r.json();
       })
       .then(function(d){
-        if(d===null) return;
+        if(d===null) return; // al afgehandeld (403/429)
         var rec=Array.isArray(d)?d[0]:d;
         var tgt=rec&&(rec.targetConsensus||rec.targetMedian);
         if(rec&&tgt>0){
@@ -555,31 +1393,35 @@ function fetchTargetsFMP(fmpKey){
           targetStatus.ok++;
         } else {
           targetStatus.fail++;
-          failedTickers.push(sym+" (geen analist-dekking)");
+          failedTickers.push(sym+' (geen analist-dekking)');
         }
       })
-      .catch(function(){targetStatus.fail++;failedTickers.push(sym+" (netwerkfout)");});
+      .catch(function(){targetStatus.fail++;failedTickers.push(sym+' (netwerkfout)');});
   });
   return Promise.all(promises).then(function(){
-    var st=document.getElementById("targetSt");
+    var st=document.getElementById('targetSt');
     if(!st) return;
     if(targetStatus.ok>0&&targetStatus.fail===0){
-      st.innerHTML="<span style=\"color:#3fb950\">\u2713 Koersdoelen (FMP) bijgewerkt voor alle "+USD_SYMS.length+" posities</span>";
+      st.textContent='\u2713 Koersdoelen (FMP) bijgewerkt voor alle '+USD_SYMS.length+' posities';
+      st.className='up';
     } else if(targetStatus.ok>0){
-      st.innerHTML="<span style=\"color:#3fb950\">\u2713 Koersdoelen (FMP): "+targetStatus.ok+"/"+USD_SYMS.length+"</span> <span style=\"color:var(--t3);font-size:10px\">Mislukt: "+failedTickers.join(", ")+"</span>";
+      st.innerHTML='\u2713 Koersdoelen (FMP) bijgewerkt voor '+targetStatus.ok+' van '+USD_SYMS.length+' posities<br><span style="font-size:10px;color:var(--t3)">Mislukt: '+failedTickers.join(', ')+'</span>';
+      st.className='up';
     } else if(targetStatus.premiumBlocked){
-      st.innerHTML="<span style=\"color:#e5534b\">\u2717 FMP-sleutel ongeldig of limiet bereikt \u2014 bestaande waarden behouden</span>";
+      st.textContent='\u2717 FMP-sleutel ongeldig of limiet bereikt \u2014 bestaande waarden behouden';
+      st.className='dn';
     } else {
-      st.innerHTML="<span style=\"color:#e5534b\">\u2717 Geen koersdoel-data van FMP ontvangen \u2014 bestaande waarden behouden</span>";
+      st.textContent='\u2717 Geen koersdoel-data van FMP ontvangen \u2014 bestaande waarden behouden';
+      st.className='dn';
     }
-    drawCharts();renderTable();
+    if(targetStatus.ok>0){renderHoldings();renderCharts();}
   });
 }
 
 function fetchTargetsFinnhub(fhKey){
-  targetStatus={ok:0,fail:0,premiumBlocked:false,source:"Finnhub"};
+  targetStatus={ok:0,fail:0,premiumBlocked:false,source:'Finnhub'};
   var promises=USD_SYMS.map(function(sym){
-    return fetch("https://finnhub.io/api/v1/stock/price-target?symbol="+sym+"&token="+fhKey)
+    return fetch('https://finnhub.io/api/v1/stock/price-target?symbol='+sym+'&token='+fhKey)
       .then(function(r){
         if(r.status===403||r.status===401){targetStatus.premiumBlocked=true;targetStatus.fail++;return null;}
         return r.json();
@@ -598,942 +1440,53 @@ function fetchTargetsFinnhub(fhKey){
       .catch(function(){targetStatus.fail++;});
   });
   return Promise.all(promises).then(function(){
-    var st=document.getElementById("targetSt");
+    var st=document.getElementById('targetSt');
     if(!st) return;
     if(targetStatus.ok>0){
-      st.innerHTML="<span style=\"color:#3fb950\">\u2713 Koersdoelen bijgewerkt voor "+targetStatus.ok+" van "+USD_SYMS.length+" posities</span>";
+      st.textContent='\u2713 Koersdoelen bijgewerkt voor '+targetStatus.ok+' van '+USD_SYMS.length+' posities';
+      st.className='up';
     } else if(targetStatus.premiumBlocked){
-      st.innerHTML="<span style=\"color:#e5534b\">\u2717 Koersdoelen vereisen Finnhub Premium op dit plan \u2014 bestaande waarden behouden</span>";
+      st.textContent='\u2717 Koersdoelen vereisen Finnhub Premium op dit plan \u2014 bestaande waarden behouden';
+      st.className='dn';
     } else {
-      st.innerHTML="<span style=\"color:#e5534b\">\u2717 Geen koersdoel-data ontvangen \u2014 bestaande waarden behouden</span>";
+      st.textContent='\u2717 Geen koersdoel-data ontvangen \u2014 bestaande waarden behouden';
+      st.className='dn';
     }
-    drawCharts();renderTable();
+    if(targetStatus.ok>0){renderHoldings();renderCharts();}
   });
 }
 
-async function doFetch(fhKey){
-  var btn=document.getElementById("liveBtn");
-  var st=document.getElementById("liveSt");
-  if(btn){btn.disabled=true;btn.textContent="⊙ Ophalen...";}
-  var tdKey=lsGet("carl-td");
-
-  // Voortgang per ticker
-  var prog={};
-  USD_SYMS.forEach(function(s){prog[s]="◌";});
-  EUR_TICKERS.forEach(function(s){prog[s]=tdKey?"◌":"○";});
-
-  function render(){
-    if(!st)return;
-    var parts=USD_SYMS.concat(EUR_TICKERS).map(function(s){
-      var ic=prog[s]==="✓"?"color:#2ea76b":prog[s]==="✗"?"color:#e5534b":"color:#6e7681";
-      return "<span style=\""+ic+"\">"+prog[s]+" "+s+"</span>";
-    });
-    st.innerHTML=parts.join(" <span style=\"color:#2a3140\">·</span> ");
-  }
-  render();
-
-  try{
-    // USD via Finnhub — elk ticker afzonderlijk met live update
-    var usdDiag={};
-    var usdFetches=USD_SYMS.map(function(sym){
-      return fetch("https://finnhub.io/api/v1/quote?symbol="+sym+"&token="+fhKey)
-        .then(function(r){
-          usdDiag[sym+"_http"]=r.status;
-          return r.json();
-        })
-        .then(function(d){
-          if(d.c&&d.c>0){
-            H.forEach(function(h){
-              if(h.ticker===sym&&h.ccy==="USD"){
-                h.price=Math.round(d.c*100)/100;
-                h.pc=Math.round((d.pc||d.c)*100)/100; // previous close
-                h.pl=(h.price-h.avg)/h.avg*100;
-                h.dayPct=d.dp||0;
-                h.qt=d.t||null; // Unix timestamp van de quote
-              }
-            });
-            prog[sym]="✓";
-          } else {
-            prog[sym]="✗";
-            usdDiag[sym]=d&&d.error?d.error:(JSON.stringify(d).slice(0,60)||"leeg");
-          }
-          render();
-        })
-        .catch(function(e){prog[sym]="✗";usdDiag[sym]="fetch-fout: "+(e.message||e);render();});
-    });
-
-    var eurFetches=[];
-    var eurDiag2={};
-    await Promise.all(usdFetches.concat(eurFetches));
-
-    var usdOk=USD_SYMS.filter(function(s){return prog[s]==="✓";}).length;
-    var eurOk=EUR_TICKERS.filter(function(s){return prog[s].startsWith("✓");}).length;
-    // Toon diagnostiek als EUR mislukt
-    if(eurOk===0){
-      var diagMsg=EUR_TICKERS.map(function(s){return s+": "+(eurDiag2[s]||"geen respons");}).join(" | ");
-      setTimeout(function(){var el=document.getElementById("liveSt");if(el)el.innerHTML+=" <span style=\"color:var(--a);font-size:10px\">| EUR diag: "+diagMsg+"</span>";},1200);
-    }
-
-    if(usdOk>0){
-      updateAll();
-      archiveDayIfNeeded(); // dag-historiek enkel archiveren met verse data
-      // Sla de huidige totale waarde op als referentie voor de VOLGENDE fetch
-      if(usdOk>0){
-        var _curTot=0;
-        H.forEach(function(h){if(h.ccy==="USD")_curTot+=h.shares*h.price/EUR_USD;else _curTot+=h.shares*h.price;});
-        lsSet("carl-lastval",{v:_curTot,t:new Date().toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})+" "+isoDate()});
-      }
-      renderDagRapport(); // Dag P&L herberekenen na live fetch
-      fetchVIX(fhKey); // Volatiliteitsproxy (VIXY) ophalen, zelfde Finnhub-sleutel
-      fetchEurUsd(fhKey); // Live EUR/USD wisselkoers ophalen
-      fetchTargets(fhKey); // Koersdoelen ophalen (experimenteel, mogelijk Premium-only)
-
-      // Week-snapshot: aanmaken of vernieuwen met live koersen
-      var wsNow=lsGet(PK.w);
-      if(!wsNow||!wsNow.live||wsNow.week!==isoWeek(new Date())){
-        lsSet(PK.w,snapNow(true));
-      }
-      // Maand-snapshot: aanmaken of vernieuwen met live koersen
-      var msNow=lsGet(PK.m);
-      if(!msNow||!msNow.live||msNow.month!==isoMonth(new Date())){
-        lsSet(PK.m,snapNow(true));
-      }
-      // Jaar-snapshot: aanmaken of vernieuwen met live koersen
-      var ysNow=lsGet(PK.y);
-      if(!ysNow||!ysNow.live||ysNow.year!==isoYear(new Date())){
-        lsSet(PK.y,snapNow(true));
-      }
-      renderPerf();
-      var now=new Date();
-      var t=now.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"});
-      document.getElementById("subtitle").textContent=
-        "Live koersen "+now.toLocaleDateString("nl-BE")+" "+t+
-        " \u00b7 EUR/USD 1,1611 \u00b7 Finnhub"+(eurOk>0?" + Twelve Data":"")+
-        " \u00b7 auto-refresh 60s";
-      // Toon samenvatting na 1s
-      setTimeout(function(){
-        if(st) st.innerHTML=
-          "<span style=\"color:#2ea76b;font-weight:600\">"+
-          "✓ "+usdOk+"/8 USD"+(tdKey?" · "+eurOk+"/2 EUR":"")+
-          " · "+t+"</span>";
-      },900);
-    } else {
-      var httpCodes=Object.keys(usdDiag).filter(function(k){return k.indexOf("_http")>-1;}).map(function(k){return usdDiag[k];});
-      var uniqueHttp=httpCodes.filter(function(v,i){return httpCodes.indexOf(v)===i;});
-      var diagDetail=Object.keys(usdDiag).filter(function(k){return k.indexOf("_http")===-1;}).slice(0,2).map(function(k){return k+": "+usdDiag[k];}).join(" | ");
-      var reason="onbekende fout";
-      if(uniqueHttp.indexOf(401)>-1||uniqueHttp.indexOf(403)>-1) reason="ongeldige sleutel (HTTP "+uniqueHttp.join(",")+")";
-      else if(uniqueHttp.indexOf(429)>-1) reason="rate-limit bereikt (HTTP 429) \u2014 even wachten en opnieuw proberen";
-      else if(uniqueHttp.length&&uniqueHttp[0]>=500) reason="Finnhub-serverfout (HTTP "+uniqueHttp.join(",")+")";
-      else if(diagDetail) reason=diagDetail;
-      if(st) st.innerHTML="<span style=\"color:#e5534b\">Fout: "+reason+"</span> <span style=\"color:var(--t3);font-size:10px\">(sleutel NIET gewist \u2014 probeer opnieuw)</span>";
-      // BUGFIX: sleutel wordt NIET meer automatisch gewist bij een mislukte fetch-poging
-      // (kon voorheen een geldige sleutel laten verdwijnen door een tijdelijke netwerk- of rate-limit-hik)
-    }
-  }catch(e){
-    if(st) st.innerHTML="<span style=\"color:#e5534b\">Fout: "+String(e.message||e)+"</span>";
-  }
-
-  if(btn){btn.disabled=false;btn.textContent="⊙ Live koersen";}
-  startCountdown();
-}
-
-// ═══ CHARTS ══════════════════════════════════════════════════════════════════
-var ALLOC_C={TSLA:"#388bfd",NVDA:"#2ea76b",GOOGL:"#3fb950",WULF:"#d29922",PLTR:"#8957e5"};
-
-function donut(segs,total,lbl,sub){
-  var R=38,C=2*Math.PI*R,cum=0,circles="",legend="";
-  segs.forEach(function(s){
-    var pct=s.val/total,dash=(pct*C).toFixed(2),gap=(C-pct*C).toFixed(2),rot=(cum-90).toFixed(1);
-    cum+=pct*360;
-    circles+="<circle r=\""+R+"\" cx=\"55\" cy=\"55\" fill=\"none\" stroke=\""+s.c+"\" stroke-width=\"18\" stroke-dasharray=\""+dash+" "+gap+"\" transform=\"rotate("+rot+" 55 55)\"/>";
-    legend+="<div class=\"li\"><span class=\"sw\" style=\"background:"+s.c+"\"></span><span class=\"nm\">"+s.label+"</span><span class=\"vl\">"+(pct*100).toFixed(1)+"%</span></div>";
-  });
-  return "<div style=\"display:flex;align-items:center;gap:14px;flex-wrap:wrap\"><svg viewBox=\"0 0 110 110\" width=\"130\" height=\"130\">"+circles+
-    "<text x=\"55\" y=\"50\" text-anchor=\"middle\" fill=\"#e6edf3\" font-size=\"9\" font-weight=\"700\">"+lbl+"</text>"+
-    "<text x=\"55\" y=\"62\" text-anchor=\"middle\" fill=\"#6e7681\" font-size=\"7\">"+sub+"</text></svg>"+
-    "<div class=\"legend\">"+legend+"</div></div>";
-}
-
-function barRow(lbl,val,maxVal,color,valStr){
-  var w=maxVal>0?Math.min(Math.abs(val)/maxVal*100,100):0;
-  var cls=val>=0?"up":"dn";
-  return "<div class=\"hrow\"><span class=\"hlab\">"+lbl+"</span><div class=\"htrack\"><div class=\"hfill\" style=\"width:"+w.toFixed(1)+"%;background:"+color+"\"></div></div><span class=\"hval "+cls+"\">"+valStr+"</span></div>";
-}
-
-function drawCharts(){
-  var usd=H.filter(function(h){return h.ccy==="USD";});
-  var all=H.slice();
-  var usdT=usdTot();
-
-  // Allocatie donut
-  var sorted=usd.slice().sort(function(a,b){return b.shares*b.price-a.shares*a.price;});
-  var top5=sorted.slice(0,5).map(function(h){return{val:h.shares*h.price,c:ALLOC_C[h.ticker]||"#6e7681",label:h.ticker};});
-  var oth=sorted.slice(5).reduce(function(s,h){return s+h.shares*h.price;},0);
-  if(oth>0)top5.push({val:oth,c:"#6e7681",label:"Overig"});
-  document.getElementById("cAlloc").innerHTML=donut(top5,usdT,"$"+Math.round(usdT/1000)+"k",usd.length+" pos.");
-
-  // Rendement
-  var sRend=all.slice().sort(function(a,b){return b.pl-a.pl;});
-  var maxPl=Math.max.apply(null,sRend.map(function(h){return Math.abs(h.pl);}));
-  document.getElementById("cRend").innerHTML=sRend.map(function(h){
-    var isPos=h.pl>=0,c=h.ccy==="EUR"?"#a78bfa":isPos?"#2ea76b":"#e5534b";
-    return barRow(h.ticker,h.pl,maxPl||1,c,(isPos?"+":"−")+Math.abs(h.pl).toFixed(1)+"%"+(h.ccy==="EUR"?" €":""));
-  }).join("");
-
-  // Upside
-  var sUp=all.slice().sort(function(a,b){return b.upside-a.upside;});
-  var maxUp=Math.max.apply(null,sUp.map(function(h){return Math.abs(h.upside);}));
-  document.getElementById("cUpside").innerHTML=sUp.map(function(h){
-    var isPos=h.upside>=0,c=h.ccy==="EUR"?"#a78bfa":isPos?"#58a6ff":"#e5534b";
-    return barRow(h.ticker,h.upside,maxUp||1,c,(isPos?"+":"−")+Math.abs(h.upside)+"%"+(h.ccy==="EUR"?" €":""));
-  }).join("");
-
-  // P&L EUR
-  var pnlItems=usd.map(function(h){return{ticker:h.ticker,pnl:(h.shares*h.price-h.shares*h.avg)/EUR_USD};}).sort(function(a,b){return b.pnl-a.pnl;});
-  var maxPnl=Math.max.apply(null,pnlItems.map(function(h){return Math.abs(h.pnl);}));
-  var pnlTotal=pnlItems.reduce(function(s,h){return s+h.pnl;},0);
-  var pnlHtml=pnlItems.map(function(h){
-    var isPos=h.pnl>=0,c=isPos?"#388bfd":"#e5534b",s=(isPos?"+€":"−€")+Math.abs(Math.round(h.pnl)).toLocaleString("nl-NL");
-    return barRow(h.ticker,h.pnl,maxPnl||1,c,s);
-  }).join("");
-  var ptc=pnlTotal>=0?"up":"dn";
-  pnlHtml+="<div style=\"margin-top:8px;padding-top:6px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;font-size:11px\"><span class=\"mu\">Totaal</span><span class=\""+ptc+"\" style=\"font-weight:600\">"+(pnlTotal>=0?"+€":"−€")+Math.abs(Math.round(pnlTotal)).toLocaleString("nl-NL")+"</span></div>";
-  document.getElementById("cPnL").innerHTML=pnlHtml;
-
-  // Kostenbasis
-  var basisHtml="<div style=\"display:flex;gap:10px;margin-bottom:10px;font-size:10px;color:var(--t3)\"><span style=\"display:flex;align-items:center;gap:4px\"><span style=\"display:inline-block;width:8px;height:8px;border-radius:2px;background:#2a3a5c\"></span>Kostenbasis</span><span style=\"display:flex;align-items:center;gap:4px\"><span style=\"display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--g)\"></span>Huidig</span></div>";
-  var usdSorted2=usd.slice().sort(function(a,b){return b.shares*b.price-a.shares*a.price;});
-  var mxV=Math.max.apply(null,usdSorted2.map(function(h){return Math.max(h.shares*h.price,h.shares*h.avg);}));
-  basisHtml+=usdSorted2.map(function(h){
-    var cv=h.shares*h.price,kv=h.shares*h.avg,kw=(kv/mxV*100).toFixed(1),vw=(cv/mxV*100).toFixed(1),vc=cv>=kv?"var(--g)":"var(--r)";
-    return "<div style=\"display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:10.5px\"><span style=\"width:42px;font-weight:600;flex-shrink:0\">"+h.ticker+"</span><div style=\"flex:1;display:flex;flex-direction:column;gap:2px\"><div style=\"height:7px;border-radius:2px;background:#2a3a5c;width:"+kw+"%\"></div><div style=\"height:7px;border-radius:2px;background:"+vc+";width:"+vw+"%\"></div></div><span style=\"width:80px;text-align:right;color:"+vc+";font-size:10px;flex-shrink:0\">$"+Math.round(cv/1000)+"k/$"+Math.round(kv/1000)+"k</span></div>";
-  }).join("");
-  document.getElementById("cBasis").innerHTML=basisHtml;
-
-  // Broker donut
-  var SINGLE_BROKER={GOOGL:"BUX",PLTR:"BUX",AMZN:"Bolero",HIMS:"Revolut",PATH:"Revolut",VUSA:"Revolut",DIET:"Revolut",SPCX:"Revolut"};
-  var bv={BUX:0,Bolero:0,Revolut:0};
-  usd.forEach(function(h){
-    if(h.brokers&&h.brokers.length){h.brokers.forEach(function(b){if(bv[b.name]!==undefined)bv[b.name]+=b.shares*h.price;});}
-    else{var primary=SINGLE_BROKER[h.ticker]||"BUX";bv[primary]+=h.shares*h.price;}
-  });
-  var bTot=bv.BUX+bv.Bolero+bv.Revolut;
-  var bSegs=[{val:bv.BUX,c:"#388bfd",label:"BUX"},{val:bv.Bolero,c:"#8957e5",label:"Bolero"},{val:bv.Revolut,c:"#2ea76b",label:"Revolut"}].filter(function(s){return s.val>0;});
-  document.getElementById("cBroker").innerHTML=donut(bSegs,bTot,"$"+Math.round(bTot/1000)+"k","3 brokers");
-}
-
-// ═══ TABLE ════════════════════════════════════════════════════════════════════
-var expanded={};
-var sortK=null,sortD=1;
-
-function renderTable(){
-  var uT=usdTot(),cT=costUSD(),pnlU=uT-cT,pnlP=pnlU/cT*100,eP=eurPos(),eT=eurTot();
-  var list=sortK?H.slice().sort(function(a,b){
-    var va=a[sortK],vb=b[sortK];
-    return(typeof va==="number"?va-vb:String(va).localeCompare(String(vb)))*sortD;
-  }):null;
-  var html="";
-
-  function row(h){
-    var sym=h.ccy==="EUR"?"€":"$";
-    var hasBrk=h.brokers&&h.brokers.length>1;
-    var tog=hasBrk?"<span onclick=\"toggleExp('"+h.ticker+"')\" style=\"cursor:pointer;font-size:10px;margin-right:5px;color:var(--ac);user-select:none\">"+(expanded[h.ticker]?"▼":"►")+"</span>":"<span style=\"display:inline-block;width:14px\"></span>";
-    var bg=h.ccy==="EUR"?"rgba(167,139,250,.05)":"";
-    var upc=h.upside>=0?"var(--ac)":"var(--r)";
-    var r="<tr style=\"background:"+bg+"\"><td>"+tog+"<span style=\"font-weight:650;font-size:13px\">"+h.ticker+"</span>"+(h.ccy==="EUR"?"<span class=\"eur-tag\">EUR</span>":"")+" <span style=\"font-size:10.5px;color:var(--t3)\">"+h.name+"</span></td>";
-    r+="<td class=\"rate\">"+N(h.shares,2)+"</td>";
-    r+="<td class=\"rate\">"+sym+N(h.avg,2)+"</td>";
-    r+="<td class=\"rate\">"+sym+N(h.price,2)+"</td>";
-    r+="<td class=\"rate\">"+sym+N(h.shares*h.price,0)+"</td>";
-    r+="<td class=\"rate\">"+plSpan(h.pl)+"</td>";
-    r+="<td class=\"rate"+(h.pe==="n.v.t."||h.pe==="ETF"?" mu":"")+"\">"+(h.pe)+"</td>";
-    r+="<td class=\"rate\">"+h.fcf+"</td>";
-    r+="<td class=\"rate\">"+sym+N(h.target,2)+" <span style=\"color:"+upc+"\">"+(h.upside>=0?"+":"")+h.upside+"%</span></td>";
-    r+="<td><span class=\"badge "+h.rcls+"\">"+h.rating+"</span></td></tr>";
-    if(hasBrk&&expanded[h.ticker]){
-      h.brokers.forEach(function(b){
-        var bv2=b.shares*h.price,bp=(h.price-b.avg)/b.avg*100;
-        var bc=BKR[b.name]||"#9aa5b1";
-        r+="<tr class=\"br-row\"><td style=\"padding-left:28px\"><span style=\"display:inline-block;width:7px;height:7px;border-radius:50%;background:"+bc+";margin-right:6px\"></span><span style=\"font-size:11px;font-weight:600;color:"+bc+"\">"+b.name+"</span></td>";
-        r+="<td class=\"rate\" style=\"font-size:11.5px\">"+N(b.shares,4)+"</td>";
-        r+="<td class=\"rate\" style=\"font-size:11.5px\">$"+N(b.avg,2)+"</td>";
-        r+="<td class=\"rate\" style=\"font-size:11.5px\">$"+N(h.price,2)+"</td>";
-        r+="<td class=\"rate\" style=\"font-size:11.5px\">$"+N(bv2,0)+"</td>";
-        r+="<td class=\"rate\" style=\"font-size:11.5px\">"+plSpan(bp)+"</td>";
-        r+="<td colspan=\"4\" class=\"mu\" style=\"font-size:11px;text-align:right\">— — —</td></tr>";
-      });
-    }
-    return r;
-  }
-
-  if(list){
-    html+=list.map(row).join("");
-    html+="<tr class=\"tr\"><td colspan=\"4\">💴 Totaal</td><td class=\"rate\">$"+N(uT,0)+"</td><td class=\"rate "+(pnlP>=0?"up":"dn")+"\">"+(pnlP>=0?"+":"")+pnlP.toFixed(1)+"%</td><td colspan=\"4\"></td></tr>";
-  } else {
-    html+="<tr class=\"sr\"><td colspan=\"10\">Core holdings (USD)</td></tr>";
-    html+=H.filter(function(h){return h.cat==="core";}).map(row).join("");
-    html+="<tr class=\"sr\"><td colspan=\"10\">Speculatief / kleiner (USD)</td></tr>";
-    html+=H.filter(function(h){return h.cat==="spec";}).map(row).join("");
-    html+="<tr class=\"tr\"><td colspan=\"4\">💴 USD-posities totaal</td><td class=\"rate\">$"+N(uT,0)+"</td><td class=\"rate "+(pnlP>=0?"up":"dn")+"\">"+(pnlP>=0?"+":"−")+Math.abs(pnlP).toFixed(1)+"%</td><td colspan=\"4\"></td></tr>";
-    html+="<tr class=\"sr\"><td colspan=\"10\">EUR-posities (Revolut)</td></tr>";
-    html+=H.filter(function(h){return h.cat==="eur";}).map(row).join("");
-    html+="<tr class=\"tr\" style=\"background:rgba(167,139,250,.08)\"><td colspan=\"4\">💴 EUR-posities totaal</td><td class=\"rate\" style=\"color:#a78bfa\">€"+N(eP,0)+"</td><td class=\"rate up\">+"+((eP/(H.filter(function(h){return h.ccy==="EUR";}).reduce(function(s,h){return s+h.shares*h.avg;},0))-1)*100).toFixed(1)+"%</td><td colspan=\"4\"></td></tr>";
-    html+="<tr style=\"background:var(--p2);font-weight:700\"><td colspan=\"4\" style=\"padding:10px 12px;font-size:12px;color:var(--t2);text-transform:uppercase;letter-spacing:.04em\">Portefeuille totaal (EUR)</td><td class=\"rate\" style=\"padding:10px 12px;font-size:14px\">€"+N(eT,0)+"</td><td class=\"rate up\" style=\"padding:10px 12px\">"+(((eT/(eT-pnlU/EUR_USD))-1)*100).toFixed(1)+"%</td><td colspan=\"4\"></td></tr>";
-  }
-  document.getElementById("holdBody").innerHTML=html;
-}
-function toggleExp(tk){expanded[tk]=!expanded[tk];renderTable();}
-
-// ═══ KPI + FX ════════════════════════════════════════════════════════════════
-function updateKPI(){
-  var uT=usdTot(),cT=costUSD(),pnl=uT-cT,pnlP=pnl/cT*100,eT=eurTot(),eP=eurPos();
-  var kU=document.getElementById("kUSD");  if(kU)kU.textContent="$"+N(uT,0);
-  var kP=document.getElementById("kPNL");  if(kP){kP.innerHTML=(pnl>=0?"+":"")+sgn(pnl)+"$"+N(Math.abs(pnl),0)+" ("+(pnlP>=0?"+":"")+pnlP.toFixed(1)+"%)";kP.className="sm "+(pnl>=0?"up":"dn");}
-  var kE=document.getElementById("kEUR");  if(kE)kE.textContent="€"+N(eT,0);
-  var kS=document.getElementById("kEURsub");if(kS)kS.textContent="USD \u20ac"+N(uT/EUR_USD,0)+" + EUR \u20ac"+N(eP,0);
-  var kC=document.getElementById("kCost"); if(kC)kC.textContent="$"+N(cT,0);
-  var hT=document.getElementById("hdrTotal");if(hT)hT.textContent="€"+N(eT,0);
-
-  // Stijg/daal-indicator vs vorige opgehaalde waarde
-  var lastVal=lsGet("carl-lastval");
-  var hTr=document.getElementById("hdrTrend");
-  if(hTr&&lastVal&&lastVal.v>0){
-    var diff=eT-lastVal.v,diffPct=diff/lastVal.v*100;
-    var arrow=diff>=0?"\u25b2":"\u25bc";
-    var col=diff>=0?"var(--g)":"var(--r)";
-    hTr.innerHTML="<span style=\"color:"+col+";\">"+arrow+" "+(diff>=0?"+€":"\u2212€")+N(Math.abs(diff),0)+" ("+(diffPct>=0?"+":"")+diffPct.toFixed(2)+"%)</span> <span style=\"color:var(--t3);font-size:10px\">vs. "+lastVal.t+"</span>";
-  } else if(hTr){hTr.textContent="";}
-  var fU=document.getElementById("fxUSD"); if(fU)fU.textContent="$"+N(uT,0);
-  var fC=document.getElementById("fxConv");if(fC)fC.textContent="€"+N(uT/EUR_USD,0);
-  var fT=document.getElementById("fxTotal");if(fT)fT.textContent="€"+N(eT,0);
-  var vusaH=H.find(function(h){return h.ticker==="VUSA";});
-  var dietH=H.find(function(h){return h.ticker==="DIET";});
-  var fV=document.getElementById("fxVUSA");if(fV&&vusaH)fV.textContent="€"+N(vusaH.shares*vusaH.price,0);
-  var fD=document.getElementById("fxDIET");if(fD&&dietH)fD.textContent="€"+N(dietH.shares*dietH.price,0);
-}
-
-// ═══ NEWS ═════════════════════════════════════════════════════════════════════
-function renderNews(){
-  document.getElementById("newsGrid").innerHTML=NEWS.map(function(n){
-    return "<div class=\"ni\"><div style=\"display:flex;align-items:center;gap:8px\"><span class=\"ntk\" style=\"background:"+n.bg+";color:"+n.cl+"\">"+n.tk+"</span><span style=\"font-size:10px;color:var(--t3);margin-left:auto\">"+n.dt+"</span></div><div style=\"font-size:12.5px;font-weight:500;line-height:1.45\"><a href=\""+n.url+"\" target=\"_blank\" rel=\"noopener\" style=\"color:var(--t);text-decoration:none\" onmouseover=\"this.style.color='#58a6ff'\" onmouseout=\"this.style.color='var(--t)'\">"+n.hl+"</a></div><div style=\"font-size:10.5px;color:var(--t3)\">"+n.src+"</div></div>";
-  }).join("");
-}
-
-// ═══ PERFORMANCE ═════════════════════════════════════════════════════════════
-var PK={w:"cp_w",m:"cp_m",y:"cp_y",wh:"cp_wh",mh:"cp_mh",yh:"cp_yh",d:"cp_d",dh:"cp_dh"};
-function isoWeek(d){d=d||new Date();var t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));var y=new Date(Date.UTC(t.getUTCFullYear(),0,4));var wn=Math.ceil((((t-y)/86400000)+1)/7);return t.getUTCFullYear()+"-W"+(wn<10?"0":"")+wn;}
-function isoMonth(d){d=d||new Date();return d.getFullYear()+"-"+(d.getMonth()<9?"0":"")+(d.getMonth()+1);}
-function isoYear(d){d=d||new Date();return String(d.getFullYear());}
-function isoDate(d){return(d||new Date()).toISOString().slice(0,10);}
-function snapNow(isLive){var vals={},eP2={},tot=0,now=new Date();H.forEach(function(h){if(h.ccy==="USD"){vals[h.ticker]=h.shares*h.price;tot+=h.shares*h.price;}else{eP2[h.ticker]=h.shares*h.price;}});return{date:isoDate(),time:now.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"}),week:isoWeek(),month:isoMonth(),year:isoYear(),vals:vals,eP:eP2,tot:tot,live:!!isLive,eurUsd:EUR_USD};}
-function fxImpact(oldRate,curUsdTot){
-  if(!oldRate||!curUsdTot) return null;
-  var eurAtOld=curUsdTot/oldRate,eurAtNew=curUsdTot/EUR_USD;
-  return{ratePct:(EUR_USD-oldRate)/oldRate*100,impact:eurAtNew-eurAtOld,oldRate:oldRate,newRate:EUR_USD};
-}
-function currentUsdTotal(){var t=0;H.forEach(function(h){if(h.ccy==="USD")t+=h.shares*h.price;});return t;}
-function fxImpactRow(oldRate){
-  var fx=fxImpact(oldRate,currentUsdTotal());
-  if(!fx) return "";
-  var fc=fx.impact>=0?"var(--g)":"var(--r)",arr=fx.ratePct>=0?"\u25b2":"\u25bc";
-  return "<div style=\"display:flex;justify-content:space-between;align-items:center;background:var(--p2);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11px\">"+
-    "<span style=\"color:var(--t3)\">EUR/USD "+fx.oldRate.toFixed(4)+" \u2192 "+fx.newRate.toFixed(4)+" <span style=\"color:"+fc+"\">"+arr+" "+(fx.ratePct>=0?"+":"")+fx.ratePct.toFixed(2)+"%</span></span>"+
-    "<span style=\"color:"+fc+";font-weight:700\">FX: "+(fx.impact>=0?"+\u20ac":"\u2212\u20ac")+Math.abs(Math.round(fx.impact)).toLocaleString("nl-NL")+"</span></div>";
-}
-function calcPnL(snap){if(!snap)return null;var by={},ud=0,ed=0;H.forEach(function(h){if(h.ccy==="USD"){var cv=h.shares*h.price,pv=snap.vals?snap.vals[h.ticker]||0:0,d=cv-pv;by[h.ticker]={diff:d,pct:pv>0?d/pv*100:0};ud+=d;}else{ed+=h.shares*h.price-(snap.eP?snap.eP[h.ticker]||0:0);}});return{by:by,ud:ud,ed:ed,total:ud/EUR_USD+ed,from:snap.date};}
-
-function initPerf(){
-  var now=new Date();
-
-  // Week: rollover op maandag NA 01:00 (vangt vrijdag slotkoersen)
-  function weekRolled(snap){
-    if(!snap) return true;
-    if(snap.week===isoWeek(now)) return false;       // zelfde week: niet rollen
-    if(now.getDay()===1&&now.getHours()<1) return false; // maandag vóór 01:00: wachten
-    return true;
-  }
-  // Maand: rollover zodra we in een nieuwe maand zitten
-  function monthRolled(snap){
-    if(!snap) return true;
-    return snap.month!==isoMonth(now);
-  }
-
-  // Week/maand snapshots: enkel archiveren bij overgang, aanmaken pas na live fetch
-  var ws=lsGet(PK.w),wh=lsGet(PK.wh)||[];
-  if(ws&&weekRolled(ws)){
-    // Nieuwe week → archiveer vorige (enkel als live)
-    if(ws.live){
-      var wp=calcPnL(ws);
-      wh.unshift({week:ws.week,date:ws.date,total:wp?Math.round(wp.total):0});
-      lsSet(PK.wh,wh.slice(0,16));
-    }
-    lsSet(PK.w,null); // Wacht op live fetch voor nieuwe referentie
-  }
-
-  var ms=lsGet(PK.m),mh=lsGet(PK.mh)||[];
-  if(ms&&monthRolled(ms)){
-    // Nieuwe maand → archiveer vorige (enkel als live)
-    if(ms.live){
-      var mp=calcPnL(ms);
-      mh.unshift({month:ms.month,date:ms.date,total:mp?Math.round(mp.total):0});
-      lsSet(PK.mh,mh.slice(0,12));
-    }
-    lsSet(PK.m,null); // Wacht op live fetch voor nieuwe referentie
-  }
-
-  // Jaar: rollover zodra we in een nieuw jaar zitten
-  function yearRolled(snap){
-    if(!snap) return true;
-    return snap.year!==isoYear(now);
-  }
-  var ys=lsGet(PK.y),yh=lsGet(PK.yh)||[];
-  if(ys&&yearRolled(ys)){
-    if(ys.live){
-      var yp=calcPnL(ys);
-      yh.unshift({year:ys.year,date:ys.date,total:yp?Math.round(yp.total):0});
-      lsSet(PK.yh,yh.slice(0,10));
-    }
-    lsSet(PK.y,null);
-  }
-
-  // Dag: rollover elke handelsdag na 22:00 (marktslot NYSE/NASDAQ)
-  function dayRolled(snap){
-    if(!snap) return true;
-    if(snap.date!==isoDate()) return true; // nieuwe dag
-    return false;
-  }
-  // Dag P&L: berekend rechtstreeks via pc (previous close) van Finnhub → geen snapshot nodig
-
-  renderPerf();
-}
-
-// Minuut-timer: triggert snapshot als dashboard open staat op het juiste moment
-function startSnapTimer(){
-  setInterval(function(){
-    var now=new Date(),d=now.getDay(),h=now.getHours(),m=now.getMinutes();
-    // Maandag 01:00 → nieuwe week-snapshot
-    if(d===1&&h===1&&m===0){
-      var ws=lsGet(PK.w),wh=lsGet(PK.wh)||[];
-      if(ws){
-        var wp=calcPnL(ws);
-        wh.unshift({week:ws.week,date:ws.date,total:wp?Math.round(wp.total):0});
-        lsSet(PK.wh,wh.slice(0,16));
-        lsSet(PK.w,snapNow(true));
-        renderPerf();
-        console.log("[Portefeuille] Automatische week-snapshot maandag 01:00");
-      }
-    }
-    // 1e van de maand 01:00 → nieuwe maand-snapshot
-    if(now.getDate()===1&&h===1&&m===0){
-      var ms=lsGet(PK.m),mh=lsGet(PK.mh)||[];
-      if(ms){
-        var mp=calcPnL(ms);
-        mh.unshift({month:ms.month,date:ms.date,total:mp?Math.round(mp.total):0});
-        lsSet(PK.mh,mh.slice(0,12));
-        lsSet(PK.m,snapNow(true));
-        renderPerf();
-        console.log("[Portefeuille] Automatische maand-snapshot 1e van de maand");
-      }
-    }
-    // 1 januari 01:00 → nieuwe jaar-snapshot
-    if(now.getMonth()===0&&now.getDate()===1&&h===1&&m===0){
-      var ys=lsGet(PK.y),yh=lsGet(PK.yh)||[];
-      if(ys){
-        var yp=calcPnL(ys);
-        yh.unshift({year:ys.year,date:ys.date,total:yp?Math.round(yp.total):0});
-        lsSet(PK.yh,yh.slice(0,10));
-        lsSet(PK.y,snapNow(true));
-        renderPerf();
-        console.log("[Portefeuille] Automatische jaar-snapshot 1 januari");
-      }
-    }
-    // Dag-archief: wordt via dagrapport beheerd na 22:00 Finnhub-fetch
-  },60000); // elke minuut checken
-}
-
-
-var periodExpanded={};
-function togglePeriodExpand(key){periodExpanded[key]=!periodExpanded[key];renderPerf();}
-function entriesInWeek(arr,weekStr){
-  return arr.filter(function(e){
-    if(!e.date) return false;
-    var p=e.date.split("-");
-    var d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
-    return isoWeek(d)===weekStr;
-  });
-}
-function entriesInMonth(arr,monthStr){return arr.filter(function(e){return e.date&&e.date.slice(0,7)===monthStr;});}
-function entriesInYear(arr,yearStr){return arr.filter(function(e){return e.date&&e.date.slice(0,4)===yearStr;});}
-
-function breakdownHtml(toggleKey,label,items){
-  var isOpen2=!!periodExpanded[toggleKey];
-  var h="<div onclick=\"togglePeriodExpand('"+toggleKey+"')\" style=\"margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:10.5px;color:var(--ac)\">";
-  h+="<span>"+label+"</span><span>"+(isOpen2?"▲ verberg":"▼ toon")+"</span></div>";
-  if(isOpen2){
-    if(!items.length){
-      h+="<div class=\"mu\" style=\"font-size:11px;padding:6px 0\">Nog geen detaildata voor deze periode</div>";
-    } else {
-      items.forEach(function(it){
-        var cl=it.total>=0?"up":"dn";
-        h+="<div style=\"display:flex;justify-content:space-between;padding:3px 0;font-size:11px\"><span class=\"mu\">"+it.label+"</span><span class=\""+cl+"\" style=\"font-weight:600\">"+(it.total>=0?"+€":"−€")+Math.abs(it.total).toLocaleString("nl-NL")+"</span></div>";
-      });
-    }
-  }
-  return h;
-}
-
-function renderPerf(){
-  var wSnap=lsGet(PK.w),mSnap=lsGet(PK.m),ySnap=lsGet(PK.y),wHist=lsGet(PK.wh)||[],mHist=lsGet(PK.mh)||[],yHist=lsGet(PK.yh)||[];
-  var wPnL=wSnap?calcPnL(wSnap):null;
-  var mPnL=mSnap?calcPnL(mSnap):null;
-  var yPnL=ySnap?calcPnL(ySnap):null;
-
-  function kpi(lbl,pnl,snap,hist,breakdown){
-    var bd=breakdown?breakdownHtml(breakdown.key,breakdown.label,breakdown.items()):"";
-    var fxRow=(pnl!=null&&snap)?fxImpactRow(snap.eurUsd||1.1611):"";
-    if(hist!=null){var cl=hist.total>=0?"up":"dn";return "<div class=\"card\"><div class=\"lbl\">"+lbl+"</div><div class=\"big "+cl+"\">"+(hist.total>=0?"+€":"−€")+Math.abs(hist.total).toLocaleString("nl-NL")+"</div><div class=\"sm mu\">"+hist.date+"</div></div>";}
-    if(pnl!=null){var cl2=pnl.total>=0?"up":"dn";return "<div class=\"card\"><div class=\"lbl\">"+lbl+"</div><div class=\"big "+cl2+"\">"+(pnl.total>=0?"+€":"−€")+Math.abs(Math.round(pnl.total)).toLocaleString("nl-NL")+"</div><div class=\"sm mu\">vs. "+(snap?snap.date:"—")+"</div>"+fxRow+bd+"</div>";}
-    return "<div class=\"card\"><div class=\"lbl\">"+lbl+"</div><div class=\"big mu\" style=\"font-size:16px\">Snapshot opgeslagen</div><div class=\"sm mu\">"+(snap?snap.date:"—")+"</div></div>";
-  }
-
-  var html="<div class=\"hero\" style=\"margin-bottom:14px\">";
-  html+=kpi("Week MTD · alle brokers",wPnL,wSnap,null,wSnap&&wSnap.live?{key:"wk",label:"Per dag",items:function(){return entriesInWeek(lsGet(PK.dh)||[],wSnap.week).map(function(e){return{label:e.date,total:e.total};});}}:null);
-  html+=kpi("Maand MTD · alle brokers",mPnL,mSnap,null,mSnap&&mSnap.live?{key:"mo",label:"Per week",items:function(){return entriesInMonth(lsGet(PK.wh)||[],mSnap.month).map(function(e){return{label:e.week,total:e.total};});}}:null);
-  html+=kpi("Jaar YTD · alle brokers",yPnL,ySnap,null,ySnap&&ySnap.live?{key:"yr",label:"Per maand",items:function(){return entriesInYear(lsGet(PK.mh)||[],ySnap.year).map(function(e){return{label:e.month,total:e.total};});}}:null);
-  html+=kpi(wHist[0]?"Vorige week ("+wHist[0].week+")":"Vorige week",null,null,wHist[0]||null);
-  html+=kpi(mHist[0]?"Vorige maand ("+mHist[0].month+")":"Vorige maand",null,null,mHist[0]||null);
-  html+=kpi(yHist[0]?"Vorig jaar ("+yHist[0].year+")":"Vorig jaar",null,null,yHist[0]||null);
-  html+="</div>";
-
-  html+="<div style=\"font-size:11px;color:var(--t3);background:var(--p2);border-radius:8px;padding:10px 14px;margin-bottom:12px;line-height:1.7\">";
-  html+="<strong style=\"color:var(--t2)\">Berekening:</strong> Bij elke week/maandstart wordt een snapshot opgeslagen. ";
-  html+="P&L = (huidige koers − snapshotkoers) × aandelen ÷ EUR/USD. Alle brokers gecombineerd.</div>";
-
-  function movers(title,pnl,snap){
-    if(!pnl||!snap||!snap.live)return "<div class=\"card\"><div style=\"font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;margin-bottom:8px\">"+title+"</div><div class=\"mu\" style=\"font-size:12px;text-align:center;padding:12px 0\">"+(snap&&!snap.live?"Klik ⦿ Live koersen voor de eerste meting van deze periode":"Nog geen snapshot") + "</div></div>";
-    if(!pnl.by||Object.keys(pnl.by).length===0)return "<div class=\"card\"><div style=\"font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;margin-bottom:8px\">"+title+"</div><div class=\"mu\" style=\"font-size:12px;text-align:center;padding:12px 0\">Snapshot aangemaakt op "+(snap?snap.date:"—")+" · koerswijzigingen worden bijgehouden</div></div>";
-    var tks=Object.keys(pnl.by).sort(function(a,b){return pnl.by[b].diff-pnl.by[a].diff;});
-    var rows=tks.map(function(tk){
-      var d=pnl.by[tk],e=d.diff/EUR_USD,cl=e>=0?"up":"dn";
-      return "<tr style=\"border-bottom:1px solid var(--bd)\"><td style=\"padding:4px 0;font-weight:650;font-size:12px\">"+tk+"</td><td style=\"padding:4px 0;text-align:right;font-size:11px;color:var(--t3)\">"+(d.pct>=0?"+":"−")+Math.abs(d.pct).toFixed(1)+"%</td><td style=\"padding:4px 0;text-align:right;font-size:12px\" class=\""+cl+"\">"+(e>=0?"+€":"−€")+Math.abs(Math.round(e)).toLocaleString("nl-NL")+"</td></tr>";
-    }).join("");
-    var tot=pnl.total,tc=tot>=0?"up":"dn";
-    return "<div class=\"card\"><div style=\"font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;margin-bottom:10px\">"+title+" <span style=\"font-size:9px;color:var(--t3);text-transform:none\">vs. "+snap.date+"</span></div><table style=\"font-size:12px;width:100%\"><thead><tr><th style=\"text-align:left;padding:3px 0;font-size:10px;color:var(--t3);font-weight:600\">Ticker</th><th style=\"text-align:right;padding:3px 0;font-size:10px;color:var(--t3);font-weight:600\">%</th><th style=\"text-align:right;padding:3px 0;font-size:10px;color:var(--t3);font-weight:600\">EUR impact</th></tr></thead><tbody>"+rows+"</tbody></table><div style=\"margin-top:8px;padding-top:6px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;font-size:11px\"><span class=\"mu\">Netto totaal</span><span class=\""+tc+"\" style=\"font-weight:600\">"+(tot>=0?"+€":"−€")+Math.abs(Math.round(tot)).toLocaleString("nl-NL")+"</span></div></div>";
-  }
-
-  html+="<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:12px\">";
-  html+=movers("Stijgers/dalers deze week",wPnL,wSnap||{date:"—"});
-  html+=movers("Stijgers/dalers deze maand",mPnL,mSnap||{date:"—"});
-  html+=movers("Stijgers/dalers dit jaar",yPnL,ySnap||{date:"—"});
-  html+="</div>";
-
-  // Maandgrafiek
-  var cd=[...[...mHist].reverse().map(function(m){return{lbl:m.month.slice(5),val:m.total,cur:false};}),mPnL?{lbl:isoMonth().slice(5)+"*",val:Math.round(mPnL.total),cur:true}:null].filter(Boolean);
-  var maxA=cd.length?Math.max.apply(null,cd.map(function(d){return Math.abs(d.val);}),1):1;
-  var bW=32,gap=6,cH=90,zY=Math.round(cH*.65),sW=Math.max(400,cd.length*(bW+gap)+20);
-
-  html+="<div class=\"card\"><div style=\"font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px\">Maandelijkse P&L — alle brokers</div>";
-
-  if(!cd.length){
-    html+="<div class=\"mu\" style=\"font-size:12px;text-align:center;padding:20px 0\">Historiek bouwt automatisch op na elke maandovergang.</div>";
-  } else {
-    // Y-as
-    var tStep=Math.pow(10,Math.floor(Math.log10(maxA||1)));
-    if(maxA/tStep<3)tStep/=2;
-    var axLines="";
-    for(var tv=tStep;tv<=maxA*1.05;tv+=tStep){
-      for(var sign2=-1;sign2<=1;sign2+=2){
-        var tval=tv*sign2,ty=tval>=0?zY-Math.min(tval/maxA*zY,zY):zY+Math.min(Math.abs(tval)/maxA*(cH-zY),cH-zY);
-        var tlbl=Math.abs(tval)>=1000?(tval>=0?"+":"−")+"€"+(Math.abs(tval)/1000).toFixed(0)+"k":"";
-        if(tlbl) axLines+="<line x1=\"8\" y1=\""+ty.toFixed(1)+"\" x2=\""+(sW-8)+"\" y2=\""+ty.toFixed(1)+"\" stroke=\"#2a3140\" stroke-width=\"0.5\" stroke-dasharray=\"2,3\"/><text x=\""+(sW-6)+"\" y=\""+(ty+3).toFixed(1)+"\" text-anchor=\"end\" fill=\"#6e7681\" font-size=\"7.5\">"+tlbl+"</text>";
-      }
-    }
-    var bars=cd.map(function(d,i){
-      var x=10+i*(bW+gap),cx=x+bW/2,fill=d.cur?"#388bfd":d.val>=0?"#2ea76b":"#e5534b";
-      var h2=d.val>=0?Math.min(Math.abs(d.val)/maxA*zY,zY):Math.min(Math.abs(d.val)/maxA*(cH-zY),cH-zY);
-      var title2=(d.val>=0?"+€":"−€")+Math.abs(Math.round(d.val)).toLocaleString("nl-NL");
-      var barSvg=d.val>=0?"<rect x=\""+x+"\" y=\""+(zY-h2).toFixed(1)+"\" width=\""+bW+"\" height=\""+h2.toFixed(1)+"\" fill=\""+fill+"\" rx=\"2\"/>":"<rect x=\""+x+"\" y=\""+zY+"\" width=\""+bW+"\" height=\""+h2.toFixed(1)+"\" fill=\""+fill+"\" rx=\"2\"/>";
-      var lbl2="<text x=\""+cx.toFixed(0)+"\" y=\""+(cH+15)+"\" text-anchor=\"middle\" fill=\""+(d.cur?"#388bfd":"#6e7681")+"\" font-size=\"8.5\" font-weight=\""+(d.cur?600:400)+"\">"+d.lbl+"</text>";
-      return "<g><title>"+d.lbl+": "+title2+"</title>"+barSvg+"</g>"+lbl2;
-    }).join("");
-    html+="<svg viewBox=\"0 0 "+sW+" "+(cH+20)+"\" width=\"100%\" style=\"overflow:visible\">"+axLines+"<line x1=\"8\" y1=\""+zY+"\" x2=\""+(sW-8)+"\" y2=\""+zY+"\" stroke=\"#2a3140\" stroke-width=\"1.5\"/>"+bars+"</svg>";
-
-    // Compacte waardentabel
-    html+="<div style=\"margin-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:4px 12px\">";
-    cd.forEach(function(d){
-      var cl=d.cur?"color:#388bfd":d.val>=0?"color:#2ea76b":"color:#e5534b";
-      html+="<div style=\"font-size:10px\"><span style=\"color:var(--t3)\">"+d.lbl+"</span> <span style=\"font-weight:600;"+cl+"\">"+(d.val>=0?"+€":"−€")+Math.abs(Math.round(d.val)).toLocaleString("nl-NL")+"</span></div>";
-    });
-    html+="</div>";
-  }
-  html+="<div style=\"display:flex;gap:12px;font-size:10px;color:var(--t3);margin-top:8px;flex-wrap:wrap\"><span style=\"display:flex;align-items:center;gap:4px\"><span style=\"display:inline-block;width:7px;height:7px;border-radius:1px;background:#2ea76b\"></span>Winst</span><span style=\"display:flex;align-items:center;gap:4px\"><span style=\"display:inline-block;width:7px;height:7px;border-radius:1px;background:#e5534b\"></span>Verlies</span><span style=\"display:flex;align-items:center;gap:4px\"><span style=\"display:inline-block;width:7px;height:7px;border-radius:1px;background:#388bfd\"></span>Lopende maand *MTD</span><span style=\"color:var(--t3)\">· beweeg over balk voor exact bedrag</span></div></div>";
-  html+="<div style=\"display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--t3);margin-top:8px\"><span>Snapshots automatisch opgeslagen · bijgewerkt bij elke update</span><button class=\"btn\" style=\"font-size:10px;padding:3px 9px\" onclick=\"resetPerf()\">↻ Reset snapshots</button></div>";
-  document.getElementById("perfDiv").innerHTML=html;
-}
-function resetPerf(){[PK.w,PK.m,PK.y,PK.wh,PK.mh,PK.yh].forEach(function(k){try{localStorage.removeItem(k);}catch(e){}});initPerf();}
-
-// ═══ MASTER UPDATE ════════════════════════════════════════════════════════════
-function updateAll(){updateKPI();renderTable();drawCharts();renderPerf();renderDagRapport();renderVIX();}
-
-// ═══ MARKT STATUS + COUNTDOWN ════════════════════════════════════════════════
-// ─── MARKTKALENDER (VS + Europa, incl. feestdagen) ───────────────────────────
-function easterSunday(y){
-  var a=y%19,b=Math.floor(y/100),cc=y%100,d=Math.floor(b/4),e=b%4,
-      f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,
-      i=Math.floor(cc/4),k=cc%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
-      month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
-  return new Date(y,month-1,day);
-}
-function sameYMD(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
-function nthWeekday(y,m,weekday,n){var d=new Date(y,m,1),cnt=0;while(true){if(d.getDay()===weekday){cnt++;if(cnt===n)return new Date(d);}d.setDate(d.getDate()+1);}}
-function lastWeekday(y,m,weekday){var d=new Date(y,m+1,0);while(d.getDay()!==weekday)d.setDate(d.getDate()-1);return d;}
-function observedUS(d){if(d.getDay()===6)return new Date(d.getFullYear(),d.getMonth(),d.getDate()-1);if(d.getDay()===0)return new Date(d.getFullYear(),d.getMonth(),d.getDate()+1);return d;}
-function usHolidays(y){
-  var easter=easterSunday(y),goodFriday=new Date(easter);goodFriday.setDate(easter.getDate()-2);
-  return[observedUS(new Date(y,0,1)),nthWeekday(y,0,1,3),nthWeekday(y,1,1,3),goodFriday,
-    lastWeekday(y,4,1),observedUS(new Date(y,5,19)),observedUS(new Date(y,6,4)),
-    nthWeekday(y,8,1,1),nthWeekday(y,10,4,4),observedUS(new Date(y,11,25))];
-}
-function euHolidays(y){
-  var easter=easterSunday(y),easterMonday=new Date(easter);easterMonday.setDate(easter.getDate()+1);
-  var goodFriday=new Date(easter);goodFriday.setDate(easter.getDate()-2);
-  return[new Date(y,0,1),goodFriday,easterMonday,new Date(y,4,1),new Date(y,11,25),new Date(y,11,26)];
-}
-function isHolidayToday(list){var now=new Date();return list.some(function(h){return sameYMD(h,now);});}
-function isUSOpen(){
-  var n=new Date(),t=n.getHours()*60+n.getMinutes(),d=n.getDay();
-  if(d===0||d===6)return false;
-  if(isHolidayToday(usHolidays(n.getFullYear())))return false;
-  return t>=15*60+30&&t<22*60;
-}
-function isEUOpen(){
-  var n=new Date(),t=n.getHours()*60+n.getMinutes(),d=n.getDay();
-  if(d===0||d===6)return false;
-  if(isHolidayToday(euHolidays(n.getFullYear())))return false;
-  return t>=9*60&&t<17*60+30;
-}
-function isMarketOpen(){return isUSOpen();} // backwards compatible alias, gebruikt door countdown/dag-rapport
-// ─── BACKUP & HERSTEL ─────────────────────────────────────────────────────────
-function exportBackup(){
-  try{
-    var data={};
-    for(var i=0;i<localStorage.length;i++){
-      var k=localStorage.key(i);
-      data[k]=localStorage.getItem(k);
-    }
-    var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement("a");
-    a.href=url;
-    a.download="portfolio-backup-"+isoDate()+".json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    var st=document.getElementById("backupSt");
-    if(st) st.textContent="\u2713 Backup gedownload \u00b7 "+new Date().toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"});
-  }catch(e){
-    var st2=document.getElementById("backupSt");
-    if(st2) st2.textContent="\u2717 Export mislukt: "+e.message;
-  }
-}
-function importBackup(file){
-  if(!file) return;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      var data=JSON.parse(e.target.result);
-      var n=0;
-      Object.keys(data).forEach(function(k){localStorage.setItem(k,data[k]);n++;});
-      var st=document.getElementById("backupSt");
-      if(st) st.textContent="\u2713 "+n+" items hersteld \u2014 pagina herlaadt...";
-      setTimeout(function(){location.reload();},1200);
-    }catch(err){
-      var st2=document.getElementById("backupSt");
-      if(st2) st2.textContent="\u2717 Ongeldig backup-bestand";
-    }
-  };
-  reader.readAsText(file);
-}
-
-function updateMarketStatus(){
-  var now=new Date();
-  var usHolidayToday=isHolidayToday(usHolidays(now.getFullYear()));
-  var euHolidayToday=isHolidayToday(euHolidays(now.getFullYear()));
-  var usOpen=isUSOpen(),euOpen=isEUOpen();
-
-  var dot=document.getElementById("mDot"),lbl=document.getElementById("mLabel");
-  if(dot)dot.className="live-dot "+(usOpen?"dot-open":"dot-closed");
-  if(lbl)lbl.textContent="VS "+(usOpen?"OPEN":(usHolidayToday?"gesloten (feestdag)":"gesloten"));
-
-  var dotEU=document.getElementById("mDotEU"),lblEU=document.getElementById("mLabelEU");
-  if(dotEU)dotEU.className="live-dot "+(euOpen?"dot-open":"dot-closed");
-  if(lblEU)lblEU.textContent="Europa "+(euOpen?"OPEN":(euHolidayToday?"gesloten (feestdag)":"gesloten"));
-}
-var cdSecs=0,cdTimer=null;
-function startCountdown(){
-  clearInterval(cdTimer);cdSecs=60;
-  var fhKey=lsGet("carl-fh");
-  cdTimer=setInterval(function(){
-    cdSecs--;
-    var el=document.getElementById("cdTxt");
-    if(el){
-      if(isMarketOpen()&&fhKey){el.textContent="Auto-refresh in "+cdSecs+"s";el.style.color=cdSecs<10?"var(--ac)":"var(--t3)";}
-      else{el.textContent=isMarketOpen()?"Stel Finnhub-sleutel in":"Beurs gesloten";el.style.color="var(--t3)";}
-    }
-    if(cdSecs<=0){clearInterval(cdTimer);if(fhKey&&isMarketOpen()){doFetch(fhKey);}else startCountdown();}
-  },1000);
-}
-
-// ═══ DRAG & DROP MODULES ══════════════════════════════════════════════════════
-var dMod=null,MK="carl-mod-v6";
-function setupMods(){
-  document.querySelectorAll(".module").forEach(function(mod){
-    mod.addEventListener("dragstart",function(e){if(e.target.closest(".cc")||e.target.closest(".ni"))return;dMod=mod;mod.classList.add("dragging");e.dataTransfer.effectAllowed="move";});
-    mod.addEventListener("dragend",function(){mod.classList.remove("dragging");document.querySelectorAll(".module").forEach(function(m){m.classList.remove("dragover");});saveModOrd();});
-    mod.addEventListener("dragover",function(e){if(!dMod||dMod===mod||e.target.closest(".cc"))return;e.preventDefault();mod.classList.add("dragover");});
-    mod.addEventListener("dragleave",function(e){if(!mod.contains(e.relatedTarget))mod.classList.remove("dragover");});
-    mod.addEventListener("drop",function(e){if(!dMod||dMod===mod||e.target.closest(".cc"))return;e.preventDefault();mod.classList.remove("dragover");var b=document.getElementById("board"),ms=[...b.querySelectorAll(".module")];b.insertBefore(dMod,ms.indexOf(dMod)<ms.indexOf(mod)?mod.nextSibling:mod);saveModOrd();dMod=null;});
-  });
-}
-function saveModOrd(){try{localStorage.setItem(MK,JSON.stringify([...document.querySelectorAll(".module")].map(function(m){return m.getAttribute("data-mod");})));}catch(e){}}
-function restoreModOrd(){try{var s=JSON.parse(localStorage.getItem(MK));var b=document.getElementById("board");if(s&&s.length)s.forEach(function(k){var el=b.querySelector(".module[data-mod=\""+k+"\"]");if(el)b.appendChild(el);});}catch(e){}}
-
-// ═══ DRAG & DROP CHARTS ═══════════════════════════════════════════════════════
-var dChart=null,CK="carl-chart-v6";
-function setupChartDrag(){
-  document.querySelectorAll(".cc").forEach(function(card){
-    card.addEventListener("dragstart",function(e){dChart=card;card.classList.add("dragging");e.dataTransfer.effectAllowed="move";e.stopPropagation();});
-    card.addEventListener("dragend",function(){card.classList.remove("dragging");document.querySelectorAll(".cc").forEach(function(c){c.classList.remove("dragover");});saveChOrd();});
-    card.addEventListener("dragover",function(e){if(!dChart||dChart===card)return;e.preventDefault();e.stopPropagation();card.classList.add("dragover");});
-    card.addEventListener("dragleave",function(e){if(!card.contains(e.relatedTarget))card.classList.remove("dragover");});
-    card.addEventListener("drop",function(e){if(!dChart||dChart===card)return;e.preventDefault();e.stopPropagation();card.classList.remove("dragover");var g=document.getElementById("chartGrid"),cs=[...g.querySelectorAll(".cc")];g.insertBefore(dChart,cs.indexOf(dChart)<cs.indexOf(card)?card.nextSibling:card);saveChOrd();dChart=null;});
-  });
-}
-function saveChOrd(){try{localStorage.setItem(CK,JSON.stringify([...document.querySelectorAll(".cc")].map(function(c){return c.getAttribute("data-ch");})));}catch(e){}}
-function restoreChOrd(){try{var s=JSON.parse(localStorage.getItem(CK));var g=document.getElementById("chartGrid");if(s&&s.length)s.forEach(function(k){var el=g.querySelector(".cc[data-ch=\""+k+"\"]");if(el)g.appendChild(el);});}catch(e){}}
-
-// ═══ COLUMN SORT ══════════════════════════════════════════════════════════════
-document.querySelectorAll("thead th[data-k]").forEach(function(th){
-  th.addEventListener("click",function(){
-    var k=th.getAttribute("data-k"),t=th.getAttribute("data-t");
-    sortD=sortK===k?-sortD:(t==="n"?-1:1);sortK=k;
-    document.querySelectorAll("thead th").forEach(function(o){o.classList.remove("sa");o.innerHTML=o.innerHTML.replace(" ▲","").replace(" ▼","");});
-    th.classList.add("sa");th.innerHTML=th.innerHTML+" "+(sortD>0?"▲":"▼");
-    renderTable();
-  });
-});
-
-// ═══ RESET ════════════════════════════════════════════════════════════════════
-function resetLayout(){
-  try{localStorage.removeItem(MK);localStorage.removeItem(CK);}catch(e){}
-  var b=document.getElementById("board"),g=document.getElementById("chartGrid");
-  ["kpis","vix","holdings","fx","charts","dag","news","perf"].forEach(function(k){var el=b.querySelector(".module[data-mod=\""+k+"\"]");if(el)b.appendChild(el);});
-  ["alloc","rend","upside","pnl","basis","broker"].forEach(function(k){var el=g.querySelector(".cc[data-ch=\""+k+"\"]");if(el)g.appendChild(el);});
-  sortK=null;sortD=1;document.querySelectorAll("thead th").forEach(function(th){th.classList.remove("sa");});
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init(){
+  bootstrapHistory();
+  loadEurManual();
+  var key=lsGet('carl-fh');
+  document.getElementById('kbanner').style.display=key?'none':'block';
+  updateKeySt();
+  updateFmpKeySt();
+  var vixCache=lsGet('carl-vix');if(vixCache){vixVal=vixCache.v;vixDP=vixCache.dp;}
+  renderMkt();
   updateAll();
-}
-
-// ─── BOOTSTRAP HISTORIEK (eenmalig, enkel als sleutel nog niet lokaal bestaat) ──
-function bootstrapHistory(){
-  var seed={"cp_w": {"date": "2026-06-22", "time": "06:12", "week": "2026-W25", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231935.7737, "NVDA": 16461.42039, "GOOGL": 9568.78, "PLTR": 7649.1038, "AMZN": 2443.9, "WULF": 8719.24158, "HIMS": 126.66337, "PATH": 1694.20082, "SPCX": 229.85}, "eP": {"VUSA": 1179.707432, "DIET": 363.14392}, "tot": 278828.93, "live": true}, "cp_m": {"date": "2026-06-20", "time": "16:43", "week": "2026-W24", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231958.93889999998, "NVDA": 16464.54563, "GOOGL": 9569.82, "PLTR": 7650.89, "AMZN": 2444.3, "WULF": 8725.259, "HIMS": 126.69908, "PATH": 1695.85048, "SPCX": 229.85}, "eP": {"VUSA": 1161.128612, "DIET": 380.4258}, "tot": 278866.15, "live": true}, "cp_y": {"date": "2026-06-20", "time": "16:43", "week": "2026-W24", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231958.93889999998, "NVDA": 16464.54563, "GOOGL": 9569.82, "PLTR": 7650.89, "AMZN": 2444.3, "WULF": 8725.259, "HIMS": 126.69908, "PATH": 1695.85048, "SPCX": 229.85}, "eP": {"VUSA": 1161.128612, "DIET": 380.4258}, "tot": 278866.15, "live": true}, "cp_dh": [{"date": "2026-06-23", "time": "23:30", "total": 0}, {"date": "2026-06-22", "time": "22:01", "total": 1072}, {"date": "2026-06-19", "time": "22:12", "total": 2807}], "cp_wh": [{"week": "2026-W24", "date": "2026-06-20", "total": 5244}], "carl-eur-manual": {"VUSA": 123.76, "DIET": 165.1, "date": "2026-06-22"}, "carl-vix": {"v": 22.89, "dp": -0.3916, "d": "2026-06-24"}};
-  seed["carl-mod-v6"]=["kpis","dag","holdings","vix","fx","charts","news","perf"];
-  seed["carl-chart-v6"]=["alloc","rend","pnl","upside","basis","broker"];
-  Object.keys(seed).forEach(function(k){
-    try{
-      if(localStorage.getItem(k)===null){
-        lsSet(k,seed[k]);
-        console.log("[Bootstrap] "+k+" ingeladen uit eerdere backup");
-      }
-    }catch(e){}
-  });
-}
-
-// ═══ INIT ════════════════════════════════════════════════════════════════════
-bootstrapHistory();
-restoreModOrd();
-restoreChOrd();
-loadEurManual();
-setupMods();
-setupChartDrag();
-renderNews();
-updateAll();
-initPerf();
-updateMarketStatus();
-setInterval(updateMarketStatus,30000);
-startCountdown();
-
-// Twelve Data status
-(function(){
-  var tdKey=lsGet("carl-td");
-  var st=document.getElementById("tdStatus");
-  if(tdKey&&st)st.innerHTML="<span style=\"color:#2ea76b\">✓ Sleutel actief — wordt automatisch bijgewerkt</span>";
-  else if(st)st.innerHTML="<span style=\"color:var(--t3)\">Nog niet ingesteld</span>";
-})();
-
-// Hint als geen Finnhub sleutel
-setTimeout(function(){
-  if(!lsGet("carl-fh")){
-    var st=document.getElementById("liveSt");
-    if(st)st.innerHTML="<span style=\"color:var(--ac)\">▲ Klik <strong>🔑 Finnhub</strong> om gratis live koersen te activeren</span>";
+  var now=new Date(),ws=lsGet(PK.w),ms=lsGet(PK.m);
+  if(ws&&ws.week!==isoWeek(now)&&ws.live){
+    var wp=calcPnL(ws),wh=lsGet(PK.wh)||[];
+    wh.unshift({week:ws.week,date:ws.date,total:wp?Math.round(wp.total):0});
+    lsSet(PK.wh,wh.slice(0,16));lsSet(PK.w,null);
   }
-},400);
-
-
-// ═══ DAGELIJKS PRESTATIERAPPORT ══════════════════════════════════════════════
-// ─── DAG-ARCHIVERING (enkel na een echte live fetch, nooit bij gewone page-load) ──
-function archiveDayIfNeeded(){
-  var items=[];
-  var latestQt=0;
-  H.forEach(function(h){
-    if(h.ccy==="USD"&&h.price>0&&h.pc>0){
-      items.push({dagEur:(h.price-h.pc)*h.shares/EUR_USD});
-      if(h.qt&&h.qt>latestQt) latestQt=h.qt;
-    }
-  });
-  if(!items.length) return;
-  var tot=0;
-  items.forEach(function(it){tot+=it.dagEur;});
-
-  // Datum afleiden uit de Finnhub-tijdstempel, niet uit 'nu' (correct ook bij voor-beurs check de volgende dag)
-  var quoteDate=latestQt?new Date(latestQt*1000):new Date();
-  var dateStr=isoDate(quoteDate);
-  var dayOfWeek=quoteDate.getDay();
-  if(dayOfWeek===0||dayOfWeek===6) return; // veiligheidsnet: weekend-tijdstempel negeren
-
-  var dh=lsGet(PK.dh)||[];
-  if(!dh.length||dh[0].date!==dateStr){
-    dh.unshift({date:dateStr,time:new Date().toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"}),total:Math.round(tot)});
-    lsSet(PK.dh,dh.slice(0,30));
-  } else if(dh[0].date===dateStr){
-    dh[0].total=Math.round(tot);
-    dh[0].time=new Date().toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"});
-    lsSet(PK.dh,dh);
+  if(ms&&ms.month!==isoMonth(now)&&ms.live){
+    var mp=calcPnL(ms),mh=lsGet(PK.mh)||[];
+    mh.unshift({month:ms.month,date:ms.date,total:mp?Math.round(mp.total):0});
+    lsSet(PK.mh,mh.slice(0,12));lsSet(PK.m,null);
+  }
+  var ys=lsGet(PK.y);
+  if(ys&&ys.year!==isoYear(now)&&ys.live){
+    var yp=calcPnL(ys),yh=lsGet(PK.yh)||[];
+    yh.unshift({year:ys.year,date:ys.date,total:yp?Math.round(yp.total):0});
+    lsSet(PK.yh,yh.slice(0,10));lsSet(PK.y,null);
   }
 }
 
-function renderDagRapport(){
-  var el=document.getElementById("dagDiv");
-  if(!el)return;
-
-  // Gebruik pc (previous close) van Finnhub — geen snapshot nodig
-  var usdItems=H.filter(function(h){return h.ccy==="USD"&&h.pc>0;})
-    .map(function(h){
-      var dagEur=(h.price-h.pc)*h.shares/EUR_USD;
-      return{ticker:h.ticker,name:h.name,price:h.price,pc:h.pc,pct:h.dayPct||((h.price-h.pc)/h.pc*100),dagEur:dagEur};
-    }).sort(function(a,b){return b.dagEur-a.dagEur;});
-
-  var html="";
-
-  if(usdItems.length===0){
-    html="<div style='background:var(--p);border:1px solid var(--bd);border-radius:10px;padding:24px;text-align:center'>"+
-      "<div style='font-size:14px;color:var(--t2);margin-bottom:8px'>Geen dagdata beschikbaar</div>"+
-      "<div style='font-size:12px;color:var(--t3)'>Klik op <strong>\u29bf Live koersen</strong> &mdash; Finnhub stuurt automatisch de vorige slotkoers mee.<br>Daarna verschijnen hier de exacte dagwijzigingen.</div></div>";
-    el.innerHTML=html;return;
-  }
-
-  // Totaal dagresultaat
-  var totDagEur=usdItems.reduce(function(s,h){return s+h.dagEur;},0);
-  var best=usdItems[usdItems.length-1],worst=usdItems.filter(function(h){return h.dagEur<0;}).sort(function(a,b){return a.dagEur-b.dagEur;})[0]||usdItems[usdItems.length-1];
-  var bestPos=usdItems[0];
-
-  // KPI hero
-  var cl=totDagEur>=0?"up":"dn",s=totDagEur>=0?"+\u20ac":"\u2212\u20ac";
-  html="<div class='hero' style='margin-bottom:14px'>";
-  html+="<div class='card'><div class='lbl'>Dagresultaat USD (alle brokers)</div><div class='big "+cl+"'>"+s+Math.abs(Math.round(totDagEur)).toLocaleString("nl-NL")+"</div><div class='sm mu'>vs. vorig slot &middot; "+isoDate()+"</div></div>";
-  html+="<div class='card'><div class='lbl'>Beste performer</div><div class='big up'>"+bestPos.ticker+"</div><div class='sm up'>"+(bestPos.pct>=0?"+":"\u2212")+Math.abs(bestPos.pct).toFixed(2)+"%</div></div>";
-  html+="<div class='card'><div class='lbl'>Zwakste performer</div><div class='big dn'>"+(worst?worst.ticker:"&mdash;")+"</div><div class='sm dn'>"+(worst?(worst.pct>=0?"+":"\u2212")+Math.abs(worst.pct).toFixed(2)+"%":"&mdash;")+"</div></div>";
-  html+="<div class='card'><div class='lbl'>Databron</div><div class='big' style='font-size:16px'>Finnhub</div><div class='sm mu'>previous close automatisch</div></div>";
-  html+="</div>";
-
-  // FX-impact vandaag
-  if(eurUsdPrevClose){
-    html+=fxImpactRow(eurUsdPrevClose).replace("margin-bottom:10px","margin-bottom:12px");
-  }
-
-  // Dag-tabel
-  html+="<div style='background:var(--p);border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:12px'>";
-  html+="<table style='width:100%;font-size:12px'><thead><tr>"+
-    "<th style='text-align:left;padding:8px 12px;font-size:10px'>Ticker</th>"+
-    "<th style='text-align:right;padding:8px 12px;font-size:10px'>Vorig slot</th>"+
-    "<th style='text-align:right;padding:8px 12px;font-size:10px'>Huidig</th>"+
-    "<th style='text-align:right;padding:8px 12px;font-size:10px'>Dagwijziging</th>"+
-    "<th style='text-align:right;padding:8px 12px;font-size:10px'>EUR impact</th>"+
-    "</tr></thead><tbody>";
-  usdItems.forEach(function(it){
-    var isPos=it.dagEur>=0,cl2=isPos?"up":"dn";
-    var eurS=(isPos?"+\u20ac":"\u2212\u20ac")+Math.abs(Math.round(it.dagEur)).toLocaleString("nl-NL");
-    var pctS=(it.pct>=0?"+":"\u2212")+Math.abs(it.pct).toFixed(2)+"%";
-    html+="<tr style='border-bottom:1px solid var(--bd)'>"+
-      "<td style='padding:7px 12px;font-weight:650'>"+it.ticker+"</td>"+
-      "<td style='padding:7px 12px;text-align:right;color:var(--t3)'>$"+it.pc.toFixed(2)+"</td>"+
-      "<td style='padding:7px 12px;text-align:right'>$"+it.price.toFixed(2)+"</td>"+
-      "<td style='padding:7px 12px;text-align:right' class='"+cl2+"'>"+pctS+"</td>"+
-      "<td style='padding:7px 12px;text-align:right;font-weight:600' class='"+cl2+"'>"+eurS+"</td>"+
-      "</tr>";
-  });
-  html+="</tbody></table></div>";
-
-  // Dag-historiek (archivering gebeurt apart, enkel na een echte live fetch — zie archiveDayIfNeeded())
-  var dh=lsGet(PK.dh)||[];
-
-  // Historiek
-  if(dh.length>0){
-    html+="<div class='card'><div style='font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px'>Laatste handelsdagen</div>";
-    html+="<table style='font-size:12px;width:100%'><thead><tr>"+
-      "<th style='text-align:left;padding:4px 0;font-size:10px;color:var(--t3);font-weight:600'>Datum</th>"+
-      "<th style='text-align:right;padding:4px 0;font-size:10px;color:var(--t3);font-weight:600'>Dagresultaat</th>"+
-      "</tr></thead><tbody>";
-    dh.slice(0,7).forEach(function(d){
-      var cl3=d.total>=0?"up":"dn",s3=d.total>=0?"+\u20ac":"\u2212\u20ac";
-      html+="<tr style='border-bottom:1px solid var(--bd)'>"+
-        "<td style='padding:5px 0;font-size:12px'>"+d.date+" <span style='color:var(--t3);font-size:10px'>"+d.time+"</span></td>"+
-        "<td style='padding:5px 0;text-align:right;font-weight:600' class='"+cl3+"'>"+s3+Math.abs(d.total).toLocaleString("nl-NL")+"</td>"+
-        "</tr>";
-    });
-    html+="</tbody></table></div>";
-  }
-
-  html+="<div style='font-size:10.5px;color:var(--t3);margin-top:8px;display:flex;justify-content:space-between;align-items:center'>"+
-    "<span>Dagresultaat = (huidige koers \u2212 vorig slot) \u00d7 aandelen \u00f7 EUR/USD &middot; Finnhub pc-veld &middot; 30 dagen bewaard</span>"+
-    "<button class='btn' style='font-size:10px;padding:3px 9px' onclick='resetDagRapport()'>\u21ba Reset historiek</button>"+
-    "</div>";
-
-  el.innerHTML=html;
-}
-function resetDagRapport(){
-  try{localStorage.removeItem(PK.dh);}catch(e){}
-  renderDagRapport();
-}
-
-
-// ═══ EUR HANDMATIGE INVOER ════════════════════════════════════════════════════
-function saveEurManual(){
-  var vi=document.getElementById("inpVUSA"),di=document.getElementById("inpDIET");
-  var vp=vi?parseFloat(vi.value):0,dp=di?parseFloat(di.value):0;
-  var changed=0;
-  H.forEach(function(h){
-    if(h.ticker==="VUSA"&&h.ccy==="EUR"&&vp>0){h.price=Math.round(vp*100)/100;h.pl=(h.price-h.avg)/h.avg*100;changed++;}
-    if(h.ticker==="DIET"&&h.ccy==="EUR"&&dp>0){h.price=Math.round(dp*100)/100;h.pl=(h.price-h.avg)/h.avg*100;changed++;}
-  });
-  if(changed===0)return;
-  lsSet("carl-eur-manual",{VUSA:vp||null,DIET:dp||null,date:new Date().toISOString().slice(0,10)});
-  updateAll();
-  closeModal("mTD");
-  var st=document.getElementById("liveSt");
-  if(st)st.innerHTML="<span style=\"color:#a78bfa\">\u2713 EUR bijgewerkt"+(vp>0?" \u00b7 VUSA \u20ac"+vp:"")+(dp>0?" \u00b7 D'Iet. \u20ac"+dp:"")+"</span>";
-}
-function loadEurManual(){
-  var s=lsGet("carl-eur-manual");
-  if(!s)return;
-  H.forEach(function(h){
-    if(h.ticker==="VUSA"&&h.ccy==="EUR"&&s.VUSA>0){h.price=Math.round(s.VUSA*100)/100;h.pl=(h.price-h.avg)/h.avg*100;}
-    if(h.ticker==="DIET"&&h.ccy==="EUR"&&s.DIET>0){h.price=Math.round(s.DIET*100)/100;h.pl=(h.price-h.avg)/h.avg*100;}
-  });
-  var vi=document.getElementById("inpVUSA");if(vi&&s.VUSA)vi.value=s.VUSA;
-  var di=document.getElementById("inpDIET");if(di&&s.DIET)di.value=s.DIET;
-}
+init();
 </script>
 </body>
 </html>
