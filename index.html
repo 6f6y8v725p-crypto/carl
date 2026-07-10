@@ -1044,56 +1044,55 @@ var vixVal=null,vixErr=null,vixDP=null,vixStale=null;
 // ─── EUR/USD WISSELKOERS (live via Finnhub forex) ────────────────────────────
 var eurUsdPrevClose=null;
 function fetchEurUsd(fhKey){
-  // Primaire bron: frankfurter.app (gratis, geen sleutel, CORS-ok, ECB-data)
+  var el=document.getElementById('kEur');
+  var sub=document.getElementById('kEurSub');
+
+  function applyRate(rate,src){
+    var prev=EUR_USD;
+    EUR_USD=Math.round(rate*10000)/10000;
+    eurUsdPrevClose=prev;
+    if(el) el.textContent=EUR_USD.toFixed(4);
+    if(sub){
+      var chg=(EUR_USD-prev)/prev*100;
+      var arrow=chg>=0?'\u25b2':'\u25bc';
+      var cls=chg>=0?'up':'dn';
+      sub.innerHTML='<span class="'+cls+'">'+arrow+' '+(chg>=0?'+':'')+Math.abs(chg).toFixed(2)+'%</span> vs. vorig slot'+(src?' <span style="font-size:9px;color:var(--t3)">('+src+')</span>':'');
+    }
+    renderHoldings();updateKPI();
+  }
+
+  // 1e poging: frankfurter.app (gratis, geen sleutel — werkt van HTTPS/GitHub Pages)
   fetch('https://api.frankfurter.app/latest?from=EUR&to=USD')
-    .then(function(r){return r.json();})
+    .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
     .then(function(d){
       var rate=d&&d.rates&&d.rates.USD;
-      if(rate&&rate>0){
-        var prev=EUR_USD; // vorige waarde voor indicator
-        EUR_USD=Math.round(rate*10000)/10000;
-        eurUsdPrevClose=prev;
-        var el=document.getElementById('kEur');
-        var sub=document.getElementById('kEurSub');
-        if(el) el.textContent=EUR_USD.toFixed(4);
-        if(sub){
-          var chg=(EUR_USD-prev)/prev*100;
-          var arrow=chg>=0?'\u25b2':'\u25bc';
-          var cls=chg>=0?'up':'dn';
-          sub.innerHTML='<span class="'+cls+'">'+arrow+' '+(chg>=0?'+':'')+chg.toFixed(2)+'%</span> vs. vorig slot';
-        }
-        renderHoldings();renderCharts();updateKPI();
-      } else {
-        throw new Error('geen rate van frankfurter');
-      }
+      if(!rate||rate<=0) throw new Error('geen rate');
+      applyRate(rate,'frankfurter');
     })
     .catch(function(){
-      // Fallback: Finnhub OANDA (werkt op sommige accounts)
       if(!fhKey) return;
-      fetch('https://finnhub.io/api/v1/quote?symbol=OANDA:EUR_USD&token='+fhKey)
-        .then(function(r){return r.json();})
+      // 2e poging: Finnhub forex/rates endpoint (werkt ook van file://)
+      fetch('https://finnhub.io/api/v1/forex/rates?base=EUR&token='+fhKey)
+        .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
         .then(function(d){
-          var el=document.getElementById('kEur');
-          var sub=document.getElementById('kEurSub');
-          if(d&&d.c>0){
-            var prev2=EUR_USD;
-            EUR_USD=Math.round(d.c*10000)/10000;
-            eurUsdPrevClose=d.pc||prev2;
-            if(el) el.textContent=EUR_USD.toFixed(4);
-            if(sub){
-              var chg2=d.dp||((EUR_USD-prev2)/prev2*100);
-              var arrow2=chg2>=0?'\u25b2':'\u25bc';
-              var cls2=chg2>=0?'up':'dn';
-              sub.innerHTML='<span class="'+cls2+'">'+arrow2+' '+(chg2>=0?'+':'')+chg2.toFixed(2)+'%</span> vs. vorig slot (Finnhub)';
-            }
-            renderHoldings();renderCharts();updateKPI();
-          } else if(sub){
-            sub.innerHTML='<span class="dn">geen live koers \u2014 statische waarde</span>';
-          }
+          var rate=d&&d.quote&&d.quote.USD;
+          if(!rate||rate<=0) throw new Error('geen rate');
+          applyRate(rate,'Finnhub');
         })
         .catch(function(){
-          var sub=document.getElementById('kEurSub');
-          if(sub) sub.innerHTML='<span class="dn">netwerkfout \u2014 statische waarde</span>';
+          // 3e poging: Finnhub OANDA quote (werkt soms op betaalde accounts)
+          fetch('https://finnhub.io/api/v1/quote?symbol=OANDA:EUR_USD&token='+fhKey)
+            .then(function(r){return r.json();})
+            .then(function(d){
+              if(d&&d.c>0){
+                applyRate(d.c,'OANDA');
+              } else if(sub){
+                sub.innerHTML='<span class="dn">EUR/USD: gratis Finnhub-account biedt geen forex \u2014 open via GitHub Pages voor live koers</span>';
+              }
+            })
+            .catch(function(){
+              if(sub) sub.innerHTML='<span class="dn">netwerkfout \u2014 statische waarde 1,1611</span>';
+            });
         });
     });
 }
@@ -1400,10 +1399,17 @@ function fetchTargetsFMP(fmpKey){
       .then(function(r){
         if(r.status===403||r.status===401){targetStatus.premiumBlocked=true;targetStatus.fail++;failedTickers.push(sym+' (geblokkeerd)');return null;}
         if(r.status===429){targetStatus.fail++;failedTickers.push(sym+' (limiet)');return null;}
-        return r.json();
+        if(!r.ok){targetStatus.fail++;failedTickers.push(sym+' (HTTP '+r.status+')');return null;}
+        return r.json().catch(function(){return null;}); // HTML-foutpagina → null i.p.v. exception
       })
       .then(function(d){
-        if(d===null) return; // al afgehandeld (403/429)
+        if(d===null){
+          // al afgehandeld of json-parse mislukt
+          if(!failedTickers.some(function(f){return f.indexOf(sym)===0;})){
+            targetStatus.fail++;failedTickers.push(sym+' (geen data)');
+          }
+          return;
+        }
         var rec=Array.isArray(d)?d[0]:d;
         var tgt=rec&&(rec.targetConsensus||rec.targetMedian);
         if(rec&&tgt>0){
