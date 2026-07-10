@@ -242,8 +242,10 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 <!-- EUR MODAL -->
 <div class="moverlay" id="eurModal">
   <div class="mbox">
-    <div class="mtitle">EUR-koersen handmatig</div>
-    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">VUSA.AS en D'Ieteren (DIE.BR) &mdash; in euro</div>
+    <div class="mtitle">EUR-koersen &amp; wisselkoers</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Handmatig invoeren (bijv. via Google of Revolut)</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:4px">EUR/USD wisselkoers</div>
+    <input class="minp" id="iEurUsd" type="number" step="0.0001" placeholder="bijv. 1.1438">
     <div style="font-size:12px;color:var(--t2);margin-bottom:4px">VUSA (Vanguard S&P500 EUR)</div>
     <input class="minp" id="iVusa" type="number" step="0.01" placeholder="bijv. 121.87">
     <div style="font-size:12px;color:var(--t2);margin-bottom:4px">D'Ieteren Groep (DIE.BR)</div>
@@ -450,15 +452,28 @@ function go(id,btn){
 // ─── MODALS ──────────────────────────────────────────────────────────────────
 function openEurModal(){
   var s=lsGet('carl-eur-manual')||{};
+  var euEl=document.getElementById('iEurUsd');
+  if(euEl) euEl.value=s.EURUSD||EUR_USD;
   if(s.VUSA) document.getElementById('iVusa').value=s.VUSA;
   if(s.DIET) document.getElementById('iDiet').value=s.DIET;
   document.getElementById('eurModal').classList.add('open');
 }
 function closeEurModal(){document.getElementById('eurModal').classList.remove('open');}
 function saveEur(){
+  var euEl=document.getElementById('iEurUsd');
+  var eu=euEl?parseFloat(euEl.value):NaN;
   var v=parseFloat(document.getElementById('iVusa').value);
   var d=parseFloat(document.getElementById('iDiet').value);
   var s=lsGet('carl-eur-manual')||{};
+  if(!isNaN(eu)&&eu>0){
+    s.EURUSD=eu;
+    EUR_USD=eu;
+    eurUsdPrevClose=EUR_USD;
+    var kEl=document.getElementById('kEur');
+    var kSub=document.getElementById('kEurSub');
+    if(kEl) kEl.textContent=eu.toFixed(4);
+    if(kSub) kSub.innerHTML='<span class="mu">handmatig ingevoerd</span>';
+  }
   if(!isNaN(v)) s.VUSA=v;
   if(!isNaN(d)) s.DIET=d;
   s.date=isoDate();
@@ -474,6 +489,13 @@ function saveEur(){
 function loadEurManual(){
   var s=lsGet('carl-eur-manual');
   if(!s) return;
+  if(s.EURUSD&&s.EURUSD>0){
+    EUR_USD=s.EURUSD;
+    var kEl=document.getElementById('kEur');
+    if(kEl) kEl.textContent=EUR_USD.toFixed(4);
+    var kSub=document.getElementById('kEurSub');
+    if(kSub) kSub.innerHTML='<span class="mu">handmatig ('+s.date+')</span>';
+  }
   H.forEach(function(h){
     if(h.ticker==='VUSA'&&s.VUSA) h.price=s.VUSA;
     if(h.ticker==='DIET'&&s.DIET) h.price=s.DIET;
@@ -483,8 +505,8 @@ function loadEurManual(){
 function updateEurSt(){
   var s=lsGet('carl-eur-manual');
   var el=document.getElementById('eurSt');
-  if(s&&(s.VUSA||s.DIET)){
-    el.textContent='VUSA: \u20ac'+(s.VUSA||'?')+' \u00b7 D\'Ieteren: \u20ac'+(s.DIET||'?')+' \u00b7 '+s.date;
+  if(s&&(s.VUSA||s.DIET||s.EURUSD)){
+    el.textContent=(s.EURUSD?'EUR/USD: '+s.EURUSD+' \u00b7 ':'')+('VUSA: \u20ac'+(s.VUSA||'?'))+' \u00b7 D\'Ieteren: \u20ac'+(s.DIET||'?')+' \u00b7 '+s.date;
   } else {
     el.textContent='VUSA & D\'Ieteren \u00b7 tik om in te voeren';
   }
@@ -1051,48 +1073,50 @@ function fetchEurUsd(fhKey){
     var prev=EUR_USD;
     EUR_USD=Math.round(rate*10000)/10000;
     eurUsdPrevClose=prev;
+    var ms=lsGet('carl-eur-manual')||{};
+    ms.EURUSD=EUR_USD;lsSet('carl-eur-manual',ms);
     if(el) el.textContent=EUR_USD.toFixed(4);
     if(sub){
       var chg=(EUR_USD-prev)/prev*100;
       var arrow=chg>=0?'\u25b2':'\u25bc';
       var cls=chg>=0?'up':'dn';
-      sub.innerHTML='<span class="'+cls+'">'+arrow+' '+(chg>=0?'+':'')+Math.abs(chg).toFixed(2)+'%</span> vs. vorig slot'+(src?' <span style="font-size:9px;color:var(--t3)">('+src+')</span>':'');
+      sub.innerHTML='<span class="'+cls+'">'+arrow+' '+(chg>=0?'+':'')+Math.abs(chg).toFixed(2)+'%</span> vs. vorig slot <span style="font-size:9px;color:var(--t3)">('+src+')</span>';
     }
     renderHoldings();updateKPI();
   }
 
-  // 1e poging: frankfurter.app (gratis, geen sleutel — werkt van HTTPS/GitHub Pages)
-  fetch('https://api.frankfurter.app/latest?from=EUR&to=USD')
+  function fallbackManual(){
+    if(sub) sub.innerHTML='<span class="dn">Geen live forex \u2014 </span><span style="color:var(--bl);text-decoration:underline;cursor:pointer" onclick="openEurModal()">voer EUR/USD handmatig in</span>';
+  }
+
+  // 1e poging: jsDelivr CDN (gratis, geen sleutel, CORS * — werkt van file:// \u00e9n HTTPS)
+  fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.min.json')
     .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
     .then(function(d){
-      var rate=d&&d.rates&&d.rates.USD;
+      var rate=d&&d.eur&&d.eur.usd;
       if(!rate||rate<=0) throw new Error('geen rate');
-      applyRate(rate,'frankfurter');
+      applyRate(rate,'jsDelivr/ECB');
     })
     .catch(function(){
-      if(!fhKey) return;
-      // 2e poging: Finnhub forex/rates endpoint (werkt ook van file://)
-      fetch('https://finnhub.io/api/v1/forex/rates?base=EUR&token='+fhKey)
+      // 2e poging: frankfurter.app (ECB-data, werkt van HTTPS/GitHub Pages)
+      fetch('https://api.frankfurter.app/latest?from=EUR&to=USD')
         .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
         .then(function(d){
-          var rate=d&&d.quote&&d.quote.USD;
+          var rate=d&&d.rates&&d.rates.USD;
           if(!rate||rate<=0) throw new Error('geen rate');
-          applyRate(rate,'Finnhub');
+          applyRate(rate,'frankfurter');
         })
         .catch(function(){
-          // 3e poging: Finnhub OANDA quote (werkt soms op betaalde accounts)
-          fetch('https://finnhub.io/api/v1/quote?symbol=OANDA:EUR_USD&token='+fhKey)
-            .then(function(r){return r.json();})
+          // 3e poging: Finnhub forex/rates (werkt met Finnhub-sleutel)
+          if(!fhKey){fallbackManual();return;}
+          fetch('https://finnhub.io/api/v1/forex/rates?base=EUR&token='+fhKey)
+            .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
             .then(function(d){
-              if(d&&d.c>0){
-                applyRate(d.c,'OANDA');
-              } else if(sub){
-                sub.innerHTML='<span class="dn">EUR/USD: gratis Finnhub-account biedt geen forex \u2014 open via GitHub Pages voor live koers</span>';
-              }
+              var rate=d&&d.quote&&d.quote.USD;
+              if(!rate||rate<=0) throw new Error('geen rate');
+              applyRate(rate,'Finnhub');
             })
-            .catch(function(){
-              if(sub) sub.innerHTML='<span class="dn">netwerkfout \u2014 statische waarde 1,1611</span>';
-            });
+            .catch(function(){fallbackManual();});
         });
     });
 }
@@ -1399,6 +1423,7 @@ function fetchTargetsFMP(fmpKey){
       .then(function(r){
         if(r.status===403||r.status===401){targetStatus.premiumBlocked=true;targetStatus.fail++;failedTickers.push(sym+' (geblokkeerd)');return null;}
         if(r.status===429){targetStatus.fail++;failedTickers.push(sym+' (limiet)');return null;}
+        if(r.status===402){targetStatus.fail++;failedTickers.push(sym+' (FMP gratis: geen dekking)');return null;}
         if(!r.ok){targetStatus.fail++;failedTickers.push(sym+' (HTTP '+r.status+')');return null;}
         return r.json().catch(function(){return null;}); // HTML-foutpagina → null i.p.v. exception
       })
