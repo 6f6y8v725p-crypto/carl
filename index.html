@@ -1070,17 +1070,31 @@ function fetchEurUsd(fhKey){
   var sub=document.getElementById('kEurSub');
 
   function applyRate(rate,src){
-    var prev=EUR_USD;
     EUR_USD=Math.round(rate*10000)/10000;
-    eurUsdPrevClose=prev;
-    var ms=lsGet('carl-eur-manual')||{};
-    ms.EURUSD=EUR_USD;lsSet('carl-eur-manual',ms);
+    // Dagelijks referentiepunt: sla koers op per datum; vergelijk altijd met vorige dag
+    var today=isoDate();
+    var stored=lsGet('carl-eurusd-day')||{};
+    var prevRate=null;
+    if(stored.date&&stored.date!==today){
+      // Nieuwe dag: vorige-dag-waarde bewaren als referentie
+      prevRate=stored.rate;
+      lsSet('carl-eurusd-prev',{rate:stored.rate,date:stored.date});
+    } else {
+      var prev=lsGet('carl-eurusd-prev');
+      prevRate=prev?prev.rate:null;
+    }
+    lsSet('carl-eurusd-day',{rate:EUR_USD,date:today});
+    eurUsdPrevClose=prevRate||EUR_USD;
     if(el) el.textContent=EUR_USD.toFixed(4);
     if(sub){
-      var chg=(EUR_USD-prev)/prev*100;
-      var arrow=chg>=0?'\u25b2':'\u25bc';
-      var cls=chg>=0?'up':'dn';
-      sub.innerHTML='<span class="'+cls+'">'+arrow+' '+(chg>=0?'+':'')+Math.abs(chg).toFixed(2)+'%</span> vs. vorig slot <span style="font-size:9px;color:var(--t3)">('+src+')</span>';
+      if(prevRate&&Math.abs(EUR_USD-prevRate)>0.0001){
+        var chg=(EUR_USD-prevRate)/prevRate*100;
+        var arrow=chg>=0?'\u25b2':'\u25bc';
+        var cls=chg>=0?'up':'dn';
+        sub.innerHTML='<span class="'+cls+'">'+arrow+' '+(chg>=0?'+':'')+Math.abs(chg).toFixed(2)+'%</span> vs. vorig slot <span style="font-size:9px;color:var(--t3)">('+src+')</span>';
+      } else {
+        sub.innerHTML='<span style="font-size:10px;color:var(--t3)">live koers ('+src+')</span>';
+      }
     }
     renderHoldings();updateKPI();
   }
@@ -1514,7 +1528,9 @@ function fetchTargetsFinnhub(fhKey){
 function init(){
   bootstrapHistory();
   loadEurManual();
+  // EUR/USD automatisch ophalen bij elke pagina-opening (geen Vernieuwen nodig)
   var key=lsGet('carl-fh');
+  fetchEurUsd(key);
   document.getElementById('kbanner').style.display=key?'none':'block';
   updateKeySt();
   updateFmpKeySt();
