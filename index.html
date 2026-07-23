@@ -288,8 +288,8 @@ var EUR_USD = 1.1611;
 var PK = {w:'cp_w',m:'cp_m',y:'cp_y',wh:'cp_wh',mh:'cp_mh',yh:'cp_yh',dh:'cp_dh'};
 
 var H = [
-  {ticker:'TSLA',name:'Tesla',         cat:'core',ccy:'USD',shares:579.13,  avg:383.89,price:397.0,qt:null,pc:0,pl:3.4,  pe:'~180x',  fcf:'$5,3B',  target:420.0,upside:6, rating:'Buy',
-   brokers:[{n:'BUX',sh:403,avg:362.73},{n:'Bolero',sh:157,avg:438.87},{n:'Revolut',sh:19.13,avg:378.57}]},
+  {ticker:'TSLA',name:'Tesla',         cat:'core',ccy:'USD',shares:601.85,  avg:381.56,price:397.0,qt:null,pc:0,pl:4.0,  pe:'~180x',  fcf:'$5,3B',  target:420.0,upside:6, rating:'Buy',
+   brokers:[{n:'BUX',sh:403,avg:362.73},{n:'Bolero',sh:157,avg:438.87},{n:'Revolut',sh:41.85,avg:347.94}]},
   {ticker:'NVDA',name:'NVIDIA',        cat:'core',ccy:'USD',shares:78.131,  avg:113.71,price:204.0,qt:null,pc:0,pl:79.4, pe:'~35x',   fcf:'$46,3B', target:250.0,upside:23,rating:'Strong Buy',
    brokers:[{n:'BUX',sh:75,avg:113.769},{n:'Revolut',sh:3.131,avg:112.40}]},
   {ticker:'GOOGL',name:'Alphabet A',   cat:'core',ccy:'USD',shares:26,      avg:193.52,price:358.0,qt:null,pc:0,pl:85.0, pe:'~22x',   fcf:'$10B Q1', target:450.0,upside:26,rating:'Strong Buy',brokers:[]},
@@ -1066,71 +1066,61 @@ var vixVal=null,vixErr=null,vixDP=null,vixStale=null;
 // ─── EUR/USD WISSELKOERS (live via Finnhub forex) ────────────────────────────
 var eurUsdPrevClose=null;
 function fetchEurUsd(fhKey){
-  var el=document.getElementById('kEur');
-  var sub=document.getElementById('kEurSub');
+  var el=document.getElementById("kEur");
+  var sub=document.getElementById("kEurSub");
+  var convLbl=document.getElementById("fxConvLbl");
+  var CDN="https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@";
 
-  function applyRate(rate,src){
+  function show(rate,prevRate,prevDate,src){
     EUR_USD=Math.round(rate*10000)/10000;
-    // Dagelijks referentiepunt: sla koers op per datum; vergelijk altijd met vorige dag
-    var today=isoDate();
-    var stored=lsGet('carl-eurusd-day')||{};
-    var prevRate=null;
-    if(stored.date&&stored.date!==today){
-      // Nieuwe dag: vorige-dag-waarde bewaren als referentie
-      prevRate=stored.rate;
-      lsSet('carl-eurusd-prev',{rate:stored.rate,date:stored.date});
-    } else {
-      var prev=lsGet('carl-eurusd-prev');
-      prevRate=prev?prev.rate:null;
-    }
-    lsSet('carl-eurusd-day',{rate:EUR_USD,date:today});
     eurUsdPrevClose=prevRate||EUR_USD;
+    lsSet("carl-eurusd-day",{rate:EUR_USD,prev:prevRate||null,prevdate:prevDate||null,date:isoDate()});
     if(el) el.textContent=EUR_USD.toFixed(4);
+    if(convLbl) convLbl.innerHTML="&rarr; EUR @"+EUR_USD.toFixed(4).replace(".",",");
     if(sub){
-      if(prevRate&&Math.abs(EUR_USD-prevRate)>0.0001){
-        var chg=(EUR_USD-prevRate)/prevRate*100;
-        var arrow=chg>=0?'\u25b2':'\u25bc';
-        var cls=chg>=0?'up':'dn';
-        sub.innerHTML='<span class="'+cls+'">'+arrow+' '+(chg>=0?'+':'')+Math.abs(chg).toFixed(2)+'%</span> vs. vorig slot <span style="font-size:9px;color:var(--t3)">('+src+')</span>';
+      if(prevRate&&prevRate>0){
+        var chg=(EUR_USD-prevRate)/prevRate*100, up=chg>=0;
+        sub.innerHTML='<span style="color:'+(up?"#2ea76b":"#e5534b")+'">'+(up?"\u25b2":"\u25bc")+" "+(up?"+":"\u2212")+Math.abs(chg).toFixed(2)+'%</span> vs. '+(prevDate||"vorig slot")+' <span style="font-size:9px;opacity:.6">('+src+')</span>';
       } else {
-        sub.innerHTML='<span style="font-size:10px;color:var(--t3)">live koers ('+src+')</span>';
+        sub.innerHTML='<span style="font-size:10px;opacity:.6">live koers ('+src+')</span>';
       }
     }
     renderHoldings();updateKPI();
   }
 
-  function fallbackManual(){
-    if(sub) sub.innerHTML='<span class="dn">Geen live forex \u2014 </span><span style="color:var(--bl);text-decoration:underline;cursor:pointer" onclick="openEurModal()">voer EUR/USD handmatig in</span>';
+  function fetchPrev(n,cb){
+    if(n>6){cb(null,null);return;}
+    var d=new Date();d.setDate(d.getDate()-n);
+    var ds=d.toISOString().slice(0,10);
+    fetch(CDN+ds+"/v1/currencies/eur.min.json")
+      .then(function(r){if(!r.ok)throw 0;return r.json();})
+      .then(function(j){
+        var v=j&&j.eur&&j.eur.usd;
+        if(!v) throw 0;
+        cb(v,ds);
+      })
+      .catch(function(){fetchPrev(n+1,cb);});
   }
 
-  // 1e poging: jsDelivr CDN (gratis, geen sleutel, CORS * — werkt van file:// \u00e9n HTTPS)
-  fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.min.json')
-    .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
-    .then(function(d){
-      var rate=d&&d.eur&&d.eur.usd;
-      if(!rate||rate<=0) throw new Error('geen rate');
-      applyRate(rate,'jsDelivr/ECB');
+  fetch(CDN+"latest/v1/currencies/eur.min.json")
+    .then(function(r){if(!r.ok)throw 0;return r.json();})
+    .then(function(j){
+      var rate=j&&j.eur&&j.eur.usd;
+      if(!rate) throw 0;
+      fetchPrev(1,function(pv,pd){show(rate,pv,pd,"jsDelivr/ECB");});
     })
     .catch(function(){
-      // 2e poging: frankfurter.app (ECB-data, werkt van HTTPS/GitHub Pages)
-      fetch('https://api.frankfurter.app/latest?from=EUR&to=USD')
-        .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
-        .then(function(d){
-          var rate=d&&d.rates&&d.rates.USD;
-          if(!rate||rate<=0) throw new Error('geen rate');
-          applyRate(rate,'frankfurter');
+      fetch("https://api.frankfurter.app/latest?from=EUR&to=USD")
+        .then(function(r){if(!r.ok)throw 0;return r.json();})
+        .then(function(j){
+          var rate=j&&j.rates&&j.rates.USD;
+          if(!rate) throw 0;
+          fetchPrev(1,function(pv,pd){show(rate,pv,pd,"frankfurter");});
         })
         .catch(function(){
-          // 3e poging: Finnhub forex/rates (werkt met Finnhub-sleutel)
-          if(!fhKey){fallbackManual();return;}
-          fetch('https://finnhub.io/api/v1/forex/rates?base=EUR&token='+fhKey)
-            .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
-            .then(function(d){
-              var rate=d&&d.quote&&d.quote.USD;
-              if(!rate||rate<=0) throw new Error('geen rate');
-              applyRate(rate,'Finnhub');
-            })
-            .catch(function(){fallbackManual();});
+          var cache=lsGet("carl-eurusd-day");
+          if(cache&&cache.rate){show(cache.rate,cache.prev,cache.prevdate,"cache");}
+          else if(sub){sub.innerHTML='<span style="color:#e5534b">geen live forex</span>';}
         });
     });
 }
