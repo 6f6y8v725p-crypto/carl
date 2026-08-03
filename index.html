@@ -288,8 +288,8 @@ var EUR_USD = 1.1611;
 var PK = {w:'cp_w',m:'cp_m',y:'cp_y',wh:'cp_wh',mh:'cp_mh',yh:'cp_yh',dh:'cp_dh'};
 
 var H = [
-  {ticker:'TSLA',name:'Tesla',         cat:'core',ccy:'USD',shares:601.85,  avg:381.56,price:397.0,qt:null,pc:0,pl:4.0,  pe:'~180x',  fcf:'$5,3B',  target:420.0,upside:6, rating:'Buy',
-   brokers:[{n:'BUX',sh:403,avg:362.73},{n:'Bolero',sh:157,avg:438.87},{n:'Revolut',sh:41.85,avg:347.94}]},
+  {ticker:'TSLA',name:'Tesla',         cat:'core',ccy:'USD',shares:625.60,  avg:378.88,price:397.0,qt:null,pc:0,pl:4.8,  pe:'~180x',  fcf:'$5,3B',  target:420.0,upside:6, rating:'Buy',
+   brokers:[{n:'BUX',sh:403,avg:362.73},{n:'Bolero',sh:157,avg:438.87},{n:'Revolut',sh:65.60,avg:334.49}]},
   {ticker:'NVDA',name:'NVIDIA',        cat:'core',ccy:'USD',shares:78.131,  avg:113.71,price:204.0,qt:null,pc:0,pl:79.4, pe:'~35x',   fcf:'$46,3B', target:250.0,upside:23,rating:'Strong Buy',
    brokers:[{n:'BUX',sh:75,avg:113.769},{n:'Revolut',sh:3.131,avg:112.40}]},
   {ticker:'GOOGL',name:'Alphabet A',   cat:'core',ccy:'USD',shares:26,      avg:193.52,price:358.0,qt:null,pc:0,pl:85.0, pe:'~22x',   fcf:'$10B Q1', target:450.0,upside:26,rating:'Strong Buy',brokers:[]},
@@ -1088,8 +1088,8 @@ function fetchEurUsd(fhKey){
     renderHoldings();updateKPI();
   }
 
-  function fetchPrev(n,cb){
-    if(n>6){cb(null,null);return;}
+  function fetchPrev(n,cb,curRate){
+    if(n>10){cb(null,null);return;}
     var d=new Date();d.setDate(d.getDate()-n);
     var ds=d.toISOString().slice(0,10);
     fetch(CDN+ds+"/v1/currencies/eur.min.json")
@@ -1097,9 +1097,12 @@ function fetchEurUsd(fhKey){
       .then(function(j){
         var v=j&&j.eur&&j.eur.usd;
         if(!v) throw 0;
+        // Zoek eerste EERDERE dag met een MERKBAAR andere koers (>0.01%),
+        // want jsDelivr 'latest' = laatste ECB-slot = vaak identiek aan gisteren
+        if(curRate&&Math.abs(v-curRate)/curRate<0.0001){fetchPrev(n+1,cb,curRate);return;}
         cb(v,ds);
       })
-      .catch(function(){fetchPrev(n+1,cb);});
+      .catch(function(){fetchPrev(n+1,cb,curRate);});
   }
 
   fetch(CDN+"latest/v1/currencies/eur.min.json")
@@ -1107,7 +1110,7 @@ function fetchEurUsd(fhKey){
     .then(function(j){
       var rate=j&&j.eur&&j.eur.usd;
       if(!rate) throw 0;
-      fetchPrev(1,function(pv,pd){show(rate,pv,pd,"jsDelivr/ECB");});
+      fetchPrev(1,function(pv,pd){show(rate,pv,pd,"jsDelivr/ECB");},rate);
     })
     .catch(function(){
       fetch("https://api.frankfurter.app/latest?from=EUR&to=USD")
@@ -1115,7 +1118,7 @@ function fetchEurUsd(fhKey){
         .then(function(j){
           var rate=j&&j.rates&&j.rates.USD;
           if(!rate) throw 0;
-          fetchPrev(1,function(pv,pd){show(rate,pv,pd,"frankfurter");});
+          fetchPrev(1,function(pv,pd){show(rate,pv,pd,"frankfurter");},rate);
         })
         .catch(function(){
           var cache=lsGet("carl-eurusd-day");
