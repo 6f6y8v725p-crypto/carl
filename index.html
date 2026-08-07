@@ -652,14 +652,31 @@ function onFetchDone(btn,st){
   var ys=lsGet(PK.y);
   if(!ys||!ys.live||ys.year!==isoYear(now)) lsSet(PK.y,snapNow(true));
   if(anySuccess) archiveDayIfNeeded(); // dag-historiek enkel archiveren met verse data
-  // Sla de huidige totale waarde op als referentie voor de VOLGENDE fetch
+  // Sla de laatst opgehaalde live prijzen op zodat ze bij heropening herladen worden
   if(anySuccess){
-    var curTot=0;
+    var snap={};
     H.forEach(function(h){
-      if(h.ccy==='USD') curTot+=h.shares*h.price/EUR_USD;
+      if(h.ccy==='USD') snap[h.ticker]={price:h.price,pc:h.pc,pl:h.pl,dayPct:h.dayPct,qt:h.qt};
+    });
+    lsSet('carl-live-prices',{p:snap,t:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})+' '+isoDate(),eurUsd:EUR_USD});
+
+    // USD-waarde in euro nu berekenen
+    var curTot=0,usdTot=0;
+    H.forEach(function(h){
+      if(h.ccy==='USD'){curTot+=h.shares*h.price/EUR_USD;usdTot+=h.shares*h.price;}
       else curTot+=h.shares*h.price;
     });
-    lsSet('carl-lastval',{v:curTot,t:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})+' '+isoDate()});
+    // Dagelijks referentiepunt: bewaar de USD-slotwaarde per beursdag.
+    // Bij een NIEUWE beursdag wordt de vorige dag de referentie voor de trend-indicator.
+    var today=isoDate();
+    var dayRef=lsGet('carl-usd-dayref')||{};
+    if(dayRef.date&&dayRef.date!==today){
+      lsSet('carl-usd-prevday',{usd:dayRef.usd,tot:dayRef.tot,date:dayRef.date});
+    }
+    lsSet('carl-usd-dayref',{usd:usdTot,tot:curTot,date:today});
+
+    // 'carl-lastval' blijft de laatst-opgehaalde totale waarde (voor heropening-weergave)
+    lsSet('carl-lastval',{v:curTot,usd:usdTot,t:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})+' '+isoDate()});
   }
   updateAll();
   if(btn){
@@ -708,16 +725,24 @@ function updateKPI(){
   setText('kBig',big.ticker);
   setText('kBigV','\u20ac'+n2(big.ccy==='USD'?big.shares*big.price/EUR_USD:big.shares*big.price));
 
-  // Stijg/daal-indicator vs vorige opgehaalde waarde
-  var lastVal=lsGet('carl-lastval');
+  // Stijg/daal-indicator: VS-waarde (USD) tegenover de vorige beursdag
   var trendEl=document.getElementById('heroTrend');
-  if(trendEl&&lastVal&&lastVal.v>0){
-    var diff=tot-lastVal.v,diffPct=diff/lastVal.v*100;
-    var arrow=diff>=0?'\u25b2':'\u25bc';
-    var cls=diff>=0?'up':'dn';
-    trendEl.innerHTML='<span class="'+cls+'">'+arrow+' '+fmtEur(diff)+' ('+fmtPct(diffPct)+')</span><div style="font-size:9px;color:var(--t3);margin-top:1px">vs. '+lastVal.t+'</div>';
+  var prevDay=lsGet('carl-usd-prevday');
+  if(trendEl&&prevDay&&prevDay.usd>0){
+    var diffUsd=tU-prevDay.usd;
+    var diffPctUsd=diffUsd/prevDay.usd*100;
+    var arrow=diffUsd>=0?'\u25b2':'\u25bc';
+    var cls=diffUsd>=0?'up':'dn';
+    trendEl.innerHTML='<span class="'+cls+'">'+arrow+' $'+n2(Math.abs(diffUsd))+' ('+fmtPct(diffPctUsd)+')</span>'+
+      '<div style="font-size:9px;color:var(--t3);margin-top:1px">VS-posities vs. '+prevDay.date+'</div>';
   } else if(trendEl){
-    trendEl.textContent='';
+    // Nog geen vorige-beursdag referentie: toon tijdstip laatste ophaling
+    var lastVal=lsGet('carl-lastval');
+    if(lastVal&&lastVal.t){
+      trendEl.innerHTML='<div style="font-size:9px;color:var(--t3)">laatst opgehaald '+lastVal.t+'</div>';
+    } else {
+      trendEl.textContent='';
+    }
   }
 
   // Wisselkoers-impact EUR/USD
@@ -1518,9 +1543,23 @@ function fetchTargetsFinnhub(fhKey){
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+function loadLivePrices(){
+  // Herlaad de laatst opgehaalde live prijzen in H[] zodat de totale waarde
+  // bij heropening de laatst opgehaalde waarde toont i.p.v. de statische array-prijzen
+  var lp=lsGet('carl-live-prices');
+  if(!lp||!lp.p) return;
+  H.forEach(function(h){
+    if(h.ccy==='USD'&&lp.p[h.ticker]){
+      var s=lp.p[h.ticker];
+      h.price=s.price;h.pc=s.pc;h.pl=s.pl;h.dayPct=s.dayPct;h.qt=s.qt;
+    }
+  });
+  if(lp.eurUsd) EUR_USD=lp.eurUsd;
+}
 function init(){
   bootstrapHistory();
   loadEurManual();
+  loadLivePrices(); // laatst opgehaalde prijzen herstellen vóór eerste weergave
   // EUR/USD automatisch ophalen bij elke pagina-opening (geen Vernieuwen nodig)
   var key=lsGet('carl-fh');
   fetchEurUsd(key);
