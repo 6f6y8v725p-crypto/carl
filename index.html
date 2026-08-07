@@ -118,6 +118,23 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
     </div>
   </div>
   <div class="card2">
+    <div class="stitle" style="margin-bottom:8px">&#9729; Cloud-sync <span id="cloudBadge" style="font-size:9px;padding:1px 6px;border-radius:4px;margin-left:4px"></span></div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5">Automatische synchronisatie van je historiek naar de cloud (JSONBin) &mdash; werkt over al je toestellen.</div>
+    <div id="cloudSetup">
+      <input class="minp" id="iCloudBin" type="text" placeholder="Bin ID (bijv. 65a1b2c3...)" style="margin-bottom:6px">
+      <input class="minp" id="iCloudKey" type="password" placeholder="Master Key / Access Key" style="margin-bottom:8px">
+      <button class="mbtn pri" style="width:100%" onclick="saveCloudCfg()">Verbinden &amp; nu synchroniseren</button>
+    </div>
+    <div id="cloudActions" style="display:none">
+      <div style="display:flex;gap:8px">
+        <button class="mbtn" style="flex:1" onclick="cloudPush(true)">&#8593; Nu opslaan</button>
+        <button class="mbtn" style="flex:1" onclick="cloudPull(true)">&#8595; Nu ophalen</button>
+      </div>
+      <button class="mbtn" style="width:100%;margin-top:6px;font-size:11px;color:var(--t3)" onclick="clearCloudCfg()">Verbinding verbreken</button>
+    </div>
+    <div id="cloudSt" style="font-size:10px;color:var(--t3);margin-top:8px;min-height:14px"></div>
+  </div>
+  <div class="card2">
     <div class="stitle" style="margin-bottom:8px">Backup &amp; herstel</div>
     <div style="font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5">Bewaar je volledige historiek (dag/week/maand/jaar + sleutels) los van GitHub-updates.</div>
     <div style="display:flex;gap:8px">
@@ -677,6 +694,7 @@ function onFetchDone(btn,st){
 
     // 'carl-lastval' blijft de laatst-opgehaalde totale waarde (voor heropening-weergave)
     lsSet('carl-lastval',{v:curTot,usd:usdTot,t:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})+' '+isoDate()});
+    cloudSyncDebounced(); // historiek-wijziging naar cloud (request-zuinig, na 3s)
   }
   updateAll();
   if(btn){
@@ -1426,6 +1444,118 @@ function importBackup(file){
   reader.readAsText(file);
 }
 
+// ─── CLOUD-SYNC (JSONBin) ─────────────────────────────────────────────────────
+// Welke localStorage-sleutels vormen je historiek (API-sleutels blijven lokaal).
+var CLOUD_KEYS=['cp_w','cp_m','cp_y','cp_wh','cp_mh','cp_yh','cp_dh',
+  'carl-eur-manual','carl-vix','carl-lastval','carl-live-prices',
+  'carl-usd-dayref','carl-usd-prevday','carl-eurusd-day','carl-eurusd-prev','carl-eurusd-prevdate'];
+var cloudPushTimer=null;
+
+function cloudCfg(){
+  var c=lsGet('carl-cloud');
+  return (c&&c.bin&&c.key)?c:null;
+}
+function setCloudBadge(state){
+  var b=document.getElementById('cloudBadge');
+  if(!b) return;
+  if(state==='on'){b.textContent='verbonden';b.style.background='#0d2a1a';b.style.color='#3fb950';}
+  else if(state==='sync'){b.textContent='synchroniseren...';b.style.background='#1f1a0a';b.style.color='#d29922';}
+  else if(state==='err'){b.textContent='fout';b.style.background='#2a0e0e';b.style.color='#f85149';}
+  else {b.textContent='';b.style.background='';}
+}
+function renderCloudUI(){
+  var cfg=cloudCfg();
+  var setup=document.getElementById('cloudSetup');
+  var actions=document.getElementById('cloudActions');
+  if(cfg){
+    if(setup)setup.style.display='none';
+    if(actions)actions.style.display='block';
+    setCloudBadge('on');
+  } else {
+    if(setup)setup.style.display='block';
+    if(actions)actions.style.display='none';
+    setCloudBadge('');
+  }
+}
+function saveCloudCfg(){
+  var bin=(document.getElementById('iCloudBin').value||'').trim();
+  var key=(document.getElementById('iCloudKey').value||'').trim();
+  var st=document.getElementById('cloudSt');
+  if(!bin||!key){if(st)st.textContent='\u2717 Vul zowel Bin ID als sleutel in';return;}
+  lsSet('carl-cloud',{bin:bin,key:key});
+  renderCloudUI();
+  if(st)st.textContent='\u2713 Verbonden \u2014 eerste synchronisatie...';
+  // Eerst ophalen (bestaande cloud-data), dan onze data pushen als de cloud leeg is
+  cloudPull(false,function(pulled){
+    if(!pulled) cloudPush(true); // cloud was leeg: onze lokale data wordt de basis
+  });
+}
+function clearCloudCfg(){
+  if(!confirm('Cloud-sync verbinding verbreken? Je lokale historiek blijft behouden.'))return;
+  localStorage.removeItem('carl-cloud');
+  renderCloudUI();
+  var st=document.getElementById('cloudSt');if(st)st.textContent='Verbinding verbroken';
+}
+function cloudPush(showMsg){
+  var cfg=cloudCfg();if(!cfg)return;
+  var st=document.getElementById('cloudSt');
+  setCloudBadge('sync');
+  if(showMsg&&st)st.textContent='\u2191 Opslaan naar cloud...';
+  var payload={};
+  CLOUD_KEYS.forEach(function(k){
+    var v=localStorage.getItem(k);
+    if(v!==null) payload[k]=v;
+  });
+  payload.__synced=new Date().toISOString();
+  fetch('https://api.jsonbin.io/v3/b/'+cfg.bin,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json','X-Master-Key':cfg.key},
+    body:JSON.stringify(payload)
+  }).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(){
+    setCloudBadge('on');
+    if(st)st.textContent='\u2713 Opgeslagen naar cloud \u00b7 '+new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+  }).catch(function(e){
+    setCloudBadge('err');
+    if(st)st.textContent='\u2717 Opslaan mislukt: '+e.message+(String(e).indexOf('401')>-1||String(e).indexOf('403')>-1?' (sleutel controleren)':'');
+  });
+}
+function cloudPull(showMsg,cb){
+  var cfg=cloudCfg();if(!cfg){if(cb)cb(false);return;}
+  var st=document.getElementById('cloudSt');
+  setCloudBadge('sync');
+  if(showMsg&&st)st.textContent='\u2193 Ophalen uit cloud...';
+  fetch('https://api.jsonbin.io/v3/b/'+cfg.bin+'/latest',{
+    headers:{'X-Master-Key':cfg.key}
+  }).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(j){
+    var rec=j&&j.record?j.record:j;
+    if(!rec||typeof rec!=='object'){throw new Error('lege respons');}
+    var n=0;
+    CLOUD_KEYS.forEach(function(k){
+      if(rec[k]!==undefined&&rec[k]!==null){localStorage.setItem(k,rec[k]);n++;}
+    });
+    setCloudBadge('on');
+    if(st)st.textContent='\u2713 '+n+' items opgehaald uit cloud';
+    if(n>0&&showMsg){setTimeout(function(){location.reload();},900);}
+    if(cb)cb(n>0);
+  }).catch(function(e){
+    setCloudBadge('err');
+    if(st)st.textContent='\u2717 Ophalen mislukt: '+e.message;
+    if(cb)cb(false);
+  });
+}
+// Debounced push: bij een historiek-wijziging niet meteen, maar na 3s samengevoegd
+function cloudSyncDebounced(){
+  if(!cloudCfg())return;
+  if(cloudPushTimer)clearTimeout(cloudPushTimer);
+  cloudPushTimer=setTimeout(function(){cloudPush(false);},3000);
+}
+
 // ─── BOOTSTRAP HISTORIEK (eenmalig, enkel als sleutel nog niet lokaal bestaat) ──
 function bootstrapHistory(){
   var seed={"cp_w": {"date": "2026-06-22", "time": "06:12", "week": "2026-W25", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231935.7737, "NVDA": 16461.42039, "GOOGL": 9568.78, "PLTR": 7649.1038, "AMZN": 2443.9, "WULF": 8719.24158, "HIMS": 126.66337, "PATH": 1694.20082, "SPCX": 229.85}, "eP": {"VUSA": 1179.707432, "DIET": 363.14392}, "tot": 278828.93, "live": true}, "cp_m": {"date": "2026-06-20", "time": "16:43", "week": "2026-W24", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231958.93889999998, "NVDA": 16464.54563, "GOOGL": 9569.82, "PLTR": 7650.89, "AMZN": 2444.3, "WULF": 8725.259, "HIMS": 126.69908, "PATH": 1695.85048, "SPCX": 229.85}, "eP": {"VUSA": 1161.128612, "DIET": 380.4258}, "tot": 278866.15, "live": true}, "cp_y": {"date": "2026-06-20", "time": "16:43", "week": "2026-W24", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231958.93889999998, "NVDA": 16464.54563, "GOOGL": 9569.82, "PLTR": 7650.89, "AMZN": 2444.3, "WULF": 8725.259, "HIMS": 126.69908, "PATH": 1695.85048, "SPCX": 229.85}, "eP": {"VUSA": 1161.128612, "DIET": 380.4258}, "tot": 278866.15, "live": true}, "cp_dh": [{"date": "2026-06-23", "time": "23:30", "total": 0}, {"date": "2026-06-22", "time": "22:01", "total": 1072}, {"date": "2026-06-19", "time": "22:12", "total": 2807}], "cp_wh": [{"week": "2026-W24", "date": "2026-06-20", "total": 5244}], "carl-eur-manual": {"VUSA": 123.76, "DIET": 165.1, "date": "2026-06-22"}, "carl-vix": {"v": 22.89, "dp": -0.3916, "d": "2026-06-24"}};
@@ -1560,6 +1690,9 @@ function init(){
   bootstrapHistory();
   loadEurManual();
   loadLivePrices(); // laatst opgehaalde prijzen herstellen vóór eerste weergave
+  renderCloudUI();
+  // Als cloud-sync is ingesteld: historiek ophalen bij openen (herlaadt bij verse data)
+  if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){loadLivePrices();updateAll();} });
   // EUR/USD automatisch ophalen bij elke pagina-opening (geen Vernieuwen nodig)
   var key=lsGet('carl-fh');
   fetchEurUsd(key);
