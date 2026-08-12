@@ -318,7 +318,7 @@ var H = [
   {ticker:'PATH',name:'UiPath',        cat:'spec',ccy:'USD',shares:164.966, avg:11.76, price:11.42, qt:null,pc:0,pl:-2.9,pe:'19x', fcf:'22% mgn',  target:13.27, upside:16,rating:'Hold',        brokers:[]},
   {ticker:'VUSA',name:'Vanguard S&P500',cat:'eur', ccy:'EUR',shares:9.5276, avg:91.88, price:121.87,qt:null,pc:0,pl:32.64,pe:'n.v.t.',fcf:'ETF',    target:151.00,upside:24,rating:'ETF',         brokers:[]},
   {ticker:'DIET',name:"D'Ieteren",     cat:'eur', ccy:'EUR',shares:2.2444,  avg:200.00,price:169.50,qt:null,pc:0,pl:-15.25,pe:'n.v.t.',fcf:'n.v.t.',target:232.42,upside:37,rating:'Kopen',       brokers:[]},
-  {ticker:'SPCX',name:'SpaceX',        cat:'spec',ccy:'USD',shares:1.45853163,avg:157.59,price:150.0,qt:null,pc:0,pl:-4.8,pe:'n.v.t.',fcf:'n.b.',target:250.0,upside:67,rating:'Buy',brokers:[]}
+  {ticker:'SPCX',name:'SpaceX',        cat:'spec',ccy:'USD',shares:49.54205959,avg:145.93,price:150.0,qt:null,pc:0,pl:2.8,pe:'n.v.t.',fcf:'n.b.',target:250.0,upside:67,rating:'Buy',brokers:[]}
 ];
 
 var USD_SYMS = [];
@@ -743,16 +743,26 @@ function updateKPI(){
   setText('kBig',big.ticker);
   setText('kBigV','\u20ac'+n2(big.ccy==='USD'?big.shares*big.price/EUR_USD:big.shares*big.price));
 
-  // Stijg/daal-indicator: VS-waarde (USD) tegenover de vorige beursdag
+  // Stijg/daal-indicator: werkelijke EUR-winst/-verlies tegenover de vorige beursdag
+  // (incl. wisselkoerseffect — vergelijkt totale eurowaarde toen vs. nu)
   var trendEl=document.getElementById('heroTrend');
   var prevDay=lsGet('carl-usd-prevday');
-  if(trendEl&&prevDay&&prevDay.usd>0){
-    var diffUsd=tU-prevDay.usd;
-    var diffPctUsd=diffUsd/prevDay.usd*100;
-    var arrow=diffUsd>=0?'\u25b2':'\u25bc';
-    var cls=diffUsd>=0?'up':'dn';
-    trendEl.innerHTML='<span class="'+cls+'">'+arrow+' $'+n2(Math.abs(diffUsd))+' ('+fmtPct(diffPctUsd)+')</span>'+
-      '<div style="font-size:9px;color:var(--t3);margin-top:1px">VS-posities vs. '+prevDay.date+'</div>';
+  if(trendEl&&prevDay&&prevDay.tot>0){
+    var diffEur=tot-prevDay.tot;
+    var diffPctEur=diffEur/prevDay.tot*100;
+    var arrow=diffEur>=0?'\u25b2':'\u25bc';
+    var cls=diffEur>=0?'up':'dn';
+    var html='<span class="'+cls+'">'+arrow+' '+fmtEur(diffEur)+' ('+fmtPct(diffPctEur)+')</span>'+
+      '<div style="font-size:9px;color:var(--t3);margin-top:1px">totaal vs. '+prevDay.date+'</div>';
+    // Tweede regel: puur aandeel-effect (USD-koersbeweging omgerekend tegen huidige koers, zonder wisselkoerseffect)
+    if(prevDay.usd>0){
+      var diffStockEur=(tU-prevDay.usd)/EUR_USD;
+      var stCls=diffStockEur>=0?'up':'dn';
+      var stArrow=diffStockEur>=0?'\u25b2':'\u25bc';
+      html+='<div style="font-size:10px;margin-top:3px"><span class="'+stCls+'">'+stArrow+' '+fmtEur(diffStockEur)+'</span>'+
+        '<span style="font-size:9px;color:var(--t3)"> aandelen (zonder wisselkoers)</span></div>';
+    }
+    trendEl.innerHTML=html;
   } else if(trendEl){
     // Nog geen vorige-beursdag referentie: toon tijdstip laatste ophaling
     var lastVal=lsGet('carl-lastval');
