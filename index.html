@@ -1717,37 +1717,34 @@ function loadLivePrices(){
   if(lp.eurUsd) EUR_USD=lp.eurUsd;
 }
 function migrateSnapshots(){
-  // Oude snapshots (vóór px/sh-velden) bevatten enkel de totale positiewaarde, niet
-  // de koers+aantal apart. Als je nadien hebt bijgekocht, kan de P&L de koersbeweging
-  // niet scheiden van het bijkoop-effect → absurde percentages (bv. SPCX +3463%).
-  // Oplossing: voor ELKE positie in een oude snapshot leiden we px af uit waarde/aantal.
-  // Waar het aandeelaantal ondertussen is gewijzigd, is die referentie onbetrouwbaar;
-  // die positie verwijderen we uit de oude snapshot zodat ze pas weer meetelt vanaf de
-  // eerstvolgende verse snapshot (schoon referentiepunt). Ongewijzigde posities blijven correct.
-  var curSh={};H.forEach(function(h){curSh[h.ticker]=h.shares;});
+  // Corrigeert snapshots met onbetrouwbare referenties door bijkoop/verkoop.
+  // Belangrijk: dit draait OOK als er al een px-veld is, want een eerdere ophaling kan
+  // foute px-waarden hebben opgeslagen (bv. SPCX px=$4,64 na verwatering door bijkoop).
+  // Detectie: als de referentiekoers sterk afwijkt van de huidige koers (ratio buiten
+  // 0,4–2,5), is het aandeelaantal vrijwel zeker gewijzigd → die positie verwijderen.
+  var curPx={},curSh={};
+  H.forEach(function(h){curPx[h.ticker]=h.price;curSh[h.ticker]=h.shares;});
   ['cp_w','cp_m','cp_y'].forEach(function(k){
     var snap=lsGet(k);
-    if(!snap||snap.px)return; // al gemigreerd of leeg
-    var px={},sh={},cleanVals={},cleanEP={};
-    function handle(store,tk,val,isEur){
-      // We kennen het historische aandeelaantal niet exact; we nemen aan dat het gelijk
-      // was aan het huidige TENZIJ er is bijgekocht. Zonder historische sh kunnen we
-      // enkel detecteren dat de waarde niet meer klopt. Veiligste keuze: als de impliciete
-      // koers (val/curSh) sterk afwijkt van de huidige koers, is er bijgekocht → skip.
-      var h=H.filter(function(x){return x.ticker===tk;})[0];
-      if(!h){return;}
-      var implPx=val/curSh[tk];
-      var ratio=h.price>0?implPx/h.price:1;
-      // Als impliciete koers < 40% of > 250% van huidige koers: aandeelaantal is vrijwel
-      // zeker gewijzigd (bijkoop verdunt de impliciete koers) → positie overslaan.
-      if(ratio<0.4||ratio>2.5){return;}
-      px[tk]=implPx;sh[tk]=curSh[tk];
+    if(!snap)return;
+    var px={},sh={},cleanVals={},cleanEP={},changed=false;
+    function handle(tk,val,isEur){
+      if(curPx[tk]===undefined||curSh[tk]<=0){changed=true;return;} // positie bestaat niet meer
+      // Bepaal referentiekoers: uit bestaand px-veld indien aanwezig, anders uit waarde/aandelen
+      var refPx=(snap.px&&snap.px[tk]!==undefined)?snap.px[tk]:(val/curSh[tk]);
+      var ratio=curPx[tk]>0?refPx/curPx[tk]:1;
+      if(ratio<0.4||ratio>2.5){changed=true;return;} // onbetrouwbaar → overslaan
+      px[tk]=refPx;
+      sh[tk]=(snap.sh&&snap.sh[tk]!==undefined)?snap.sh[tk]:curSh[tk];
       if(isEur)cleanEP[tk]=val;else cleanVals[tk]=val;
     }
-    if(snap.vals)Object.keys(snap.vals).forEach(function(tk){handle('vals',tk,snap.vals[tk],false);});
-    if(snap.eP)Object.keys(snap.eP).forEach(function(tk){handle('eP',tk,snap.eP[tk],true);});
-    snap.px=px;snap.sh=sh;snap.vals=cleanVals;snap.eP=cleanEP;
-    lsSet(k,snap);
+    if(snap.vals)Object.keys(snap.vals).forEach(function(tk){handle(tk,snap.vals[tk],false);});
+    if(snap.eP)Object.keys(snap.eP).forEach(function(tk){handle(tk,snap.eP[tk],true);});
+    // Alleen herschrijven als er iets veranderde of nog geen px bestond
+    if(changed||!snap.px){
+      snap.px=px;snap.sh=sh;snap.vals=cleanVals;snap.eP=cleanEP;
+      lsSet(k,snap);
+    }
   });
 }
 function init(){
@@ -1757,7 +1754,7 @@ function init(){
   loadLivePrices(); // laatst opgehaalde prijzen herstellen vóór eerste weergave
   renderCloudUI();
   // Als cloud-sync is ingesteld: historiek ophalen bij openen (herlaadt bij verse data)
-  if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){migrateSnapshots();loadLivePrices();updateAll();} });
+  if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){migrateSnapshots();loadLivePrices();updateAll();cloudPush(false);} });
   // EUR/USD automatisch ophalen bij elke pagina-opening (geen Vernieuwen nodig)
   var key=lsGet('carl-fh');
   fetchEurUsd(key);
