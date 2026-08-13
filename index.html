@@ -189,7 +189,12 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
   <div class="card" id="pYear" style="margin-bottom:10px"></div>
   <div class="card" id="pHistWeek" style="margin-bottom:10px"></div>
   <div class="card" id="pHistMonth" style="margin-bottom:10px"></div>
-  <div class="card" id="pHistYear"></div>
+  <div class="card" id="pHistYear" style="margin-bottom:10px"></div>
+  <div class="card" style="border:1px solid #3a2a1a;background:#1a1408">
+    <div style="font-size:11px;color:var(--t2);margin-bottom:8px">&#9888;&#65039; Toont een positie een onmogelijk percentage (bv. +3000%) na een bijkoop? Herstel de referentiepunten:</div>
+    <button class="mbtn" style="width:100%;background:#2a1a0d;color:#d29922;border-color:#3a2a1a" onclick="resetBrokenSnapshots()">&#128260; Herstel snapshots (verwijder foute referenties)</button>
+    <div id="resetSt" style="font-size:10px;color:var(--t3);margin-top:8px;min-height:14px"></div>
+  </div>
 </div>
 
 <!-- DAG TAB -->
@@ -432,32 +437,28 @@ function snapNow(live){
 function calcPnL(snap){
   if(!snap)return null;
   var by={},ud=0,ed=0;
-  var migrated=!!snap.px; // gemigreerde/nieuwe snapshot heeft px-veld
   H.forEach(function(h){
     var refPx=snap.px?snap.px[h.ticker]:undefined;
     var refSh=snap.sh?snap.sh[h.ticker]:undefined;
-    // In een gemigreerde snapshot betekent een ontbrekende referentie: deze positie is
-    // bijgekocht/gewijzigd en heeft geen betrouwbaar referentiepunt → volledig overslaan
-    // (niet als winst tellen). Ze telt weer mee vanaf de eerstvolgende verse snapshot.
-    if(migrated&&refPx===undefined) return;
+    var rawVal=(h.ccy==='USD')?(snap.vals?snap.vals[h.ticker]:undefined):(snap.eP?snap.eP[h.ticker]:undefined);
+    // Bepaal een betrouwbare referentiekoers. Voorkeur: expliciete px. Anders afgeleid uit
+    // opgeslagen waarde. Zelf-corrigerend: als de afgeleide/opgeslagen referentiekoers een
+    // onmogelijk rendement zou geven (koersverhouding buiten 0,33–3,0 t.o.v. nu), dan is het
+    // aantal aandelen sinds de snapshot gewijzigd (bijkoop/verkoop) → deze positie overslaan.
+    var effPx;
+    if(refPx!==undefined) effPx=refPx;
+    else if(rawVal!==undefined&&refSh!==undefined&&refSh>0) effPx=rawVal/refSh;
+    else if(rawVal!==undefined&&h.shares>0) effPx=rawVal/h.shares;
+    else return; // geen referentie voor deze positie
+    var ratio=h.price>0?effPx/h.price:1;
+    if(ratio<0.33||ratio>3.0) return; // onbetrouwbaar referentiepunt → overslaan
+    var baseSh=(refSh!==undefined)?Math.min(refSh,h.shares):h.shares;
+    var d=(h.price-effPx)*baseSh;
+    var pvBasis=effPx*baseSh;
     if(h.ccy==='USD'){
-      var d,pvBasis;
-      if(refPx!==undefined&&refSh!==undefined){
-        var baseSh=Math.min(refSh,h.shares);
-        d=(h.price-refPx)*baseSh;
-        pvBasis=refPx*baseSh;
-      } else {
-        var cv=h.shares*h.price,pv=snap.vals?snap.vals[h.ticker]||0:0;
-        d=cv-pv;pvBasis=pv;
-      }
       by[h.ticker]={diff:d,pct:pvBasis>0?d/pvBasis*100:0};ud+=d;
     } else {
-      if(refPx!==undefined&&refSh!==undefined){
-        var baseShE=Math.min(refSh,h.shares);
-        ed+=(h.price-refPx)*baseShE;
-      } else {
-        ed+=h.shares*h.price-(snap.eP?snap.eP[h.ticker]||0:0);
-      }
+      ed+=d;
     }
   });
   return{by:by,ud:ud,ed:ed,total:ud/EUR_USD+ed,from:snap.date};
@@ -1746,6 +1747,43 @@ function migrateSnapshots(){
       lsSet(k,snap);
     }
   });
+}
+function resetBrokenSnapshots(){
+  // Directe, gegarandeerde herstelknop: verwijdert uit ALLE snapshots elke positie
+  // waarvan het referentiepunt een onmogelijk rendement oplevert (koersverhouding buiten
+  // 0,33–3,0). Ongeacht of er al px/sh-velden zijn. Wist ook de cloud-versie.
+  var curPx={};H.forEach(function(h){curPx[h.ticker]=h.price;});
+  var st=document.getElementById('resetSt');
+  var removed=[];
+  ['cp_w','cp_m','cp_y','cp_wh','cp_mh','cp_yh'].forEach(function(k){
+    var snap=lsGet(k);
+    if(!snap)return;
+    // Historiek-arrays (cp_wh etc.) hebben geen px/vals — die laten we ongemoeid
+    if(Array.isArray(snap))return;
+    var fields=['px','sh','vals','eP'];
+    H.forEach(function(h){
+      var tk=h.ticker;
+      // Bepaal referentiekoers
+      var refPx;
+      if(snap.px&&snap.px[tk]!==undefined) refPx=snap.px[tk];
+      else if(snap.vals&&snap.vals[tk]!==undefined&&snap.sh&&snap.sh[tk]) refPx=snap.vals[tk]/snap.sh[tk];
+      else if(snap.vals&&snap.vals[tk]!==undefined&&h.shares>0) refPx=snap.vals[tk]/h.shares;
+      else return;
+      var ratio=curPx[tk]>0?refPx/curPx[tk]:1;
+      if(ratio<0.33||ratio>3.0){
+        // Verwijder deze positie uit alle sub-objecten van de snapshot
+        fields.forEach(function(f){if(snap[f]&&snap[f][tk]!==undefined)delete snap[f][tk];});
+        if(removed.indexOf(tk)<0)removed.push(tk);
+      }
+    });
+    lsSet(k,snap);
+  });
+  updateAll();
+  if(cloudCfg())cloudPush(false);
+  if(st){
+    if(removed.length)st.innerHTML='<span class="up">\u2713 Hersteld: '+removed.join(', ')+' verwijderd uit snapshots. Tellen weer mee vanaf volgende verse snapshot.</span>';
+    else st.textContent='Geen foute referenties gevonden \u2014 alle snapshots zijn in orde.';
+  }
 }
 function init(){
   bootstrapHistory();
