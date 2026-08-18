@@ -709,9 +709,9 @@ function onFetchDone(btn,st){
     var today=isoDate();
     var dayRef=lsGet('carl-usd-dayref')||{};
     if(dayRef.date&&dayRef.date!==today){
-      lsSet('carl-usd-prevday',{usd:dayRef.usd,tot:dayRef.tot,date:dayRef.date});
+      lsSet('carl-usd-prevday',{usd:dayRef.usd,tot:dayRef.tot,rate:dayRef.rate||EUR_USD,date:dayRef.date});
     }
-    lsSet('carl-usd-dayref',{usd:usdTot,tot:curTot,date:today});
+    lsSet('carl-usd-dayref',{usd:usdTot,tot:curTot,rate:EUR_USD,date:today});
 
     // 'carl-lastval' blijft de laatst-opgehaalde totale waarde (voor heropening-weergave)
     lsSet('carl-lastval',{v:curTot,usd:usdTot,t:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})+' '+isoDate()});
@@ -775,9 +775,19 @@ function updateKPI(){
     var cls=diffEur>=0?'up':'dn';
     var html='<span class="'+cls+'">'+arrow+' '+fmtEur(diffEur)+' ('+fmtPct(diffPctEur)+')</span>'+
       '<div style="font-size:9px;color:var(--t3);margin-top:1px">totaal vs. '+prevDay.date+'</div>';
-    // Tweede regel: puur aandeel-effect (USD-koersbeweging omgerekend tegen huidige koers, zonder wisselkoerseffect)
+    // Tweede regel: puur aandeel-effect zonder wisselkoerseffect.
+    // Deel de USD-koersbeweging door de OUDE koers (van de vorige beursdag), niet de
+    // huidige. Zo blijft het wisselkoerseffect eruit. Het verschil tussen regel 1 en 2
+    // is dan precies de FX-impact. Oude records zonder rate: koers afleiden uit usd/tot.
     if(prevDay.usd>0){
-      var diffStockEur=(tU-prevDay.usd)/EUR_USD;
+      var oldRate=prevDay.rate;
+      if(!oldRate||oldRate<=0){
+        // Afleiden: EUR-posities zijn ~constant; schat oude koers uit USD-deel van tot
+        var eurPart=0;H.forEach(function(h){if(h.ccy!=='USD')eurPart+=h.shares*h.price;});
+        var usdTotEur=prevDay.tot-eurPart;
+        oldRate=(usdTotEur>0)?prevDay.usd/usdTotEur:EUR_USD;
+      }
+      var diffStockEur=(tU-prevDay.usd)/oldRate;
       var stCls=diffStockEur>=0?'up':'dn';
       var stArrow=diffStockEur>=0?'\u25b2':'\u25bc';
       html+='<div style="font-size:10px;margin-top:3px"><span class="'+stCls+'">'+stArrow+' '+fmtEur(diffStockEur)+'</span>'+
