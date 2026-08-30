@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Portefeuille</title>
+<title>Portefeuille v2.1</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -65,6 +65,11 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 .mbtn{flex:1;padding:13px;border-radius:8px;border:1px solid var(--bd);background:var(--p2);color:var(--t1);font-size:14px;cursor:pointer}
 .mbtn.pri{background:var(--bl);border-color:var(--bl);color:#fff;font-weight:600}
 .kbanner{background:rgba(210,153,34,.12);border:1px solid rgba(210,153,34,.3);border-radius:12px;padding:12px;margin-bottom:10px;font-size:12px;color:var(--am);cursor:pointer}
+.warn{background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.35);border-radius:12px;padding:12px;margin-bottom:10px;font-size:12px;color:var(--dn);line-height:1.5}
+.editbtn{font-size:11px;padding:6px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--p2);color:var(--t1);cursor:pointer;margin-top:6px}
+.auto-on{color:var(--up)!important}
+.txtype-btn{flex:1;font-size:12px}
+.txtype-btn.txt-active{background:var(--up);color:#04160c;font-weight:700;border-color:var(--up)}
 </style>
 </head>
 <body>
@@ -73,15 +78,22 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 
 <!-- DASHBOARD TAB -->
 <div class="tab-pane active" id="pane-dash">
+  <div class="warn">
+    API-sleutels (Finnhub/FMP/JSONBin) staan in localStorage. Zet ze NOOIT in je GitHub-repo. Voeg .gitignore toe voor backups en keys.
+  </div>
   <div id="kbanner" class="kbanner" onclick="openKeyModal()" style="display:none">
     Tik hier om je Finnhub API-sleutel in te voeren
   </div>
   <div class="card" style="margin-bottom:10px">
-    <div class="stitle">Totale portefeuille</div>
+    <div class="stitle">Totale portefeuille <span style="font-size:9px;color:var(--t3);font-weight:400">v2.1</span></div>
     <div style="display:flex;align-items:baseline;gap:8px"><div class="kval" id="heroVal" style="font-size:30px">&#8212;</div><span id="heroTrend" style="font-size:14px;font-weight:600"></span></div>
     <div class="ksub" id="heroSub">Klik Live koersen voor actuele data</div>
   </div>
   <button class="lbtn" id="liveBtn" onclick="onLiveClick()">&#9711; Live koersen ophalen</button>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <button class="mbtn" style="flex:1;font-size:12px" id="autoBtn" onclick="toggleAutoRefresh()">Auto-refresh UIT</button>
+    <button class="mbtn" style="flex:1;font-size:12px" onclick="exportCSV()">CSV export</button>
+  </div>
   <div id="liveSt" style="font-size:11px;color:var(--t2);text-align:center;margin-bottom:8px;min-height:16px"></div>
   <div id="targetSt" style="font-size:11px;text-align:center;margin-bottom:8px;min-height:14px"></div>
   <div class="kgrid">
@@ -95,6 +107,24 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
       <div>
         <div class="stitle" style="margin-bottom:2px">EUR-koersen handmatig</div>
         <div style="font-size:12px;color:var(--t2)" id="eurSt">VUSA &amp; D'Ieteren &middot; tik om in te voeren</div>
+      </div>
+      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
+    </div>
+  </div>
+  <div class="card2" onclick="openHoldingsEdit()" style="cursor:pointer">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="stitle" style="margin-bottom:2px">Holdings bewerken</div>
+        <div style="font-size:12px;color:var(--t2)">Aandelen &amp; gemiddelde aankoopprijs aanpassen</div>
+      </div>
+      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
+    </div>
+  </div>
+  <div class="card2" onclick="openTxModal()" style="cursor:pointer;border:1px solid #1a3a26">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="stitle" style="margin-bottom:2px">&#128181; Transactie toevoegen</div>
+        <div style="font-size:12px;color:var(--t2)">Bijkopen, verkopen of nieuw aandeel &mdash; gemiddelde wordt berekend</div>
       </div>
       <div style="font-size:22px;color:var(--t3)">&#8250;</div>
     </div>
@@ -305,9 +335,86 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
   </div>
 </div>
 
+<!-- HOLDINGS EDIT MODAL -->
+<div class="moverlay" id="holdEditModal">
+  <div class="mbox" style="max-height:85vh;overflow-y:auto">
+    <div class="mtitle">Holdings bewerken</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Wijzig aantal aandelen of gemiddelde aankoopprijs. Wordt opgeslagen in localStorage + cloud.</div>
+    <div id="holdEditList"></div>
+    <div class="mrow" style="margin-top:12px">
+      <button class="mbtn" onclick="closeHoldingsEdit()">Annuleer</button>
+      <button class="mbtn pri" onclick="saveHoldingsEdit()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<div class="moverlay" id="txModal">
+  <div class="mbox" style="max-height:88vh;overflow-y:auto">
+    <div class="mtitle">Transactie toevoegen</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Het dashboard berekent zelf je nieuwe gewogen gemiddelde.</div>
+
+    <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Type transactie</div>
+    <div class="mrow" style="margin-bottom:10px;gap:6px">
+      <button class="mbtn txtype-btn" id="txBuy" onclick="txSetType('buy')">Bijkopen</button>
+      <button class="mbtn txtype-btn" id="txNew" onclick="txSetType('new')">Nieuw</button>
+      <button class="mbtn txtype-btn" id="txSell" onclick="txSetType('sell')">Verkopen</button>
+    </div>
+
+    <!-- Bestaand aandeel kiezen (bij bijkopen/verkopen) -->
+    <div id="txExistingWrap">
+      <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Aandeel</div>
+      <select class="minp" id="txTicker" onchange="txUpdatePreview()" style="margin-bottom:10px"></select>
+    </div>
+
+    <!-- Nieuw aandeel velden -->
+    <div id="txNewWrap" style="display:none">
+      <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Ticker (bijv. MSFT)</div>
+      <input class="minp" id="txNewTicker" type="text" placeholder="TICKER" oninput="this.value=this.value.toUpperCase();txUpdatePreview()" style="margin-bottom:10px">
+      <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Naam</div>
+      <input class="minp" id="txNewName" type="text" placeholder="bijv. Microsoft" style="margin-bottom:10px">
+      <div class="mrow" style="gap:6px;margin-bottom:10px">
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Valuta</div>
+          <select class="minp" id="txNewCcy" style="margin-bottom:0"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option></select>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Categorie</div>
+          <select class="minp" id="txNewCat" style="margin-bottom:0"><option value="core">Core</option><option value="spec">Speculatief</option><option value="eur">EUR-positie</option></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aantal + prijs (altijd) -->
+    <div class="mrow" style="gap:6px;margin-bottom:10px">
+      <div style="flex:1">
+        <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Aantal aandelen</div>
+        <input class="minp" id="txShares" type="number" step="any" placeholder="bijv. 12,5" oninput="txUpdatePreview()" style="margin-bottom:0">
+      </div>
+      <div style="flex:1">
+        <div style="font-size:12px;color:var(--t2);margin-bottom:4px" id="txPriceLbl">Aankoopprijs</div>
+        <input class="minp" id="txPrice" type="number" step="any" placeholder="per aandeel" oninput="txUpdatePreview()" style="margin-bottom:0">
+      </div>
+    </div>
+
+    <!-- Live preview van het resultaat -->
+    <div id="txPreview" style="font-size:12px;line-height:1.6;background:var(--card2);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:12px;color:var(--t2)">Vul de gegevens in&hellip;</div>
+
+    <div class="mrow">
+      <button class="mbtn" onclick="closeTxModal()">Annuleer</button>
+      <button class="mbtn pri" onclick="applyTx()">Toevoegen</button>
+    </div>
+  </div>
+</div>
+
 <script>
 var EUR_USD = 1.1611;
 var PK = {w:'cp_w',m:'cp_m',y:'cp_y',wh:'cp_wh',mh:'cp_mh',yh:'cp_yh',dh:'cp_dh'};
+
+// Versie van de posities in de code hieronder. Verhoog dit nummer telkens als je de
+// H[]-array zelf aanpast bij een aankoop/verkoop. Bij het openen wint de code van een
+// opgeslagen 'carl-holdings'-override zodra deze versie hoger is dan de opgeslagen versie
+// — zo overschrijft een oude override nooit meer een verse aankoop in de code.
+var HOLDINGS_VERSION = 3;
 
 var H = [
   {ticker:'TSLA',name:'Tesla',         cat:'core',ccy:'USD',shares:625.60,  avg:378.88,price:397.0,qt:null,pc:0,pl:4.8,  pe:'~180x',  fcf:'$5,3B',  target:420.0,upside:6, rating:'Buy',
@@ -327,7 +434,58 @@ var H = [
 ];
 
 var USD_SYMS = [];
-H.forEach(function(h){ if(h.ccy==='USD'&&!h.manual) USD_SYMS.push(h.ticker); });
+function rebuildUsdSyms(){
+  // Bouwt de lijst van tickers waarvoor live USD-koersen worden opgehaald.
+  // EUR-posities (VUSA, DIET) vallen automatisch af via ccy!=='USD'.
+  USD_SYMS=[];
+  H.forEach(function(h){ if(h.ccy==='USD') USD_SYMS.push(h.ticker); });
+}
+rebuildUsdSyms();
+
+// Holdings persistence: override shares/avg from localStorage
+function loadHoldingsOverride(){
+  var ov=lsGet('carl-holdings');
+  if(!ov) return;
+  // Nieuw formaat: {version, data:[...]}. Oud formaat: gewoon een array.
+  var ver=(ov&&!Array.isArray(ov)&&typeof ov.version==='number')?ov.version:0;
+  var data=Array.isArray(ov)?ov:(ov&&Array.isArray(ov.data)?ov.data:null);
+  if(!data) return;
+  // Als de code een nieuwere positie-versie heeft (bv. na een aankoop die ik in de
+  // H[]-array verwerkte), dan wint de code: negeer de oude override en wis hem, zodat
+  // de verse aankoop niet wordt overschreven en niet terugkeert via de cloud.
+  if(ver<HOLDINGS_VERSION){
+    localStorage.removeItem('carl-holdings');
+    return;
+  }
+  data.forEach(function(o){
+    var existing=H.filter(function(h){return h.ticker===o.ticker;})[0];
+    if(existing){
+      if(typeof o.shares==='number'&&o.shares>=0) existing.shares=o.shares;
+      if(typeof o.avg==='number'&&o.avg>0) existing.avg=o.avg;
+      existing.pl=(existing.price-existing.avg)/existing.avg*100;
+    } else if(o.name&&o.ccy){
+      // Positie bestaat niet in de code-array: een via de app toegevoegd nieuw aandeel.
+      // Reconstrueer het volledig zodat het een herlaad overleeft.
+      H.push({ticker:o.ticker,name:o.name,cat:o.cat||'spec',ccy:o.ccy,
+        shares:o.shares||0,avg:o.avg||0,price:o.price||o.avg||0,qt:null,pc:0,
+        pl:(o.price&&o.avg)?(o.price-o.avg)/o.avg*100:0,
+        pe:o.pe||'n.v.t.',fcf:o.fcf||'n.b.',target:o.target||0,upside:o.upside||0,
+        rating:o.rating||'\u2014',brokers:[]});
+    }
+  });
+  rebuildUsdSyms(); // nieuw gereconstrueerde USD-aandelen meenemen in koers-ophaling
+}
+function saveHoldingsOverride(){
+  // Sla per positie genoeg op om ze volledig te reconstrueren (ook nieuw toegevoegde
+  // aandelen die niet in de H[]-code staan). shares+avg volstaan voor bestaande posities;
+  // de overige velden zorgen dat een volledig nieuw aandeel een herlaad overleeft.
+  var data=H.map(function(h){
+    return{ticker:h.ticker,shares:h.shares,avg:h.avg,name:h.name,cat:h.cat,ccy:h.ccy,
+      price:h.price,target:h.target,upside:h.upside,pe:h.pe,fcf:h.fcf,rating:h.rating};
+  });
+  lsSet('carl-holdings',{version:HOLDINGS_VERSION,data:data});
+  cloudSyncDebounced();
+}
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function lsGet(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
@@ -612,35 +770,22 @@ function doFetch(fhKey){
   }
   render();
 
-  var done=0,fired=false;
-  var total=USD_SYMS.length;
-
-  // Timeout-fallback: na 10s altijd afronden (iOS kan fetch laten hangen)
+  // Timeout-fallback: na 12s altijd afronden
+  var fired=false;
   var tmr=setTimeout(function(){
     if(!fired){fired=true;onFetchDone(btn,st);}
-  },10000);
+  },12000);
 
-  function tick(){
-    done++;render();
-    if(done>=total&&!fired){
-      fired=true;
-      clearTimeout(tmr);
-      onFetchDone(btn,st);
-    }
-  }
-
-  // Ook volatiliteitsproxy (VIXY) ophalen, met dezelfde Finnhub-sleutel
   fetchVIX(fhKey);
-  // Koersdoelen ophalen (experimenteel, mogelijk Premium-only)
   fetchTargets(fhKey);
-  // Live EUR/USD wisselkoers ophalen
   fetchEurUsd(fhKey);
 
   var usdDiag={};
-  USD_SYMS.forEach(function(sym){
-    fetch('https://finnhub.io/api/v1/quote?symbol='+sym+'&token='+fhKey)
+  var promises=USD_SYMS.map(function(sym){
+    return fetch('https://finnhub.io/api/v1/quote?symbol='+sym+'&token='+fhKey)
       .then(function(r){
         usdDiag[sym+'_http']=r.status;
+        if(r.status===429) throw new Error('rate-limit');
         return r.json();
       })
       .then(function(d){
@@ -651,19 +796,24 @@ function doFetch(fhKey){
               h.pc=Math.round((d.pc>0?d.pc:d.c)*100)/100;
               h.pl=(h.price-h.avg)/h.avg*100;
               h.dayPct=d.dp||0;
-              h.qt=d.t||null; // Unix timestamp van de quote (toont of dit voorbeurs/na-beurs is bijgewerkt)
+              h.qt=d.t||null;
             }
           });
           prog[sym]='\u2713';
         } else {
           usdDiag[sym]=d&&d.error?d.error:'leeg';
         }
-        tick();
+        render();
       })
-      .catch(function(e){usdDiag[sym]='fetch-fout: '+(e.message||e);tick();});
+      .catch(function(e){usdDiag[sym]='fetch-fout: '+(e.message||e);render();});
   });
+
+  Promise.allSettled(promises).then(function(){
+    if(!fired){fired=true;clearTimeout(tmr);onFetchDone(btn,st);}
+  });
+
   window.__lastUsdDiag=usdDiag;
-  window.__lastProg=prog; // toegankelijk voor onFetchDone (echte succes-telling)
+  window.__lastProg=prog;
 }
 
 function onFetchDone(btn,st){
@@ -683,13 +833,14 @@ function onFetchDone(btn,st){
   }
 
   var now=new Date();
+  var histChanged=false; // alleen naar cloud pushen bij een ECHTE historiek-wijziging
   var ws=lsGet(PK.w);
-  if(!ws||!ws.live||ws.week!==isoWeek(now)) lsSet(PK.w,snapNow(true));
+  if(!ws||!ws.live||ws.week!==isoWeek(now)){lsSet(PK.w,snapNow(true));histChanged=true;}
   var ms=lsGet(PK.m);
-  if(!ms||!ms.live||ms.month!==isoMonth(now)) lsSet(PK.m,snapNow(true));
+  if(!ms||!ms.live||ms.month!==isoMonth(now)){lsSet(PK.m,snapNow(true));histChanged=true;}
   var ys=lsGet(PK.y);
-  if(!ys||!ys.live||ys.year!==isoYear(now)) lsSet(PK.y,snapNow(true));
-  if(anySuccess) archiveDayIfNeeded(); // dag-historiek enkel archiveren met verse data
+  if(!ys||!ys.live||ys.year!==isoYear(now)){lsSet(PK.y,snapNow(true));histChanged=true;}
+  if(anySuccess){ if(archiveDayIfNeeded()) histChanged=true; } // dag-historiek enkel met verse data
   // Sla de laatst opgehaalde live prijzen op zodat ze bij heropening herladen worden
   if(anySuccess){
     var snap={};
@@ -710,12 +861,15 @@ function onFetchDone(btn,st){
     var dayRef=lsGet('carl-usd-dayref')||{};
     if(dayRef.date&&dayRef.date!==today){
       lsSet('carl-usd-prevday',{usd:dayRef.usd,tot:dayRef.tot,rate:dayRef.rate||EUR_USD,date:dayRef.date});
+      histChanged=true; // nieuwe beursdag = referentiepunt verschoven
     }
     lsSet('carl-usd-dayref',{usd:usdTot,tot:curTot,rate:EUR_USD,date:today});
 
     // 'carl-lastval' blijft de laatst-opgehaalde totale waarde (voor heropening-weergave)
     lsSet('carl-lastval',{v:curTot,usd:usdTot,t:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})+' '+isoDate()});
-    cloudSyncDebounced(); // historiek-wijziging naar cloud (request-zuinig, na 3s)
+    // Alleen naar cloud pushen bij een echte historiek-wijziging (snapshot/dag/beursdag).
+    // Zo snoepen automatische verversingen niet onnodig van de JSONBin-requestlimiet.
+    if(histChanged) cloudSyncDebounced();
   }
   updateAll();
   if(btn){
@@ -1048,7 +1202,7 @@ function archiveDayIfNeeded(){
       if(h.qt&&h.qt>latestQt) latestQt=h.qt;
     }
   });
-  if(!items.length) return; // geen verse pc-data: niets archiveren
+  if(!items.length) return false; // geen verse pc-data: niets archiveren
   var tot=0;
   items.forEach(function(it){tot+=it.dagEur;});
 
@@ -1057,18 +1211,20 @@ function archiveDayIfNeeded(){
   var quoteDate=latestQt?new Date(latestQt*1000):new Date();
   var dateStr=isoDate(quoteDate);
   var dayOfWeek=quoteDate.getDay();
-  if(dayOfWeek===0||dayOfWeek===6) return; // veiligheidsnet: weekend-tijdstempel negeren
+  if(dayOfWeek===0||dayOfWeek===6) return false; // veiligheidsnet: weekend-tijdstempel negeren
 
   var dh=lsGet(PK.dh)||[];
   if(!dh.length||dh[0].date!==dateStr){
     dh.unshift({date:dateStr,time:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot)});
     lsSet(PK.dh,dh.slice(0,30));
+    return true; // nieuwe dag toegevoegd = echte historiek-wijziging
   } else if(dh[0].date===dateStr){
     // Zelfde handelsdag, latere/nauwkeurigere fetch: bijwerken i.p.v. negeren
     dh[0].total=Math.round(tot);
     dh[0].time=new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
     lsSet(PK.dh,dh);
   }
+  return false; // enkel bijgewerkt, geen nieuwe entry
 }
 
 function renderDag(){
@@ -1489,7 +1645,8 @@ function importBackup(file){
 // Welke localStorage-sleutels vormen je historiek (API-sleutels blijven lokaal).
 var CLOUD_KEYS=['cp_w','cp_m','cp_y','cp_wh','cp_mh','cp_yh','cp_dh',
   'carl-eur-manual','carl-vix','carl-lastval','carl-live-prices',
-  'carl-usd-dayref','carl-usd-prevday','carl-eurusd-day','carl-eurusd-prev','carl-eurusd-prevdate'];
+  'carl-usd-dayref','carl-usd-prevday','carl-eurusd-day','carl-eurusd-prev','carl-eurusd-prevdate',
+  'carl-holdings'];
 var cloudPushTimer=null;
 
 function cloudCfg(){
@@ -1795,15 +1952,204 @@ function resetBrokenSnapshots(){
     else st.textContent='Geen foute referenties gevonden \u2014 alle snapshots zijn in orde.';
   }
 }
+// ─── AUTO-REFRESH ────────────────────────────────────────────────────────────
+var autoRefreshTimer=null;
+var autoRefreshOn=false;
+function toggleAutoRefresh(){
+  autoRefreshOn=!autoRefreshOn;
+  var btn=document.getElementById('autoBtn');
+  if(autoRefreshOn){
+    if(btn){btn.textContent='Auto-refresh AAN';btn.classList.add('auto-on');}
+    autoRefreshTimer=setInterval(function(){
+      if(isUSOpen()){
+        var k=lsGet('carl-fh');
+        if(k) doFetch(k);
+      }
+    },90000);
+  } else {
+    if(btn){btn.textContent='Auto-refresh UIT';btn.classList.remove('auto-on');}
+    if(autoRefreshTimer){clearInterval(autoRefreshTimer);autoRefreshTimer=null;}
+  }
+}
+
+// ─── CSV EXPORT ──────────────────────────────────────────────────────────────
+function exportCSV(){
+  var rows=['ticker,name,cat,ccy,shares,avg,price,value_eur,pl_pct,pl_eur,target,upside'];
+  H.forEach(function(h){
+    var val=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
+    var cost=h.ccy==='USD'?h.shares*h.avg/EUR_USD:h.shares*h.avg;
+    var plEur=val-cost;
+    rows.push([h.ticker,h.name,h.cat,h.ccy,h.shares,h.avg,h.price,val.toFixed(2),h.pl.toFixed(2),plEur.toFixed(2),h.target,h.upside].join(','));
+  });
+  var dh=lsGet(PK.dh)||[];
+  rows.push('');
+  rows.push('daghistoriek');
+  rows.push('date,total_eur');
+  dh.forEach(function(d){rows.push(d.date+','+d.total);});
+  var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='portfolio-'+isoDate()+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ─── HOLDINGS BEWERKEN ───────────────────────────────────────────────────────
+function openHoldingsEdit(){
+  var list=document.getElementById('holdEditList');
+  if(!list) return;
+  var html='';
+  H.forEach(function(h,i){
+    html+='<div style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--bd)">';
+    html+='<div style="font-weight:700;margin-bottom:6px">'+h.ticker+' <span style="font-weight:400;color:var(--t2)">'+h.name+'</span></div>';
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    html+='<div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Aandelen</div>';
+    html+='<input class="minp" id="he-sh-'+i+'" type="number" step="any" value="'+h.shares+'" style="margin-bottom:0"></div>';
+    html+='<div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">Gem. aankoop</div>';
+    html+='<input class="minp" id="he-avg-'+i+'" type="number" step="any" value="'+h.avg+'" style="margin-bottom:0"></div>';
+    html+='</div></div>';
+  });
+  list.innerHTML=html;
+  document.getElementById('holdEditModal').classList.add('open');
+}
+function closeHoldingsEdit(){document.getElementById('holdEditModal').classList.remove('open');}
+
+// ─── TRANSACTIES (bijkopen / nieuw / verkopen) ────────────────────────────────
+var txType='buy';
+function openTxModal(){
+  txType='buy';
+  // Vul de dropdown met bestaande posities
+  var sel=document.getElementById('txTicker');
+  if(sel){
+    sel.innerHTML=H.map(function(h){return '<option value="'+h.ticker+'">'+h.ticker+' \u2014 '+h.name+'</option>';}).join('');
+  }
+  document.getElementById('txNewTicker').value='';
+  document.getElementById('txNewName').value='';
+  document.getElementById('txShares').value='';
+  document.getElementById('txPrice').value='';
+  txSetType('buy');
+  document.getElementById('txModal').classList.add('open');
+}
+function closeTxModal(){document.getElementById('txModal').classList.remove('open');}
+function txSetType(t){
+  txType=t;
+  ['Buy','New','Sell'].forEach(function(s){
+    var b=document.getElementById('tx'+s);
+    if(b)b.classList.toggle('txt-active',s.toLowerCase()===t);
+  });
+  // Toon de juiste velden
+  document.getElementById('txExistingWrap').style.display=(t==='new')?'none':'block';
+  document.getElementById('txNewWrap').style.display=(t==='new')?'block':'none';
+  var priceLbl=document.getElementById('txPriceLbl');
+  if(priceLbl)priceLbl.textContent=(t==='sell')?'Verkoopprijs':'Aankoopprijs';
+  txUpdatePreview();
+}
+function txCurrentHolding(){
+  if(txType==='new')return null;
+  var tk=document.getElementById('txTicker').value;
+  return H.filter(function(h){return h.ticker===tk;})[0]||null;
+}
+function txUpdatePreview(){
+  var prev=document.getElementById('txPreview');
+  if(!prev)return;
+  var sh=parseFloat(document.getElementById('txShares').value);
+  var px=parseFloat(document.getElementById('txPrice').value);
+  var sym,ccy;
+  if(txType==='new'){
+    var tk=document.getElementById('txNewTicker').value.trim();
+    ccy=document.getElementById('txNewCcy').value;
+    sym=ccy==='EUR'?'\u20ac':'$';
+    if(!tk||isNaN(sh)||isNaN(px)||sh<=0||px<=0){prev.innerHTML='Vul ticker, aantal en prijs in\u2026';return;}
+    if(H.filter(function(h){return h.ticker===tk;})[0]){prev.innerHTML='<span style="color:var(--dn)">'+tk+' bestaat al \u2014 kies "Bijkopen"</span>';return;}
+    prev.innerHTML='<b>Nieuwe positie '+tk+'</b><br>'+fmtNum(sh)+' aandelen @ '+sym+fmtNum(px)+'<br>Kostprijsbasis: '+sym+fmtNum(sh*px);
+    return;
+  }
+  var h=txCurrentHolding();
+  if(!h){prev.innerHTML='Kies een aandeel\u2026';return;}
+  ccy=h.ccy;sym=ccy==='EUR'?'\u20ac':'$';
+  if(isNaN(sh)||isNaN(px)||sh<=0||px<=0){prev.innerHTML='Huidig: '+fmtNum(h.shares)+' @ '+sym+fmtNum(h.avg)+'<br>Vul aantal en prijs in\u2026';return;}
+  if(txType==='buy'){
+    var newSh=h.shares+sh;
+    var newAvg=(h.shares*h.avg+sh*px)/newSh;
+    prev.innerHTML='<b>Na bijkoop '+h.ticker+':</b><br>'+
+      fmtNum(h.shares)+' \u2192 <b>'+fmtNum(newSh)+'</b> aandelen<br>'+
+      'Gem. '+sym+fmtNum(h.avg)+' \u2192 <b>'+sym+fmtNum(newAvg)+'</b>';
+  } else { // sell
+    if(sh>h.shares+1e-9){prev.innerHTML='<span style="color:var(--dn)">Je hebt maar '+fmtNum(h.shares)+' aandelen</span>';return;}
+    var remSh=h.shares-sh;
+    var realized=(px-h.avg)*sh;
+    var realCol=realized>=0?'var(--up)':'var(--dn)';
+    prev.innerHTML='<b>Na verkoop '+h.ticker+':</b><br>'+
+      fmtNum(h.shares)+' \u2192 <b>'+fmtNum(remSh)+'</b> aandelen<br>'+
+      'Gerealiseerd: <span style="color:'+realCol+'">'+(realized>=0?'+':'\u2212')+sym+fmtNum(Math.abs(realized))+'</span>'+
+      (remSh<1e-9?'<br><span style="color:var(--t3)">Positie volledig verkocht \u2014 wordt verwijderd</span>':'');
+  }
+}
+function fmtNum(n){return (Math.round(n*100)/100).toLocaleString('nl-BE',{minimumFractionDigits:2,maximumFractionDigits:8});}
+function applyTx(){
+  var sh=parseFloat(document.getElementById('txShares').value);
+  var px=parseFloat(document.getElementById('txPrice').value);
+  if(isNaN(sh)||isNaN(px)||sh<=0||px<=0){alert('Vul een geldig aantal en prijs in.');return;}
+
+  if(txType==='new'){
+    var tk=document.getElementById('txNewTicker').value.trim().toUpperCase();
+    var nm=document.getElementById('txNewName').value.trim()||tk;
+    var ccy=document.getElementById('txNewCcy').value;
+    var cat=document.getElementById('txNewCat').value;
+    if(!tk){alert('Vul een ticker in.');return;}
+    if(H.filter(function(h){return h.ticker===tk;})[0]){alert(tk+' bestaat al. Gebruik "Bijkopen".');return;}
+    H.push({ticker:tk,name:nm,cat:cat,ccy:ccy,shares:sh,avg:px,price:px,qt:null,pc:0,
+      pl:0,pe:'n.v.t.',fcf:'n.b.',target:0,upside:0,rating:'\u2014',brokers:[]});
+    rebuildUsdSyms();
+  } else {
+    var h=txCurrentHolding();
+    if(!h){alert('Kies een aandeel.');return;}
+    if(txType==='buy'){
+      var newSh=h.shares+sh;
+      h.avg=(h.shares*h.avg+sh*px)/newSh;
+      h.shares=newSh;
+    } else { // sell
+      if(sh>h.shares+1e-9){alert('Je hebt maar '+fmtNum(h.shares)+' aandelen.');return;}
+      h.shares=h.shares-sh;
+      // avg blijft gelijk bij verkoop (gerealiseerde winst valt buiten de positie)
+      if(h.shares<1e-9){
+        // Volledige positie verkocht: verwijderen
+        var idx=H.indexOf(h);
+        if(idx>-1)H.splice(idx,1);
+        rebuildUsdSyms();
+      }
+    }
+  }
+  // Herbereken rendement en sla op (zelfde mechanisme als holdings-edit)
+  H.forEach(function(h){ if(h.price>0&&h.avg>0) h.pl=(h.price-h.avg)/h.avg*100; });
+  saveHoldingsOverride();
+  closeTxModal();
+  updateAll();
+}
+function saveHoldingsEdit(){
+  H.forEach(function(h,i){
+    var shEl=document.getElementById('he-sh-'+i);
+    var avgEl=document.getElementById('he-avg-'+i);
+    var sh=parseFloat(shEl?shEl.value:NaN);
+    var avg=parseFloat(avgEl?avgEl.value:NaN);
+    if(!isNaN(sh)&&sh>=0) h.shares=sh;
+    if(!isNaN(avg)&&avg>0) h.avg=avg;
+    h.pl=(h.price-h.avg)/h.avg*100;
+  });
+  rebuildUsdSyms(); // voor het geval posities zijn gewijzigd die de op te halen tickers beïnvloeden
+  saveHoldingsOverride();
+  closeHoldingsEdit();
+  updateAll();
+}
+
 function init(){
   bootstrapHistory();
-  migrateSnapshots(); // kapotte snapshots corrigeren vóór eerste P&L-weergave
+  loadHoldingsOverride();
+  migrateSnapshots();
   loadEurManual();
-  loadLivePrices(); // laatst opgehaalde prijzen herstellen vóór eerste weergave
+  loadLivePrices();
   renderCloudUI();
-  // Als cloud-sync is ingesteld: historiek ophalen bij openen (herlaadt bij verse data)
-  if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){migrateSnapshots();loadLivePrices();updateAll();cloudPush(false);} });
-  // EUR/USD automatisch ophalen bij elke pagina-opening (geen Vernieuwen nodig)
+  if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){loadHoldingsOverride();migrateSnapshots();loadLivePrices();updateAll();cloudPush(false);} });
   var key=lsGet('carl-fh');
   fetchEurUsd(key);
   document.getElementById('kbanner').style.display=key?'none':'block';
