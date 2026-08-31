@@ -1142,11 +1142,17 @@ function renderHoldings(){
       html+='<div class="ditem"><div class="dl">Waarde</div><div class="dv">\u20ac'+n2(val)+'</div></div>';
       html+='<div class="ditem"><div class="dl">P&amp;L</div><div class="dv '+cls+'">'+fmtEur(plEur)+'</div></div>';
       html+='<div class="ditem"><div class="dl">Gem. aankoop</div><div class="dv">'+sym+h.avg.toFixed(2)+'</div></div>';
-      html+='<div class="ditem"><div class="dl">Koersdoel</div><div class="dv">'+sym+h.target.toFixed(2)+'</div></div>';
-      html+='<div class="ditem"><div class="dl">Upside</div><div class="dv up">+'+h.upside+'%</div></div>';
+      if(h.target&&h.target>0){
+        html+='<div class="ditem"><div class="dl">Koersdoel</div><div class="dv">'+sym+h.target.toFixed(2)+'</div></div>';
+        var upCls=h.upside>=0?'up':'dn';
+        html+='<div class="ditem"><div class="dl">Upside</div><div class="dv '+upCls+'">'+(h.upside>=0?'+':'')+h.upside+'%</div></div>';
+      } else {
+        html+='<div class="ditem"><div class="dl">Koersdoel</div><div class="dv mu" style="font-size:12px">geen gratis dekking</div></div>';
+      }
       html+='<div class="ditem"><div class="dl">P/E</div><div class="dv">'+h.pe+'</div></div>';
       html+='<div class="ditem"><div class="dl">Free Cash Flow</div><div class="dv">'+h.fcf+'</div></div>';
-      html+='<div class="ditem"><div class="dl">Rating</div><div class="dv">'+h.rating+'</div></div>';
+      var ratingExtra=h.analysts?' <span style="font-size:10px;color:var(--t3)">('+h.analysts+' analisten)</span>':'';
+      html+='<div class="ditem"><div class="dl">Rating</div><div class="dv">'+h.rating+ratingExtra+'</div></div>';
       if(h.ccy==='USD'&&h.qt) html+='<div class="ditem"><div class="dl">Laatste koers-update</div><div class="dv" style="font-size:11px">'+fmtQt(h.qt)+'</div></div>';
       html+='</div>';
       if(h.brokers&&h.brokers.length>0){
@@ -1887,8 +1893,49 @@ function bootstrapHistory(){
 var targetStatus={ok:0,fail:0,premiumBlocked:false,source:''};
 function fetchTargets(fhKey){
   var fmpKey=lsGet('carl-fmp');
-  if(fmpKey) return fetchTargetsFMP(fmpKey);
-  return fetchTargetsFinnhub(fhKey);
+  var p=fmpKey?fetchTargetsFMP(fmpKey):fetchTargetsFinnhub(fhKey);
+  // Na de koersdoelen: voor tickers zonder doel de gratis Finnhub-recommendation ophalen
+  // (analistenrating als telling), zodat WULF/HIMS/PATH/SPCX toch analistendata tonen.
+  return p.then(function(){ if(fhKey) return fetchRecommendations(fhKey); });
+}
+
+// Gratis Finnhub recommendation-endpoint: geeft analistentellingen (strongBuy/buy/hold/sell/
+// strongSell). We leiden er een rating uit af voor posities die geen koersdoel kregen.
+function fetchRecommendations(fhKey){
+  var need=H.filter(function(h){return h.ccy==='USD'&&(!h.target||h.target<=0);});
+  if(!need.length) return Promise.resolve();
+  var got=[];
+  var proms=need.map(function(h){
+    return fetch('https://finnhub.io/api/v1/stock/recommendation?symbol='+h.ticker+'&token='+fhKey)
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(d){
+        if(!Array.isArray(d)||!d.length) return;
+        var r0=d[0]; // meest recente periode
+        var sb=r0.strongBuy||0,b=r0.buy||0,ho=r0.hold||0,se=r0.sell||0,ss=r0.strongSell||0;
+        var n=sb+b+ho+se+ss;
+        if(n<=0) return;
+        // Gewogen score: strongBuy=2, buy=1, hold=0, sell=-1, strongSell=-2
+        var score=(2*sb+b-se-2*ss)/n;
+        var rating=score>=1.3?'Strong Buy':score>=0.4?'Buy':score>=-0.4?'Hold':score>=-1.3?'Sell':'Strong Sell';
+        H.forEach(function(x){
+          if(x.ticker===h.ticker){
+            x.rating=rating;
+            x.analysts=n; // aantal analisten (voor detailweergave)
+          }
+        });
+        got.push(h.ticker);
+      })
+      .catch(function(){});
+  });
+  return Promise.all(proms).then(function(){
+    if(got.length){
+      var st=document.getElementById('targetSt');
+      if(st){
+        st.innerHTML+='<br><span style="font-size:10px;color:var(--t2)">Analistenrating (Finnhub, gratis) voor: '+got.join(', ')+'</span>';
+      }
+      renderHoldings();
+    }
+  });
 }
 
 function fetchTargetsFMP(fmpKey){
