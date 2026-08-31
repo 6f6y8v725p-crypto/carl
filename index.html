@@ -100,6 +100,19 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 .al-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
 .al-nm{flex:1;font-weight:600}
 .al-vl{color:var(--t2);font-variant-numeric:tabular-nums}
+.ccy-head{display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:8px;font-weight:600}
+.ccy-track{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--bd)}
+.ccy-seg{height:100%}
+.ccy-legend{display:flex;gap:16px;margin-top:10px}
+.ccy-li{display:flex;align-items:center;gap:6px;font-size:12px}
+.ccy-dot{width:9px;height:9px;border-radius:3px}
+.dv-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--bd);font-size:12px}
+.dv-row:first-child{border-top:none}
+.dv-tk{font-weight:700}
+.dv-src{font-size:9px;color:var(--t3);margin-left:5px;font-weight:400}
+.dv-r{text-align:right}
+.dv-amt{font-weight:600}
+.dv-yld{font-size:10px;color:var(--t3)}
 .mini-link{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;background:var(--p);border:1px solid var(--bd);border-radius:14px;margin-bottom:8px;cursor:pointer}
 .mini-link .ml-t{font-size:14px;font-weight:600}
 .mini-link .ml-s{font-size:11px;color:var(--t2);margin-top:2px}
@@ -132,7 +145,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
   <!-- Evolutie sparkline -->
   <div class="spark-wrap" id="sparkWrap" style="display:none">
     <div class="spark-head">
-      <span class="spark-ttl">Evolutie dagresultaat</span>
+      <span class="spark-ttl">Portefeuille-evolutie</span>
       <span class="spark-rng" id="sparkRng"></span>
     </div>
     <div id="sparkSvg"></div>
@@ -161,6 +174,29 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
     <div class="al-row">
       <div id="allocDonut"></div>
       <div class="al-legend" id="allocLegend"></div>
+    </div>
+    <div id="ccyBar" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--bd)"></div>
+  </div>
+
+  <!-- Dividend -->
+  <div id="divSection" style="display:none">
+    <div class="sec-h">Dividend (jaarlijks)</div>
+    <div class="al-wrap" style="padding:16px 18px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px">
+        <div>
+          <div style="font-size:11px;color:var(--t2)">Verwacht per jaar</div>
+          <div style="font-size:24px;font-weight:800;letter-spacing:-.02em" id="divTotal">&#8364;&#8212;</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--t2)">Portefeuille-yield</div>
+          <div style="font-size:15px;font-weight:700" id="divYield">&#8212;</div>
+        </div>
+      </div>
+      <div id="divList"></div>
+      <div class="mini-link" onclick="openDivModal()" style="margin:12px 0 0;background:transparent;border-style:dashed">
+        <div><div class="ml-t" style="font-size:12px">Dividend handmatig aanvullen</div></div>
+        <div class="ml-ar" style="font-size:16px">&#8250;</div>
+      </div>
     </div>
   </div>
 
@@ -193,6 +229,10 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
   </div>
   <div class="mini-link" onclick="openFmpModal()">
     <div><div class="ml-t">FMP API-sleutel</div><div class="ml-s" id="fmpKeySt">koersdoelen &middot; gratis op financialmodelingprep.com</div></div>
+    <div class="ml-ar">&#8250;</div>
+  </div>
+  <div class="mini-link" onclick="openBqModal()">
+    <div><div class="ml-t">BusinessQuant API-sleutel</div><div class="ml-s" id="bqKeySt">dividenden &middot; gratis op businessquant.com</div></div>
     <div class="ml-ar">&#8250;</div>
   </div>
 
@@ -374,6 +414,30 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
     <div class="mrow">
       <button class="mbtn" onclick="closeFmpModal()">Annuleer</button>
       <button class="mbtn pri" onclick="saveFmp()">Opslaan &amp; testen</button>
+    </div>
+  </div>
+</div>
+
+<div class="moverlay" id="bqModal">
+  <div class="mbox">
+    <div class="mtitle">BusinessQuant API-sleutel (dividenden)</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Gratis sleutel via businessquant.com. Lukt het ophalen niet voor een aandeel, dan kun je het dividend hieronder ook handmatig invullen.</div>
+    <input class="minp" id="iBq" type="text" placeholder="API-sleutel" autocorrect="off" autocapitalize="none" spellcheck="false">
+    <div class="mrow">
+      <button class="mbtn" onclick="closeBqModal()">Annuleer</button>
+      <button class="mbtn pri" onclick="saveBq()">Opslaan &amp; testen</button>
+    </div>
+  </div>
+</div>
+
+<div class="moverlay" id="divModal">
+  <div class="mbox" style="max-height:85vh;overflow-y:auto">
+    <div class="mtitle">Dividend handmatig</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Jaarlijks dividend per aandeel (in de valuta van de positie). Enkel nodig als automatisch ophalen niet lukt.</div>
+    <div id="divEditList"></div>
+    <div class="mrow" style="margin-top:12px">
+      <button class="mbtn" onclick="closeDivModal()">Annuleer</button>
+      <button class="mbtn pri" onclick="saveDivManual()">Opslaan</button>
     </div>
   </div>
 </div>
@@ -780,6 +844,106 @@ function updateFmpKeySt(){
   if(!el) return;
   el.textContent=k?('actief \u00b7 ...'+k.slice(-4)):'tik om in te voeren \u00b7 gratis op financialmodelingprep.com';
 }
+
+// ─── DIVIDEND (BusinessQuant automatisch + handmatige terugval) ──────────────
+function openBqModal(){
+  document.getElementById('iBq').value=lsGet('carl-bq')||'';
+  document.getElementById('bqModal').classList.add('open');
+}
+function closeBqModal(){document.getElementById('bqModal').classList.remove('open');}
+function saveBq(){
+  var k=document.getElementById('iBq').value.replace(/\s/g,'');
+  if(!k) return;
+  lsSet('carl-bq',k);
+  closeBqModal();
+  updateBqKeySt();
+  fetchDividends();
+}
+function updateBqKeySt(){
+  var k=lsGet('carl-bq');
+  var el=document.getElementById('bqKeySt');
+  if(!el) return;
+  el.textContent=k?('actief \u00b7 ...'+k.slice(-4)):'tik om in te voeren \u00b7 gratis op businessquant.com';
+}
+
+function openDivModal(){
+  var man=lsGet('carl-div-manual')||{};
+  var list=document.getElementById('divEditList');
+  if(list){
+    list.innerHTML=H.map(function(h,i){
+      var sym=h.ccy==='EUR'?'\u20ac':'$';
+      var v=(man[h.ticker]!==undefined)?man[h.ticker]:'';
+      return '<div style="margin-bottom:10px"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">'+h.ticker+' \u2014 '+h.name+' ('+sym+'/jaar)</div>'+
+        '<input class="minp" id="dv-'+i+'" type="number" step="any" placeholder="0 = geen dividend" value="'+v+'" style="margin-bottom:0"></div>';
+    }).join('');
+  }
+  document.getElementById('divModal').classList.add('open');
+}
+function closeDivModal(){document.getElementById('divModal').classList.remove('open');}
+function saveDivManual(){
+  var man=lsGet('carl-div-manual')||{};
+  H.forEach(function(h,i){
+    var el=document.getElementById('dv-'+i);
+    if(!el) return;
+    var v=parseFloat(el.value);
+    if(!isNaN(v)&&v>0) man[h.ticker]=v;
+    else delete man[h.ticker];
+  });
+  lsSet('carl-div-manual',man);
+  closeDivModal();
+  renderDividends();
+  cloudSyncDebounced();
+}
+
+// Haalt automatisch dividend op via BusinessQuant (gratis, sleutel vereist). Voor tickers
+// waar dat niet lukt (geen dekking, geen sleutel, netwerkfout) valt de weergave terug op
+// een handmatig ingevuld bedrag (carl-div-manual), zodat het overzicht sowieso werkt.
+var divAuto={}; // {ticker: {ttm, yield}} — enkel automatisch opgehaalde waarden
+function fetchDividends(){
+  var bqKey=lsGet('carl-bq');
+  if(!bqKey){ renderDividends(); return Promise.resolve(); }
+  var proms=H.map(function(h){
+    return fetch('https://data.businessquant.com/dividends?ticker='+h.ticker+'&mode=dps&api_key='+bqKey)
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(d){
+        var ttm=d&&d.metadata&&typeof d.metadata.ttmdividend==='number'?d.metadata.ttmdividend:null;
+        if(ttm&&ttm>0) divAuto[h.ticker]={ttm:ttm,yield:d.metadata.divyield};
+      })
+      .catch(function(){});
+  });
+  return Promise.all(proms).then(renderDividends);
+}
+
+function renderDividends(){
+  var man=lsGet('carl-div-manual')||{};
+  var section=document.getElementById('divSection');
+  var list=document.getElementById('divList');
+  if(!section||!list) return;
+  var rows=[];
+  var totEur=0, portValEur=0;
+  H.forEach(function(h){
+    var posValEur=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
+    portValEur+=posValEur;
+    var perShare=null, src=null;
+    if(divAuto[h.ticker]){ perShare=divAuto[h.ticker].ttm; src='auto'; }
+    else if(man[h.ticker]){ perShare=man[h.ticker]; src='handmatig'; }
+    if(!perShare||perShare<=0) return;
+    var annualEur=h.ccy==='USD'?(perShare*h.shares)/EUR_USD:(perShare*h.shares);
+    totEur+=annualEur;
+    var yld=posValEur>0?(annualEur/posValEur*100):0;
+    rows.push({tk:h.ticker,name:h.name,amt:annualEur,yld:yld,src:src});
+  });
+  if(!rows.length){ section.style.display='none'; return; }
+  section.style.display='block';
+  rows.sort(function(a,b){return b.amt-a.amt;});
+  setText('divTotal','\u20ac'+n2(totEur)+' / jaar');
+  var portYld=portValEur>0?(totEur/portValEur*100):0;
+  setText('divYield',portYld.toFixed(2)+'%');
+  list.innerHTML=rows.map(function(r){
+    return '<div class="dv-row"><div><span class="dv-tk">'+r.tk+'</span><span class="dv-src">'+(r.src==='auto'?'auto':'handmatig')+'</span></div>'+
+      '<div class="dv-r"><div class="dv-amt">\u20ac'+n2(r.amt)+'</div><div class="dv-yld">'+r.yld.toFixed(2)+'% yield</div></div></div>';
+  }).join('');
+}
 function closeKeyModal(){document.getElementById('keyModal').classList.remove('open');}
 function saveKey(){
   var k=document.getElementById('iKey').value.replace(/\s/g,'');
@@ -937,6 +1101,7 @@ function updateAll(){
   renderMkt();
   renderVIX();
   renderCharts();
+  renderDividends();
 }
 
 function updateKPI(){
@@ -1047,6 +1212,29 @@ function renderAllocDonut(tot){
     return '<div class="al-li"><span class="al-dot" style="background:'+col+'"></span>'+
       '<span class="al-nm">'+p.tk+'</span><span class="al-vl">'+pctv.toFixed(1)+'%</span></div>';
   }).join('');
+  renderCurrencySplit(total);
+}
+
+// ── Valutaspreiding ───────────────────────────────────────────────────────────
+function renderCurrencySplit(totEur){
+  var host=document.getElementById('ccyBar');
+  if(!host||!totEur) return;
+  var usdEur=0,eurEur=0;
+  H.forEach(function(h){
+    if(h.ccy==='USD') usdEur+=h.shares*h.price/EUR_USD;
+    else eurEur+=h.shares*h.price;
+  });
+  var usdPct=usdEur/totEur*100, eurPct=eurEur/totEur*100;
+  var html='<div class="ccy-head"><span>Valutablootstelling</span><span>\u20ac'+n2(totEur)+'</span></div>';
+  html+='<div class="ccy-track">';
+  if(usdPct>0) html+='<div class="ccy-seg" style="width:'+usdPct.toFixed(2)+'%;background:#388bfd"></div>';
+  if(eurPct>0) html+='<div class="ccy-seg" style="width:'+eurPct.toFixed(2)+'%;background:#e3b341"></div>';
+  html+='</div>';
+  html+='<div class="ccy-legend">';
+  html+='<div class="ccy-li"><span class="ccy-dot" style="background:#388bfd"></span>USD '+usdPct.toFixed(1)+'% <span style="color:var(--t3)">(\u20ac'+n2(usdEur)+')</span></div>';
+  html+='<div class="ccy-li"><span class="ccy-dot" style="background:#e3b341"></span>EUR '+eurPct.toFixed(1)+'% <span style="color:var(--t3)">(\u20ac'+n2(eurEur)+')</span></div>';
+  html+='</div>';
+  host.innerHTML=html;
 }
 
 // ── Sparkline: evolutie dagresultaat ─────────────────────────────────────────
@@ -1054,10 +1242,13 @@ function renderSparkline(){
   var wrap=document.getElementById('sparkWrap');
   var host=document.getElementById('sparkSvg');
   if(!wrap||!host) return;
-  var dh=(lsGet(PK.dh)||[]).slice(0,14).reverse(); // oud -> nieuw, max 14
-  if(dh.length<2){wrap.style.display='none';return;}
+  var dh=(lsGet(PK.dh)||[]).slice(0,30).reverse(); // oud -> nieuw, max 30
+  // Enkel entries met een bewaarde totale waarde gebruiken (val). Oudere records vóór
+  // deze functie hadden dat veld niet — die laten we simpelweg buiten de lijn.
+  var withVal=dh.filter(function(d){return typeof d.val==='number'&&d.val>0;});
+  if(withVal.length<2){wrap.style.display='none';return;}
   wrap.style.display='block';
-  var vals=dh.map(function(d){return d.total;});
+  var vals=withVal.map(function(d){return d.val;});
   var min=Math.min.apply(null,vals), max=Math.max.apply(null,vals);
   var W=340,Hh=64,pad=4;
   var span=(max-min)||1;
@@ -1066,20 +1257,19 @@ function renderSparkline(){
     var y=pad+(Hh-2*pad)*(1-(v-min)/span);
     return [x,y];
   });
-  var zeroY=pad+(Hh-2*pad)*(1-(0-min)/span);
   var d='M'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join(' L');
-  var last=vals[vals.length-1];
-  var lineCol=last>=0?'#2ea76b':'#f85149';
+  var first=vals[0], last=vals[vals.length-1];
+  var lineCol=last>=first?'#2ea76b':'#f85149';
   var area=d+' L'+pts[pts.length-1][0].toFixed(1)+','+(Hh-pad)+' L'+pts[0][0].toFixed(1)+','+(Hh-pad)+' Z';
   var svg='<svg width="100%" height="'+Hh+'" viewBox="0 0 '+W+' '+Hh+'" preserveAspectRatio="none">';
   svg+='<defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+lineCol+'" stop-opacity=".22"/><stop offset="1" stop-color="'+lineCol+'" stop-opacity="0"/></linearGradient></defs>';
-  if(min<0&&max>0) svg+='<line x1="0" y1="'+zeroY.toFixed(1)+'" x2="'+W+'" y2="'+zeroY.toFixed(1)+'" stroke="#30363d" stroke-width="1" stroke-dasharray="3 3"/>';
   svg+='<path d="'+area+'" fill="url(#spg)"/>';
   svg+='<path d="'+d+'" fill="none" stroke="'+lineCol+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
   var lp=pts[pts.length-1];
   svg+='<circle cx="'+lp[0].toFixed(1)+'" cy="'+lp[1].toFixed(1)+'" r="3" fill="'+lineCol+'"/></svg>';
   host.innerHTML=svg;
-  setText('sparkRng',dh[0].date+' \u2192 '+dh[dh.length-1].date);
+  var chg=first>0?((last-first)/first*100):0;
+  setText('sparkRng',withVal[0].date+' \u2192 '+withVal[withVal.length-1].date+' \u00b7 '+(chg>=0?'+':'')+chg.toFixed(1)+'%');
 }
 
 function setText(id,txt){var el=document.getElementById(id);if(el) el.textContent=txt;}
@@ -1328,6 +1518,10 @@ function archiveDayIfNeeded(){
   var tot=0;
   items.forEach(function(it){tot+=it.dagEur;});
 
+  // Totale portefeuillewaarde nu (voor de evolutie-grafiek, los van het dagresultaat)
+  var totVal=0;
+  H.forEach(function(h){totVal+=(h.ccy==='USD')?h.shares*h.price/EUR_USD:h.shares*h.price;});
+
   // Datum van de koers afleiden uit de Finnhub-tijdstempel zelf, niet uit 'nu'
   // (zo blijft archivering correct, ook als je pas de volgende ochtend vóór beursopening checkt)
   var quoteDate=latestQt?new Date(latestQt*1000):new Date();
@@ -1337,12 +1531,13 @@ function archiveDayIfNeeded(){
 
   var dh=lsGet(PK.dh)||[];
   if(!dh.length||dh[0].date!==dateStr){
-    dh.unshift({date:dateStr,time:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot)});
-    lsSet(PK.dh,dh.slice(0,30));
+    dh.unshift({date:dateStr,time:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot),val:Math.round(totVal)});
+    lsSet(PK.dh,dh.slice(0,60));
     return true; // nieuwe dag toegevoegd = echte historiek-wijziging
   } else if(dh[0].date===dateStr){
     // Zelfde handelsdag, latere/nauwkeurigere fetch: bijwerken i.p.v. negeren
     dh[0].total=Math.round(tot);
+    dh[0].val=Math.round(totVal);
     dh[0].time=new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
     lsSet(PK.dh,dh);
   }
@@ -1768,7 +1963,7 @@ function importBackup(file){
 var CLOUD_KEYS=['cp_w','cp_m','cp_y','cp_wh','cp_mh','cp_yh','cp_dh',
   'carl-eur-manual','carl-vix','carl-lastval','carl-live-prices',
   'carl-usd-dayref','carl-usd-prevday','carl-eurusd-day','carl-eurusd-prev','carl-eurusd-prevdate',
-  'carl-holdings'];
+  'carl-holdings','carl-div-manual'];
 var cloudPushTimer=null;
 
 function cloudCfg(){
@@ -2318,6 +2513,8 @@ function init(){
   document.getElementById('kbanner').style.display=key?'none':'block';
   updateKeySt();
   updateFmpKeySt();
+  updateBqKeySt();
+  fetchDividends(); // gebruikt automatisch BusinessQuant indien sleutel aanwezig, anders enkel handmatig
   var vixCache=lsGet('carl-vix');if(vixCache){vixVal=vixCache.v;vixDP=vixCache.dp;}
   renderMkt();
   updateAll();
