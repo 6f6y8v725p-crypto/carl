@@ -70,6 +70,41 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 .auto-on{color:var(--up)!important}
 .txtype-btn{flex:1;font-size:12px}
 .txtype-btn.txt-active{background:var(--up);color:#04160c;font-weight:700;border-color:var(--up)}
+/* ── Herontworpen Dashboard ───────────────────────────────────────────── */
+.hero{padding:22px 6px 18px;text-align:left}
+.hero-lbl{font-size:12px;color:var(--t2);font-weight:500;margin-bottom:8px}
+.hero-val{font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:.95;font-variant-numeric:tabular-nums}
+.hero-sub{margin-top:12px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.hero-chip{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.hero-chip2{font-size:12px;color:var(--t3);font-variant-numeric:tabular-nums}
+.hero-day{margin-top:3px;font-size:11px;color:var(--t3)}
+.spark-wrap{margin:4px 6px 18px}
+.spark-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.spark-ttl{font-size:12px;color:var(--t2);font-weight:600}
+.spark-rng{font-size:11px;color:var(--t3)}
+.refresh{width:100%;padding:15px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:16px;letter-spacing:.01em;transition:transform .1s}
+.refresh:active{transform:scale(.985)}
+.refresh.open-m{background:linear-gradient(135deg,#123020,#0e2418);border:1px solid var(--up);color:var(--up)}
+.refresh.closed-m{background:var(--p2);border:1px solid var(--bd);color:var(--t2)}
+.sec-h{font-size:12px;font-weight:700;color:var(--t2);margin:2px 6px 10px;letter-spacing:.02em}
+.mv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.mv{background:var(--p);border:1px solid var(--bd);border-radius:14px;padding:13px 14px}
+.mv-tk{font-size:13px;font-weight:700;margin-bottom:2px}
+.mv-nm{font-size:10px;color:var(--t3);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-pct{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.mv-px{font-size:11px;color:var(--t3);margin-top:2px;font-variant-numeric:tabular-nums}
+.al-wrap{background:var(--p);border:1px solid var(--bd);border-radius:16px;padding:18px;margin-bottom:16px}
+.al-row{display:flex;align-items:center;gap:14px}
+.al-legend{flex:1;display:flex;flex-direction:column;gap:7px}
+.al-li{display:flex;align-items:center;gap:8px;font-size:12px}
+.al-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+.al-nm{flex:1;font-weight:600}
+.al-vl{color:var(--t2);font-variant-numeric:tabular-nums}
+.mini-link{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;background:var(--p);border:1px solid var(--bd);border-radius:14px;margin-bottom:8px;cursor:pointer}
+.mini-link .ml-t{font-size:14px;font-weight:600}
+.mini-link .ml-s{font-size:11px;color:var(--t2);margin-top:2px}
+.mini-link .ml-ar{font-size:20px;color:var(--t3)}
+.set-group{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin:20px 6px 8px}
 </style>
 </head>
 <body>
@@ -78,82 +113,97 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 
 <!-- DASHBOARD TAB -->
 <div class="tab-pane active" id="pane-dash">
-  <div class="warn">
-    API-sleutels (Finnhub/FMP/JSONBin) staan in localStorage. Zet ze NOOIT in je GitHub-repo. Voeg .gitignore toe voor backups en keys.
+  <div id="kbanner" class="kbanner" onclick="go('settings',document.querySelectorAll('.nb')[5])" style="display:none">
+    Stel je Finnhub-sleutel in bij Meer &rsaquo; om live koersen te laden
   </div>
-  <div id="kbanner" class="kbanner" onclick="openKeyModal()" style="display:none">
-    Tik hier om je Finnhub API-sleutel in te voeren
+
+  <!-- HERO: totale waarde -->
+  <div class="hero">
+    <div class="hero-lbl">Totale portefeuille</div>
+    <div class="hero-val" id="heroVal">&#8212;</div>
+    <div class="hero-sub">
+      <span class="hero-chip" id="heroTrend"></span>
+      <span class="hero-chip2" id="heroTrendPct"></span>
+    </div>
+    <div class="hero-day" id="heroStock"></div>
+    <div class="hero-day" id="heroSub">Tik op vernieuwen voor actuele koersen</div>
   </div>
-  <div class="card" style="margin-bottom:10px">
-    <div class="stitle">Totale portefeuille <span style="font-size:9px;color:var(--t3);font-weight:400">v2.1</span></div>
-    <div style="display:flex;align-items:baseline;gap:8px"><div class="kval" id="heroVal" style="font-size:30px">&#8212;</div><span id="heroTrend" style="font-size:14px;font-weight:600"></span></div>
-    <div class="ksub" id="heroSub">Klik Live koersen voor actuele data</div>
+
+  <!-- Evolutie sparkline -->
+  <div class="spark-wrap" id="sparkWrap" style="display:none">
+    <div class="spark-head">
+      <span class="spark-ttl">Evolutie dagresultaat</span>
+      <span class="spark-rng" id="sparkRng"></span>
+    </div>
+    <div id="sparkSvg"></div>
   </div>
-  <button class="lbtn" id="liveBtn" onclick="onLiveClick()">&#9711; Live koersen ophalen</button>
-  <div style="display:flex;gap:8px;margin-bottom:8px">
-    <button class="mbtn" style="flex:1;font-size:12px" id="autoBtn" onclick="toggleAutoRefresh()">Auto-refresh UIT</button>
-    <button class="mbtn" style="flex:1;font-size:12px" onclick="exportCSV()">CSV export</button>
-  </div>
-  <div id="liveSt" style="font-size:11px;color:var(--t2);text-align:center;margin-bottom:8px;min-height:16px"></div>
-  <div id="targetSt" style="font-size:11px;text-align:center;margin-bottom:8px;min-height:14px"></div>
-  <div class="kgrid">
+
+  <button class="refresh closed-m" id="liveBtn" onclick="onLiveClick()">Vernieuwen</button>
+  <div id="liveSt" style="font-size:11px;color:var(--t2);text-align:center;margin-bottom:6px;min-height:16px"></div>
+  <div id="targetSt" style="font-size:11px;text-align:center;margin-bottom:14px;min-height:14px"></div>
+
+  <!-- Kerncijfers: 3 open cijfers, geen zware kaders -->
+  <div class="kgrid" style="margin-bottom:18px">
     <div class="kbox"><div class="klbl">Kostenbasis</div><div class="kval" id="kCost">&#8212;</div></div>
-    <div class="kbox"><div class="klbl">P&amp;L totaal</div><div class="kval" id="kPnl">&#8212;</div><div class="ksub" id="kPnlP"></div></div>
-    <div class="kbox"><div class="klbl">Grootste positie</div><div class="kval" id="kBig">&#8212;</div><div class="ksub" id="kBigV"></div></div>
-    <div class="kbox"><div class="klbl">EUR/USD</div><div class="kval" id="kEur">1.1611</div><div class="ksub" id="kEurSub">wisselkoers</div></div>
+    <div class="kbox"><div class="klbl">Winst/verlies</div><div class="kval" id="kPnl">&#8212;</div><div class="ksub" id="kPnlP"></div></div>
   </div>
-  <div class="card2" onclick="openEurModal()" style="cursor:pointer">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div class="stitle" style="margin-bottom:2px">EUR-koersen handmatig</div>
-        <div style="font-size:12px;color:var(--t2)" id="eurSt">VUSA &amp; D'Ieteren &middot; tik om in te voeren</div>
-      </div>
-      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
+
+  <!-- Beste & slechtste vandaag -->
+  <div class="sec-h">Vandaag</div>
+  <div class="mv-grid">
+    <div class="mv"><div class="mv-tk" id="mvUpTk">&#8212;</div><div class="mv-nm" id="mvUpNm">beste</div><div class="mv-pct up" id="mvUpPct">&#8212;</div><div class="mv-px" id="mvUpPx"></div></div>
+    <div class="mv"><div class="mv-tk" id="mvDnTk">&#8212;</div><div class="mv-nm" id="mvDnNm">slechtste</div><div class="mv-pct dn" id="mvDnPct">&#8212;</div><div class="mv-px" id="mvDnPx"></div></div>
+  </div>
+
+  <!-- Allocatie -->
+  <div class="sec-h">Verdeling</div>
+  <div class="al-wrap">
+    <div class="al-row">
+      <div id="allocDonut"></div>
+      <div class="al-legend" id="allocLegend"></div>
     </div>
   </div>
-  <div class="card2" onclick="openHoldingsEdit()" style="cursor:pointer">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div class="stitle" style="margin-bottom:2px">Holdings bewerken</div>
-        <div style="font-size:12px;color:var(--t2)">Aandelen &amp; gemiddelde aankoopprijs aanpassen</div>
-      </div>
-      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
-    </div>
+
+  <!-- Transactie: prominente actie op dashboard -->
+  <div class="mini-link" onclick="openTxModal()" style="border-color:#1a3a26">
+    <div><div class="ml-t">&#128181; Transactie toevoegen</div><div class="ml-s">Bijkopen, verkopen of nieuw aandeel</div></div>
+    <div class="ml-ar">&#8250;</div>
   </div>
-  <div class="card2" onclick="openTxModal()" style="cursor:pointer;border:1px solid #1a3a26">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div class="stitle" style="margin-bottom:2px">&#128181; Transactie toevoegen</div>
-        <div style="font-size:12px;color:var(--t2)">Bijkopen, verkopen of nieuw aandeel &mdash; gemiddelde wordt berekend</div>
-      </div>
-      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
-    </div>
+</div>
+
+<!-- INSTELLINGEN / MEER TAB -->
+<div class="tab-pane" id="pane-settings">
+  <div style="font-size:22px;font-weight:800;letter-spacing:-.02em;margin:8px 6px 4px">Meer</div>
+  <div style="font-size:12px;color:var(--t2);margin:0 6px 12px">Sleutels, synchronisatie en beheer</div>
+
+  <div class="set-group">Posities</div>
+  <div class="mini-link" onclick="openHoldingsEdit()">
+    <div><div class="ml-t">Holdings bewerken</div><div class="ml-s">Aandelen &amp; gemiddelde aankoopprijs</div></div>
+    <div class="ml-ar">&#8250;</div>
   </div>
-  <div class="card2" onclick="openKeyModal()" style="cursor:pointer">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div class="stitle" style="margin-bottom:2px">Finnhub API-sleutel</div>
-        <div style="font-size:12px;color:var(--t2)" id="keySt">tik om in te voeren</div>
-      </div>
-      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
-    </div>
+  <div class="mini-link" onclick="openEurModal()">
+    <div><div class="ml-t">EUR-koersen</div><div class="ml-s" id="eurSt">VUSA, D'Ieteren &amp; wisselkoers handmatig</div></div>
+    <div class="ml-ar">&#8250;</div>
   </div>
-  <div class="card2" onclick="openFmpModal()" style="cursor:pointer">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div class="stitle" style="margin-bottom:2px">FMP API-sleutel (koersdoelen)</div>
-        <div style="font-size:12px;color:var(--t2)" id="fmpKeySt">tik om in te voeren &middot; gratis op financialmodelingprep.com</div>
-      </div>
-      <div style="font-size:22px;color:var(--t3)">&#8250;</div>
-    </div>
+
+  <div class="set-group">Databronnen</div>
+  <div class="mini-link" onclick="openKeyModal()">
+    <div><div class="ml-t">Finnhub API-sleutel</div><div class="ml-s" id="keySt">tik om in te voeren</div></div>
+    <div class="ml-ar">&#8250;</div>
   </div>
+  <div class="mini-link" onclick="openFmpModal()">
+    <div><div class="ml-t">FMP API-sleutel</div><div class="ml-s" id="fmpKeySt">koersdoelen &middot; gratis op financialmodelingprep.com</div></div>
+    <div class="ml-ar">&#8250;</div>
+  </div>
+
+  <div class="set-group">Synchronisatie &amp; back-up</div>
   <div class="card2">
     <div class="stitle" style="margin-bottom:8px">&#9729; Cloud-sync <span id="cloudBadge" style="font-size:9px;padding:1px 6px;border-radius:4px;margin-left:4px"></span></div>
-    <div style="font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5">Automatische synchronisatie van je historiek naar de cloud (JSONBin) &mdash; werkt over al je toestellen.</div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5">Synchroniseert je historiek over al je toestellen via JSONBin.</div>
     <div id="cloudSetup">
       <input class="minp" id="iCloudBin" type="text" placeholder="Bin ID (bijv. 65a1b2c3...)" style="margin-bottom:6px">
       <input class="minp" id="iCloudKey" type="password" placeholder="Master Key / Access Key" style="margin-bottom:8px">
-      <button class="mbtn pri" style="width:100%" onclick="saveCloudCfg()">Verbinden &amp; nu synchroniseren</button>
+      <button class="mbtn pri" style="width:100%" onclick="saveCloudCfg()">Verbinden &amp; synchroniseren</button>
     </div>
     <div id="cloudActions" style="display:none">
       <div style="display:flex;gap:8px">
@@ -165,8 +215,8 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
     <div id="cloudSt" style="font-size:10px;color:var(--t3);margin-top:8px;min-height:14px"></div>
   </div>
   <div class="card2">
-    <div class="stitle" style="margin-bottom:8px">Backup &amp; herstel</div>
-    <div style="font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5">Bewaar je volledige historiek (dag/week/maand/jaar + sleutels) los van GitHub-updates.</div>
+    <div class="stitle" style="margin-bottom:8px">Back-up &amp; herstel</div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5">Bewaar je volledige historiek als bestand, los van GitHub.</div>
     <div style="display:flex;gap:8px">
       <button class="mbtn" style="flex:1" onclick="exportBackup()">&#11015; Exporteer</button>
       <button class="mbtn" style="flex:1" onclick="document.getElementById('importFile').click()">&#11014; Importeer</button>
@@ -175,21 +225,21 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
     <div id="backupSt" style="font-size:10px;color:var(--t3);margin-top:8px;min-height:14px"></div>
   </div>
   <div class="card2">
-    <div class="stitle" style="margin-bottom:6px">Wisselkoers-impact EUR/USD</div>
-    <div style="font-size:11px;color:var(--t2);margin-bottom:10px;line-height:1.5" id="fxSens">Gevoeligheid berekenen...</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><div style="font-size:10px;color:var(--t3)">USD-posities</div><div style="font-size:14px;font-weight:600" id="fxUSD">$&#8212;</div></div>
-      <div><div style="font-size:10px;color:var(--t3)">&#8594; EUR</div><div style="font-size:14px;font-weight:600" id="fxConv">&#8364;&#8212;</div></div>
-      <div><div style="font-size:10px;color:var(--t3)">VUSA</div><div style="font-size:14px;font-weight:600;color:var(--up)" id="fxVUSA">&#8364;&#8212;</div></div>
-      <div><div style="font-size:10px;color:var(--t3)">D'Ieteren</div><div style="font-size:14px;font-weight:600;color:var(--dn)" id="fxDIET">&#8364;&#8212;</div></div>
-      <div style="grid-column:1/-1;border-top:1px solid var(--bd);padding-top:8px;margin-top:2px">
-        <div style="font-size:10px;color:var(--t3)">Totaal EUR</div>
-        <div style="font-size:18px;font-weight:700" id="fxTotal">&#8364;&#8212;</div>
-      </div>
+    <div style="display:flex;gap:8px">
+      <button class="mbtn" style="flex:1;font-size:12px" id="autoBtn" onclick="toggleAutoRefresh()">Auto-refresh UIT</button>
+      <button class="mbtn" style="flex:1;font-size:12px" onclick="exportCSV()">CSV export</button>
     </div>
   </div>
+
+  <div class="set-group">Volatiliteit (VIX)</div>
+  <div id="vixHost">
+    <div class="card2">
+      <div id="vixDiv"><div class="mu" style="font-size:13px;text-align:center;padding:16px 0">Laden...</div></div>
+    </div>
+  </div>
+
+  <div class="set-group">Marktstatus</div>
   <div class="card2">
-    <div class="stitle" style="margin-bottom:6px">Marktstatus</div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bd)">
       <span style="font-size:12px;color:var(--t2)">VS (NYSE/NASDAQ)</span>
       <span id="mktUS" style="font-size:12px;font-weight:600">&#8212;</span>
@@ -198,6 +248,10 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
       <span style="font-size:12px;color:var(--t2)">Europa (Euronext)</span>
       <span id="mktEU" style="font-size:12px;font-weight:600">&#8212;</span>
     </div>
+  </div>
+
+  <div class="warn" style="margin-top:16px">
+    API-sleutels staan in localStorage. Zet ze nooit in je GitHub-repo. Gebruik .gitignore voor back-ups en sleutels.
   </div>
 </div>
 
@@ -239,17 +293,6 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 </div>
 
 <!-- VOLATILITEIT TAB -->
-<div class="tab-pane" id="pane-vix">
-  <div class="card">
-    <div class="stitle">Marktvolatiliteit</div>
-    <div id="vixDiv"><div class="mu" style="font-size:13px;text-align:center;padding:20px 0">Laden...</div></div>
-  </div>
-  <div class="card" style="margin-top:10px">
-    <div class="stitle" style="margin-bottom:6px">Waarom geen echte VIX?</div>
-    <div style="font-size:12px;color:var(--t2);line-height:1.7">De CBOE Volatility Index (VIX) zit bij alle grote gratis financi&euml;le API's (Finnhub, Twelve Data, ...) achter een betaald plan &mdash; exchange-licenties voor index-data kosten geld. VIXY is een gratis, gewoon verhandeld ETF dat volatiliteit benadert en wel beschikbaar is.</div>
-  </div>
-</div>
-
 <!-- GRAFIEKEN TAB -->
 <div class="tab-pane" id="pane-charts">
   <div class="card" style="margin-bottom:10px">
@@ -286,8 +329,8 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
   <button class="nb"    onclick="go('hold',this)"><span class="ni">&#128200;</span>Holdings</button>
   <button class="nb"    onclick="go('perf',this)"><span class="ni">&#128197;</span>Prestaties</button>
   <button class="nb"    onclick="go('dag',this)"><span class="ni">&#9788;</span>Dag</button>
-  <button class="nb"    onclick="go('vix',this)"><span class="ni">&#128201;</span>VIX</button>
   <button class="nb"    onclick="go('charts',this)"><span class="ni">&#128202;</span>Grafieken</button>
+  <button class="nb"    onclick="go('settings',this)"><span class="ni">&#9881;</span>Meer</button>
 </nav>
 </div>
 
@@ -875,9 +918,9 @@ function onFetchDone(btn,st){
   if(btn){
     btn.disabled=false;
     if(isUSOpen()){
-      btn.className='lbtn open-m';btn.textContent='\u29bf VS-markt open \u00b7 Vernieuwen';
+      btn.className='refresh open-m';btn.textContent='\u25cf Markt open \u00b7 Vernieuwen';
     } else {
-      btn.className='lbtn closed-m';btn.textContent='\u2713 VS-markt gesloten \u00b7 Vernieuwen';
+      btn.className='refresh closed-m';btn.textContent='Vernieuwen';
     }
   }
   if(anySuccess||!uniqueHttp.length){
@@ -904,61 +947,43 @@ function updateKPI(){
   });
   var tot=tU/EUR_USD+tE,cost=cU/EUR_USD+cE,pnl=tot-cost,pct=pnl/cost*100;
   var hv=document.getElementById('heroVal');
-  if(hv){hv.textContent='\u20ac'+n2(tot);hv.className='kval '+(pnl>=0?'up':'dn');}
+  if(hv){hv.textContent='\u20ac'+n2(tot);}
   setText('heroSub','Kostenbasis \u20ac'+n2(cost)+' \u00b7 '+isoDate());
   setText('kCost','\u20ac'+n2(cost));
   var kp=document.getElementById('kPnl');
-  if(kp){kp.textContent='\u20ac'+n2(Math.abs(pnl));kp.className='kval '+(pnl>=0?'up':'dn');}
-  setText('kPnlP',fmtPct(pct));
-  var big=H.slice().sort(function(a,b){
-    var av=a.ccy==='USD'?a.shares*a.price/EUR_USD:a.shares*a.price;
-    var bv=b.ccy==='USD'?b.shares*b.price/EUR_USD:b.shares*b.price;
-    return bv-av;
-  })[0];
-  setText('kBig',big.ticker);
-  setText('kBigV','\u20ac'+n2(big.ccy==='USD'?big.shares*big.price/EUR_USD:big.shares*big.price));
+  if(kp){kp.textContent=(pnl>=0?'+':'\u2212')+'\u20ac'+n2(Math.abs(pnl));kp.className='kval '+(pnl>=0?'up':'dn');}
+  setText('kPnlP',fmtPct(pct)+' rendement');
 
-  // Stijg/daal-indicator: werkelijke EUR-winst/-verlies tegenover de vorige beursdag
-  // (incl. wisselkoerseffect — vergelijkt totale eurowaarde toen vs. nu)
+  // Hero-indicator: werkelijke EUR-winst/-verlies tegenover de vorige beursdag
   var trendEl=document.getElementById('heroTrend');
+  var trendPctEl=document.getElementById('heroTrendPct');
+  var stockEl=document.getElementById('heroStock');
   var prevDay=lsGet('carl-usd-prevday');
   if(trendEl&&prevDay&&prevDay.tot>0){
     var diffEur=tot-prevDay.tot;
     var diffPctEur=diffEur/prevDay.tot*100;
     var arrow=diffEur>=0?'\u25b2':'\u25bc';
     var cls=diffEur>=0?'up':'dn';
-    var html='<span class="'+cls+'">'+arrow+' '+fmtEur(diffEur)+' ('+fmtPct(diffPctEur)+')</span>'+
-      '<div style="font-size:9px;color:var(--t3);margin-top:1px">totaal vs. '+prevDay.date+'</div>';
-    // Tweede regel: puur aandeel-effect zonder wisselkoerseffect.
-    // Deel de USD-koersbeweging door de OUDE koers (van de vorige beursdag), niet de
-    // huidige. Zo blijft het wisselkoerseffect eruit. Het verschil tussen regel 1 en 2
-    // is dan precies de FX-impact. Oude records zonder rate: koers afleiden uit usd/tot.
-    if(prevDay.usd>0){
+    trendEl.className='hero-chip '+cls;
+    trendEl.innerHTML=arrow+' '+(diffEur>=0?'+':'\u2212')+'\u20ac'+n2(Math.abs(diffEur));
+    if(trendPctEl) trendPctEl.textContent='('+fmtPct(diffPctEur)+') vs. '+prevDay.date;
+    // Tweede regel: puur aandeel-effect zonder wisselkoerseffect (echte oude koers)
+    if(stockEl&&prevDay.usd>0){
       var oldRate=prevDay.rate;
-      if(!oldRate||oldRate<=0){
-        // Afleiden: EUR-posities zijn ~constant; schat oude koers uit USD-deel van tot
-        var eurPart=0;H.forEach(function(h){if(h.ccy!=='USD')eurPart+=h.shares*h.price;});
-        var usdTotEur=prevDay.tot-eurPart;
-        oldRate=(usdTotEur>0)?prevDay.usd/usdTotEur:EUR_USD;
-      }
+      if(!oldRate||oldRate<=0){var euDay=lsGet('carl-eurusd-day');if(euDay&&euDay.prev&&euDay.prev>0)oldRate=euDay.prev;}
+      if(!oldRate||oldRate<=0) oldRate=EUR_USD;
       var diffStockEur=(tU-prevDay.usd)/oldRate;
-      var stCls=diffStockEur>=0?'up':'dn';
-      var stArrow=diffStockEur>=0?'\u25b2':'\u25bc';
-      html+='<div style="font-size:10px;margin-top:3px"><span class="'+stCls+'">'+stArrow+' '+fmtEur(diffStockEur)+'</span>'+
-        '<span style="font-size:9px;color:var(--t3)"> aandelen (zonder wisselkoers)</span></div>';
+      stockEl.innerHTML='<span class="'+(diffStockEur>=0?'up':'dn')+'">'+(diffStockEur>=0?'+':'\u2212')+'\u20ac'+n2(Math.abs(diffStockEur))+'</span> zonder wisselkoerseffect';
     }
-    trendEl.innerHTML=html;
   } else if(trendEl){
-    // Nog geen vorige-beursdag referentie: toon tijdstip laatste ophaling
-    var lastVal=lsGet('carl-lastval');
-    if(lastVal&&lastVal.t){
-      trendEl.innerHTML='<div style="font-size:9px;color:var(--t3)">laatst opgehaald '+lastVal.t+'</div>';
-    } else {
-      trendEl.textContent='';
-    }
+    trendEl.textContent='';if(trendPctEl)trendPctEl.textContent='';if(stockEl)stockEl.textContent='';
   }
 
-  // Wisselkoers-impact EUR/USD
+  renderMovers();
+  renderAllocDonut(tot);
+  renderSparkline();
+
+  // Wisselkoers-impact (nu in instellingen/verborgen, alleen invullen als aanwezig)
   var sens=tU*0.01/(EUR_USD*EUR_USD);
   setText('fxSens','Gevoeligheid: elke +0,01 EUR/USD \u2248 \u2212\u20ac'+n2(sens)+' portefeuillewaarde.');
   setText('fxUSD','$'+n2(tU));
@@ -968,6 +993,93 @@ function updateKPI(){
   var dietH=H.find(function(h){return h.ticker==='DIET';});
   if(vusaH) setText('fxVUSA','\u20ac'+n2(vusaH.shares*vusaH.price));
   if(dietH) setText('fxDIET','\u20ac'+n2(dietH.shares*dietH.price));
+}
+
+// ── Beste & slechtste vandaag ────────────────────────────────────────────────
+function renderMovers(){
+  var withDay=H.filter(function(h){return typeof h.dayPct==='number'&&h.ccy==='USD';});
+  if(!withDay.length) return;
+  var sorted=withDay.slice().sort(function(a,b){return b.dayPct-a.dayPct;});
+  var up=sorted[0], dn=sorted[sorted.length-1];
+  if(up){
+    setText('mvUpTk',up.ticker);setText('mvUpNm',up.name);
+    setText('mvUpPct',(up.dayPct>=0?'+':'')+up.dayPct.toFixed(2)+'%');
+    var upEl=document.getElementById('mvUpPct');if(upEl)upEl.className='mv-pct '+(up.dayPct>=0?'up':'dn');
+    setText('mvUpPx','$'+n2(up.price));
+  }
+  if(dn){
+    setText('mvDnTk',dn.ticker);setText('mvDnNm',dn.name);
+    setText('mvDnPct',(dn.dayPct>=0?'+':'')+dn.dayPct.toFixed(2)+'%');
+    var dnEl=document.getElementById('mvDnPct');if(dnEl)dnEl.className='mv-pct '+(dn.dayPct>=0?'up':'dn');
+    setText('mvDnPx','$'+n2(dn.price));
+  }
+}
+
+// ── Allocatie-donut ──────────────────────────────────────────────────────────
+var ALLOC_COLORS=['#388bfd','#2ea76b','#d29922','#a371f7','#f85149','#39c5cf','#db61a2','#e3b341'];
+function renderAllocDonut(tot){
+  var host=document.getElementById('allocDonut');
+  var leg=document.getElementById('allocLegend');
+  if(!host||!leg||!tot) return;
+  var parts=H.map(function(h){
+    var v=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
+    return{tk:h.ticker,v:v};
+  }).filter(function(p){return p.v>0;}).sort(function(a,b){return b.v-a.v;});
+  // Top 5 + rest samenvoegen
+  var top=parts.slice(0,5), rest=parts.slice(5);
+  if(rest.length){var rv=rest.reduce(function(s,p){return s+p.v;},0);top.push({tk:'Overig',v:rv});}
+  var total=parts.reduce(function(s,p){return s+p.v;},0);
+  var R=52,C=64,SW=20,circ=2*Math.PI*R,off=0;
+  var segs='';
+  top.forEach(function(p,i){
+    var frac=p.v/total, len=frac*circ;
+    var col=ALLOC_COLORS[i%ALLOC_COLORS.length];
+    segs+='<circle cx="'+C+'" cy="'+C+'" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="'+SW+'" '+
+      'stroke-dasharray="'+len+' '+(circ-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 '+C+' '+C+')"/>';
+    off+=len;
+  });
+  host.innerHTML='<svg width="128" height="128" viewBox="0 0 128 128">'+segs+
+    '<text x="64" y="60" text-anchor="middle" fill="var(--t1)" font-size="15" font-weight="800">\u20ac'+Math.round(total/1000)+'k</text>'+
+    '<text x="64" y="76" text-anchor="middle" fill="var(--t3)" font-size="10">'+parts.length+' posities</text></svg>';
+  leg.innerHTML=top.map(function(p,i){
+    var col=ALLOC_COLORS[i%ALLOC_COLORS.length];
+    var pctv=(p.v/total*100);
+    return '<div class="al-li"><span class="al-dot" style="background:'+col+'"></span>'+
+      '<span class="al-nm">'+p.tk+'</span><span class="al-vl">'+pctv.toFixed(1)+'%</span></div>';
+  }).join('');
+}
+
+// ── Sparkline: evolutie dagresultaat ─────────────────────────────────────────
+function renderSparkline(){
+  var wrap=document.getElementById('sparkWrap');
+  var host=document.getElementById('sparkSvg');
+  if(!wrap||!host) return;
+  var dh=(lsGet(PK.dh)||[]).slice(0,14).reverse(); // oud -> nieuw, max 14
+  if(dh.length<2){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  var vals=dh.map(function(d){return d.total;});
+  var min=Math.min.apply(null,vals), max=Math.max.apply(null,vals);
+  var W=340,Hh=64,pad=4;
+  var span=(max-min)||1;
+  var pts=vals.map(function(v,i){
+    var x=pad+(W-2*pad)*i/(vals.length-1);
+    var y=pad+(Hh-2*pad)*(1-(v-min)/span);
+    return [x,y];
+  });
+  var zeroY=pad+(Hh-2*pad)*(1-(0-min)/span);
+  var d='M'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join(' L');
+  var last=vals[vals.length-1];
+  var lineCol=last>=0?'#2ea76b':'#f85149';
+  var area=d+' L'+pts[pts.length-1][0].toFixed(1)+','+(Hh-pad)+' L'+pts[0][0].toFixed(1)+','+(Hh-pad)+' Z';
+  var svg='<svg width="100%" height="'+Hh+'" viewBox="0 0 '+W+' '+Hh+'" preserveAspectRatio="none">';
+  svg+='<defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+lineCol+'" stop-opacity=".22"/><stop offset="1" stop-color="'+lineCol+'" stop-opacity="0"/></linearGradient></defs>';
+  if(min<0&&max>0) svg+='<line x1="0" y1="'+zeroY.toFixed(1)+'" x2="'+W+'" y2="'+zeroY.toFixed(1)+'" stroke="#30363d" stroke-width="1" stroke-dasharray="3 3"/>';
+  svg+='<path d="'+area+'" fill="url(#spg)"/>';
+  svg+='<path d="'+d+'" fill="none" stroke="'+lineCol+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  var lp=pts[pts.length-1];
+  svg+='<circle cx="'+lp[0].toFixed(1)+'" cy="'+lp[1].toFixed(1)+'" r="3" fill="'+lineCol+'"/></svg>';
+  host.innerHTML=svg;
+  setText('sparkRng',dh[0].date+' \u2192 '+dh[dh.length-1].date);
 }
 
 function setText(id,txt){var el=document.getElementById(id);if(el) el.textContent=txt;}
@@ -990,8 +1102,12 @@ function renderMkt(){
   }
 
   var btn=document.getElementById('liveBtn');
-  if(btn&&btn.textContent.indexOf('ophalen')>-1){
-    btn.className=usOpen?'lbtn open-m':'lbtn closed-m';
+  if(btn){
+    var busy=btn.textContent.indexOf('...')>-1||btn.disabled;
+    if(!busy){
+      btn.className=usOpen?'refresh open-m':'refresh closed-m';
+      btn.textContent=usOpen?'\u25cf Markt open \u00b7 Vernieuwen':'Vernieuwen';
+    }
   }
 }
 
