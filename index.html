@@ -885,9 +885,15 @@ function saveDivManual(){
   H.forEach(function(h,i){
     var el=document.getElementById('dv-'+i);
     if(!el) return;
-    var v=parseFloat(el.value);
-    if(!isNaN(v)&&v>0) man[h.ticker]=v;
-    else delete man[h.ticker];
+    var raw=(el.value||'').trim();
+    if(raw===''){
+      delete man[h.ticker]; // leeg veld -> geen handmatige override, auto mag beslissen
+    } else {
+      var v=parseFloat(raw);
+      // Ook een expliciete 0 bewaren: dat is een bewuste correctie ('keert niets uit')
+      // die de foute auto-waarde overschrijft.
+      man[h.ticker]=isNaN(v)?0:v;
+    }
   });
   lsSet('carl-div-manual',man);
   closeDivModal();
@@ -925,9 +931,18 @@ function renderDividends(){
     var posValEur=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
     portValEur+=posValEur;
     var perShare=null, src=null;
-    if(divAuto[h.ticker]){ perShare=divAuto[h.ticker].ttm; src='auto'; }
-    else if(man[h.ticker]){ perShare=man[h.ticker]; src='handmatig'; }
-    if(!perShare||perShare<=0) return;
+    // Handmatige invoer wint ALTIJD van de automatische bron. Zo kun je foute auto-data
+    // corrigeren. Een expliciete 0 ('keert niets uit') telt ook als geldige correctie en
+    // verbergt de positie uit het dividendoverzicht.
+    if(man[h.ticker]!==undefined&&man[h.ticker]!==null&&man[h.ticker]!==''){
+      perShare=parseFloat(man[h.ticker]); src='handmatig';
+      if(isNaN(perShare)||perShare<=0) return; // handmatig 0 of leeg -> geen dividend tonen
+    } else if(divAuto[h.ticker]){
+      perShare=divAuto[h.ticker].ttm; src='auto';
+      if(!perShare||perShare<=0) return;
+    } else {
+      return; // geen data
+    }
     var annualEur=h.ccy==='USD'?(perShare*h.shares)/EUR_USD:(perShare*h.shares);
     totEur+=annualEur;
     var yld=posValEur>0?(annualEur/posValEur*100):0;
