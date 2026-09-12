@@ -1134,26 +1134,21 @@ function updateKPI(){
   if(kp){kp.textContent=(pnl>=0?'+':'\u2212')+'\u20ac'+n2(Math.abs(pnl));kp.className='kval '+(pnl>=0?'up':'dn');}
   setText('kPnlP',fmtPct(pct)+' rendement');
 
-  // Hero-indicator: werkelijke EUR-winst/-verlies tegenover de vorige beursdag
+  // Hero-indicator: dagresultaat op basis van Finnhub previous-close, IDENTIEK aan de Dag-tab.
+  // (Vroeger vergeleek de hero met een opgeslagen snapshot op een willekeurig tijdstip, wat
+  //  een ander bedrag gaf dan de Dag-tab. Nu delen beide dezelfde bron: dayResultEur.)
   var trendEl=document.getElementById('heroTrend');
   var trendPctEl=document.getElementById('heroTrendPct');
   var stockEl=document.getElementById('heroStock');
-  var prevDay=lsGet('carl-usd-prevday');
-  if(trendEl&&prevDay&&prevDay.tot>0){
-    var diffEur=tot-prevDay.tot;
-    var diffPctEur=diffEur/prevDay.tot*100;
-    var arrow=diffEur>=0?'\u25b2':'\u25bc';
-    var cls=diffEur>=0?'up':'dn';
+  var dr=dayResultEur(); // {eur, stockEur, pct, hasData}
+  if(trendEl&&dr.hasData){
+    var arrow=dr.eur>=0?'\u25b2':'\u25bc';
+    var cls=dr.eur>=0?'up':'dn';
     trendEl.className='hero-chip '+cls;
-    trendEl.innerHTML=arrow+' '+(diffEur>=0?'+':'\u2212')+'\u20ac'+n2(Math.abs(diffEur));
-    if(trendPctEl) trendPctEl.textContent='('+fmtPct(diffPctEur)+') vs. '+prevDay.date;
-    // Tweede regel: puur aandeel-effect zonder wisselkoerseffect (echte oude koers)
-    if(stockEl&&prevDay.usd>0){
-      var oldRate=prevDay.rate;
-      if(!oldRate||oldRate<=0){var euDay=lsGet('carl-eurusd-day');if(euDay&&euDay.prev&&euDay.prev>0)oldRate=euDay.prev;}
-      if(!oldRate||oldRate<=0) oldRate=EUR_USD;
-      var diffStockEur=(tU-prevDay.usd)/oldRate;
-      stockEl.innerHTML='<span class="'+(diffStockEur>=0?'up':'dn')+'">'+(diffStockEur>=0?'+':'\u2212')+'\u20ac'+n2(Math.abs(diffStockEur))+'</span> zonder wisselkoerseffect';
+    trendEl.innerHTML=arrow+' '+(dr.eur>=0?'+':'\u2212')+'\u20ac'+n2(Math.abs(dr.eur));
+    if(trendPctEl) trendPctEl.textContent='('+fmtPct(dr.pct)+') vandaag';
+    if(stockEl){
+      stockEl.innerHTML='<span class="'+(dr.stockEur>=0?'up':'dn')+'">'+(dr.stockEur>=0?'+':'\u2212')+'\u20ac'+n2(Math.abs(dr.stockEur))+'</span> zonder wisselkoerseffect';
     }
   } else if(trendEl){
     trendEl.textContent='';if(trendPctEl)trendPctEl.textContent='';if(stockEl)stockEl.textContent='';
@@ -1173,6 +1168,34 @@ function updateKPI(){
   var dietH=H.find(function(h){return h.ticker==='DIET';});
   if(vusaH) setText('fxVUSA','\u20ac'+n2(vusaH.shares*vusaH.price));
   if(dietH) setText('fxDIET','\u20ac'+n2(dietH.shares*dietH.price));
+}
+
+// ── Gedeeld dagresultaat (Finnhub previous-close) ────────────────────────────
+// Eén bron van waarheid voor het dagresultaat, gebruikt door zowel de hero als de
+// Dag-tab, zodat ze nooit meer een verschillend bedrag tonen.
+//  eur      = totale dagbeweging incl. wisselkoerseffect (zoals de Dag-tab som + FX)
+//  stockEur = puur koersbeweging aandelen, zonder wisselkoerseffect
+//  pct      = dagpercentage t.o.v. de waarde bij vorig slot
+function dayResultEur(){
+  var stockUsd=0, prevValUsd=0, curValUsd=0, any=false;
+  H.forEach(function(h){
+    if(h.ccy==='USD'&&h.price>0&&h.pc>0){
+      stockUsd+=(h.price-h.pc)*h.shares; // koersbeweging in USD
+      prevValUsd+=h.pc*h.shares;         // waarde bij vorig slot (USD)
+      curValUsd+=h.price*h.shares;       // huidige waarde (USD)
+      any=true;
+    }
+  });
+  if(!any) return {eur:0,stockEur:0,pct:0,hasData:false};
+  // Puur aandeel-effect: koersbeweging omgerekend tegen de HUIDIGE koers
+  var stockEur=stockUsd/EUR_USD;
+  // Totaal incl. wisselkoerseffect: vergelijk eurowaarde nu vs. bij vorig slot.
+  // Voor 'vorig slot' gebruiken we de echte vorige EUR/USD-koers als die bekend is.
+  var euDay=lsGet('carl-eurusd-day');
+  var prevRate=(euDay&&euDay.prev&&euDay.prev>0)?euDay.prev:EUR_USD;
+  var totalEur=(curValUsd/EUR_USD)-(prevValUsd/prevRate);
+  var pct=prevValUsd>0?(stockUsd/prevValUsd*100):0;
+  return {eur:totalEur,stockEur:stockEur,pct:pct,hasData:true};
 }
 
 // ── Beste & slechtste vandaag ────────────────────────────────────────────────
@@ -1530,8 +1553,10 @@ function archiveDayIfNeeded(){
     }
   });
   if(!items.length) return false; // geen verse pc-data: niets archiveren
-  var tot=0;
-  items.forEach(function(it){tot+=it.dagEur;});
+  // Dagresultaat incl. wisselkoerseffect via de gedeelde bron, zodat de historiek
+  // dezelfde bedragen toont als de hero en de Dag-tab-headline.
+  var dr=dayResultEur();
+  var tot=dr.hasData?dr.eur:0;
 
   // Totale portefeuillewaarde nu (voor de evolutie-grafiek, los van het dagresultaat)
   var totVal=0;
@@ -1583,8 +1608,13 @@ function renderDag(){
   dayItems.forEach(function(it){tot+=it.dagEur;});
   var best=dayItems.length?dayItems[0]:items[0];
 
+  // Dagresultaat-headline: gebruik de gedeelde bron (incl. wisselkoerseffect), zodat de
+  // Dag-tab exact hetzelfde toont als de hero op het Dashboard. De per-aandeel lijst
+  // hieronder blijft de zuivere koersbeweging tonen; de FX-regel verklaart het verschil.
+  var drDag=dayResultEur();
+  var totHeadline=drDag.hasData?drDag.eur:tot;
   var dt=document.getElementById('dagTot');
-  if(dt){dt.textContent=fmtEur(tot);dt.className='kval '+(tot>=0?'up':'dn');}
+  if(dt){dt.textContent=fmtEur(totHeadline);dt.className='kval '+(totHeadline>=0?'up':'dn');}
   var db=document.getElementById('dagBest');
   if(db){db.textContent=best.ticker;db.className='kval up';}
   setText('dagBestP',fmtPct(best.pct));
