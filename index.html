@@ -2516,15 +2516,21 @@ function closeHoldingsEdit(){document.getElementById('holdEditModal').classList.
 // ─── PENSIOENSPAARFONDS (handmatig, apart van beursportefeuille) ──────────────
 function openPensionModal(){
   var p=lsGet('carl-pension')||{};
-  document.getElementById('ipenName').value=p.name||'';
-  document.getElementById('ipenVal').value=p.val||'';
-  document.getElementById('ipenResult').value=p.result||'';
-  document.getElementById('ipenUnits').value=p.units||'';
-  document.getElementById('ipenPrice').value=p.price||'';
-  document.getElementById('ipenPriceDate').value=p.priceDate||'';
-  document.getElementById('ipenDeposited').value=(p.deposited!==undefined?p.deposited:'');
-  document.getElementById('ipenMax').value=p.max||'';
-  document.getElementById('ipenFiscalYear').value=p.fiscalYear||new Date().getFullYear();
+  // Bij de eerste keer (nog niets opgeslagen) vullen we de velden voor met je bekende
+  // KBC-cijfers als ECHTE waarden, zodat je meteen kunt opslaan zonder alles te typen.
+  // Bestaan er al gegevens, dan tonen we die zodat je alleen hoeft aan te passen.
+  var seed={name:'KBC Pension Savings Fund',val:32344.37,result:14126.93,units:51.6576,
+    price:626.13,priceDate:'10 september 2026',deposited:0,max:1050,fiscalYear:'2026'};
+  var v=(p&&p.val)?p:seed;
+  document.getElementById('ipenName').value=v.name||'';
+  document.getElementById('ipenVal').value=(v.val!==undefined?v.val:'');
+  document.getElementById('ipenResult').value=(v.result!==undefined&&v.result!==null?v.result:'');
+  document.getElementById('ipenUnits').value=(v.units!==undefined?v.units:'');
+  document.getElementById('ipenPrice').value=(v.price!==undefined?v.price:'');
+  document.getElementById('ipenPriceDate').value=v.priceDate||'';
+  document.getElementById('ipenDeposited').value=(v.deposited!==undefined?v.deposited:'');
+  document.getElementById('ipenMax').value=(v.max!==undefined?v.max:'');
+  document.getElementById('ipenFiscalYear').value=v.fiscalYear||new Date().getFullYear();
   document.getElementById('pensionModal').classList.add('open');
 }
 function closePensionModal(){document.getElementById('pensionModal').classList.remove('open');}
