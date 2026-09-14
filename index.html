@@ -18,8 +18,9 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 #content{flex:1;overflow-y:auto;padding:12px 12px 76px}
 .tab-pane{display:none}
 .tab-pane.active{display:block}
-#nav{position:fixed;bottom:0;left:0;right:0;background:var(--p);border-top:1px solid var(--bd);display:flex;height:60px;padding-bottom:env(safe-area-inset-bottom);z-index:100}
-.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;color:var(--t3);cursor:pointer;font-size:9px;font-weight:600;padding:4px 0;letter-spacing:.03em}
+#nav{position:fixed;bottom:0;left:0;right:0;background:var(--p);border-top:1px solid var(--bd);display:flex;height:60px;padding-bottom:env(safe-area-inset-bottom);z-index:100;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#nav::-webkit-scrollbar{display:none}
+.nb{flex:0 0 18vw;min-width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;color:var(--t3);cursor:pointer;font-size:9px;font-weight:600;padding:4px 0;letter-spacing:.03em}
 .nb.on{color:var(--bl)}
 .ni{font-size:22px;line-height:1}
 .card{background:var(--p);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:10px}
@@ -357,6 +358,102 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
   </div>
 </div>
 
+<!-- PENSIOEN TAB -->
+<div class="tab-pane" id="pane-pension">
+  <div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,var(--p),var(--p2))">
+    <div class="hero-lbl" style="margin-bottom:6px">Totaal vermogen</div>
+    <div class="hero-val" id="totWealth" style="font-size:38px">&#8212;</div>
+    <div style="display:flex;gap:20px;margin-top:14px">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t2)"><span style="width:8px;height:8px;border-radius:2px;background:var(--bl);display:inline-block"></span>Beursportefeuille</div>
+        <div id="twStocks" style="font-size:16px;font-weight:700;margin-top:2px">&#8212;</div>
+        <div id="twStocksPct" style="font-size:10px;color:var(--t3)"></div>
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t2)"><span style="width:8px;height:8px;border-radius:2px;background:#2ea76b;display:inline-block"></span>Pensioenfonds</div>
+        <div id="twPension" style="font-size:16px;font-weight:700;margin-top:2px">&#8212;</div>
+        <div id="twPensionPct" style="font-size:10px;color:var(--t3)"></div>
+      </div>
+    </div>
+    <div style="height:8px;background:var(--p2);border-radius:4px;overflow:hidden;margin-top:12px;display:flex">
+      <div id="twBarStocks" style="height:100%;background:var(--bl)"></div>
+      <div id="twBarPension" style="height:100%;background:#2ea76b"></div>
+    </div>
+  </div>
+
+  <div class="hero" style="padding-bottom:10px;padding-top:4px">
+    <div class="hero-lbl">Pensioenspaarfonds</div>
+    <div class="hero-val" id="penVal" style="font-size:38px">&#8212;</div>
+    <div class="hero-sub">
+      <span class="hero-chip" id="penResult"></span>
+      <span class="hero-chip2" id="penResultPct"></span>
+    </div>
+    <div class="hero-day" id="penName"></div>
+  </div>
+
+  <div class="kgrid" style="margin-bottom:14px">
+    <div class="kbox"><div class="klbl">Aantal deelbewijzen</div><div class="kval" id="penUnits" style="font-size:20px">&#8212;</div></div>
+    <div class="kbox"><div class="klbl">Indicatieve koers</div><div class="kval" id="penPrice" style="font-size:20px">&#8212;</div><div class="ksub" id="penPriceDate"></div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="stitle" style="margin-bottom:10px">Fiscaal jaar <span id="penFiscalYear" style="font-size:11px;color:var(--t3);font-weight:400"></span></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--t2);margin-bottom:6px">
+      <span>Gestort: <span id="penDeposited" style="color:var(--t1);font-weight:600">&#8212;</span></span>
+      <span>Max: <span id="penMax" style="color:var(--t1);font-weight:600">&#8212;</span></span>
+    </div>
+    <div style="height:8px;background:var(--p2);border-radius:4px;overflow:hidden;margin-bottom:6px">
+      <div id="penBar" style="height:100%;background:var(--bl);border-radius:4px;width:0%"></div>
+    </div>
+    <div style="font-size:11px;color:var(--t2)" id="penRemaining"></div>
+  </div>
+
+  <div class="mini-link" onclick="openPensionModal()" style="border-color:#1a3a26">
+    <div><div class="ml-t">&#9998; Pensioengegevens bijwerken</div><div class="ml-s">Waarde, deelbewijzen, koers en storting</div></div>
+    <div class="ml-ar">&#8250;</div>
+  </div>
+
+  <div class="warn" style="margin-top:14px">
+    KBC biedt geen automatische koppeling. Werk deze gegevens handmatig bij vanuit je KBC-app &mdash; een pensioenspaarfonds beweegt traag, dus af en toe volstaat.
+  </div>
+</div>
+
+<!-- Pensioen invoer-modal -->
+<div class="moverlay" id="pensionModal">
+  <div class="mbox" style="max-height:88vh;overflow-y:auto">
+    <div class="mtitle">Pensioengegevens</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Over te nemen uit je KBC-app.</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Naam van het fonds</div>
+    <input class="minp" id="ipenName" type="text" placeholder="bijv. KBC Pension Savings Fund" style="margin-bottom:10px">
+    <div class="mrow" style="gap:6px;margin-bottom:10px">
+      <div style="flex:1"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">Huidige waarde (&euro;)</div>
+        <input class="minp" id="ipenVal" type="number" step="any" placeholder="32344.37" style="margin-bottom:0"></div>
+      <div style="flex:1"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">Niet-gerealiseerd (&euro;)</div>
+        <input class="minp" id="ipenResult" type="number" step="any" placeholder="14126.93" style="margin-bottom:0"></div>
+    </div>
+    <div class="mrow" style="gap:6px;margin-bottom:10px">
+      <div style="flex:1"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">Aantal deelbewijzen</div>
+        <input class="minp" id="ipenUnits" type="number" step="any" placeholder="51.6576" style="margin-bottom:0"></div>
+      <div style="flex:1"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">Indicatieve koers (&euro;)</div>
+        <input class="minp" id="ipenPrice" type="number" step="any" placeholder="626.13" style="margin-bottom:0"></div>
+    </div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Koersdatum</div>
+    <input class="minp" id="ipenPriceDate" type="text" placeholder="10 september 2026" style="margin-bottom:10px">
+    <div class="mrow" style="gap:6px;margin-bottom:10px">
+      <div style="flex:1"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">Gestort dit jaar (&euro;)</div>
+        <input class="minp" id="ipenDeposited" type="number" step="any" placeholder="0" style="margin-bottom:0"></div>
+      <div style="flex:1"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">Fiscaal maximum (&euro;)</div>
+        <input class="minp" id="ipenMax" type="number" step="any" placeholder="1050" style="margin-bottom:0"></div>
+    </div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Fiscaal jaar</div>
+    <input class="minp" id="ipenFiscalYear" type="text" placeholder="2026" style="margin-bottom:12px">
+    <div class="mrow">
+      <button class="mbtn" onclick="closePensionModal()">Annuleer</button>
+      <button class="mbtn pri" onclick="savePension()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /content -->
 
 <!-- BOTTOM NAV -->
@@ -367,6 +464,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
   <button class="nb"    onclick="go('dag',this)"><span class="ni">&#9788;</span>Dag</button>
   <button class="nb"    onclick="go('charts',this)"><span class="ni">&#128202;</span>Grafieken</button>
   <button class="nb"    onclick="go('settings',this)"><span class="ni">&#9881;</span>Meer</button>
+  <button class="nb"    onclick="go('pension',this)"><span class="ni">&#128176;</span>Pensioen</button>
 </nav>
 </div>
 
@@ -1113,6 +1211,7 @@ function updateAll(){
   renderVIX();
   renderCharts();
   renderDividends();
+  renderTotalWealth();
 }
 
 function updateKPI(){
@@ -2005,7 +2104,7 @@ function importBackup(file){
 var CLOUD_KEYS=['cp_w','cp_m','cp_y','cp_wh','cp_mh','cp_yh','cp_dh',
   'carl-eur-manual','carl-vix','carl-lastval','carl-live-prices',
   'carl-usd-dayref','carl-usd-prevday','carl-eurusd-day','carl-eurusd-prev','carl-eurusd-prevdate',
-  'carl-holdings','carl-div-manual'];
+  'carl-holdings','carl-div-manual','carl-pension'];
 var cloudPushTimer=null;
 
 function cloudCfg(){
@@ -2414,6 +2513,93 @@ function openHoldingsEdit(){
 }
 function closeHoldingsEdit(){document.getElementById('holdEditModal').classList.remove('open');}
 
+// ─── PENSIOENSPAARFONDS (handmatig, apart van beursportefeuille) ──────────────
+function openPensionModal(){
+  var p=lsGet('carl-pension')||{};
+  document.getElementById('ipenName').value=p.name||'';
+  document.getElementById('ipenVal').value=p.val||'';
+  document.getElementById('ipenResult').value=p.result||'';
+  document.getElementById('ipenUnits').value=p.units||'';
+  document.getElementById('ipenPrice').value=p.price||'';
+  document.getElementById('ipenPriceDate').value=p.priceDate||'';
+  document.getElementById('ipenDeposited').value=(p.deposited!==undefined?p.deposited:'');
+  document.getElementById('ipenMax').value=p.max||'';
+  document.getElementById('ipenFiscalYear').value=p.fiscalYear||new Date().getFullYear();
+  document.getElementById('pensionModal').classList.add('open');
+}
+function closePensionModal(){document.getElementById('pensionModal').classList.remove('open');}
+function savePension(){
+  var p={
+    name:(document.getElementById('ipenName').value||'').trim(),
+    val:parseFloat(document.getElementById('ipenVal').value)||0,
+    result:parseFloat(document.getElementById('ipenResult').value),
+    units:parseFloat(document.getElementById('ipenUnits').value)||0,
+    price:parseFloat(document.getElementById('ipenPrice').value)||0,
+    priceDate:(document.getElementById('ipenPriceDate').value||'').trim(),
+    deposited:parseFloat(document.getElementById('ipenDeposited').value)||0,
+    max:parseFloat(document.getElementById('ipenMax').value)||0,
+    fiscalYear:(document.getElementById('ipenFiscalYear').value||'').trim()
+  };
+  if(isNaN(p.result)) p.result=null;
+  lsSet('carl-pension',p);
+  closePensionModal();
+  renderPension();
+  cloudSyncDebounced();
+}
+function renderPension(){
+  var p=lsGet('carl-pension');
+  if(!p||!p.val){
+    setText('penVal','\u2014');
+    setText('penName','Nog geen gegevens \u2014 tik op bijwerken');
+    renderTotalWealth(); // beurstotaal toch tonen, pensioen als 0
+    return;
+  }
+  setText('penVal','\u20ac'+n2(p.val));
+  setText('penName',p.name||'Pensioenspaarfonds');
+  // Niet-gerealiseerd resultaat + percentage
+  var re=document.getElementById('penResult'), rp=document.getElementById('penResultPct');
+  if(p.result!==null&&p.result!==undefined&&!isNaN(p.result)){
+    var cost=p.val-p.result;
+    var pct=cost>0?(p.result/cost*100):0;
+    var cls=p.result>=0?'up':'dn';
+    if(re){re.className='hero-chip '+cls;re.innerHTML=(p.result>=0?'\u25b2 +':'\u25bc \u2212')+'\u20ac'+n2(Math.abs(p.result));}
+    if(rp) rp.textContent='('+(pct>=0?'+':'')+pct.toFixed(2)+'%) niet-gerealiseerd';
+  } else { if(re)re.textContent='';if(rp)rp.textContent=''; }
+  setText('penUnits',p.units?p.units.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:4}):'\u2014');
+  setText('penPrice',p.price?'\u20ac'+p.price.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2}):'\u2014');
+  setText('penPriceDate',p.priceDate?p.priceDate:'');
+  setText('penFiscalYear',p.fiscalYear?('('+p.fiscalYear+')'):'');
+  setText('penDeposited','\u20ac'+n2(p.deposited||0));
+  setText('penMax','\u20ac'+n2(p.max||0));
+  var bar=document.getElementById('penBar');
+  var pctDep=(p.max>0)?Math.min(100,(p.deposited/p.max*100)):0;
+  if(bar) bar.style.width=pctDep.toFixed(0)+'%';
+  var rem=(p.max||0)-(p.deposited||0);
+  setText('penRemaining',rem>0?('Nog \u20ac'+n2(rem)+' te storten voor het fiscale maximum'):'Fiscaal maximum bereikt \u2713');
+  renderTotalWealth();
+}
+
+// Totaal vermogen = beursportefeuille (EUR) + pensioenfonds. Alleen op dit tabblad;
+// het hoofd-Dashboard blijft de beursportefeuille apart tonen.
+function renderTotalWealth(){
+  var stocks=0;
+  H.forEach(function(h){ stocks+=(h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price); });
+  var p=lsGet('carl-pension');
+  var pension=(p&&p.val)?p.val:0;
+  var total=stocks+pension;
+  setText('totWealth','\u20ac'+n2(total));
+  setText('twStocks','\u20ac'+n2(stocks));
+  setText('twPension','\u20ac'+n2(pension));
+  if(total>0){
+    var sp=stocks/total*100, pp=pension/total*100;
+    setText('twStocksPct',sp.toFixed(1)+'%');
+    setText('twPensionPct',pp.toFixed(1)+'%');
+    var bs=document.getElementById('twBarStocks'), bp=document.getElementById('twBarPension');
+    if(bs) bs.style.width=sp.toFixed(1)+'%';
+    if(bp) bp.style.width=pp.toFixed(1)+'%';
+  }
+}
+
 // ─── TRANSACTIES (bijkopen / nieuw / verkopen) ────────────────────────────────
 var txType='buy';
 function openTxModal(){
@@ -2551,7 +2737,7 @@ function init(){
   loadEurManual();
   loadLivePrices();
   renderCloudUI();
-  if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){loadHoldingsOverride();migrateSnapshots();dedupeHist();loadLivePrices();updateAll();cloudPush(false);} });
+  if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){loadHoldingsOverride();migrateSnapshots();dedupeHist();loadLivePrices();renderPension();updateAll();cloudPush(false);} });
   var key=lsGet('carl-fh');
   fetchEurUsd(key);
   document.getElementById('kbanner').style.display=key?'none':'block';
@@ -2561,6 +2747,7 @@ function init(){
   fetchDividends(); // gebruikt automatisch BusinessQuant indien sleutel aanwezig, anders enkel handmatig
   var vixCache=lsGet('carl-vix');if(vixCache){vixVal=vixCache.v;vixDP=vixCache.dp;}
   renderMkt();
+  renderPension();
   updateAll();
   var now=new Date(),ws=lsGet(PK.w),ms=lsGet(PK.m);
   if(ws&&ws.week!==isoWeek(now)&&ws.live){
