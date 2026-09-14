@@ -297,12 +297,8 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 
 <!-- HOLDINGS TAB -->
 <div class="tab-pane" id="pane-hold">
-  <div class="stitle" style="margin:4px 0 8px">Core posities</div>
-  <div id="hCore"></div>
-  <div class="stitle" style="margin:4px 0 8px">Speculatief</div>
-  <div id="hSpec"></div>
-  <div class="stitle" style="margin:4px 0 8px">EUR-posities</div>
-  <div id="hEur"></div>
+  <div class="stitle" style="margin:4px 0 8px">Posities <span style="font-size:10px;color:var(--t3);font-weight:400">— op waarde</span></div>
+  <div id="hList"></div>
   <div class="card" id="hTot"></div>
 </div>
 
@@ -1341,63 +1337,63 @@ function renderMkt(){
 
 // ─── HOLDINGS ────────────────────────────────────────────────────────────────
 function renderHoldings(){
-  var cats=['core','spec','eur'];
-  var ids={core:'hCore',spec:'hSpec',eur:'hEur'};
-  cats.forEach(function(cat){
-    var html='';
-    var items=H.filter(function(h){return h.cat===cat;});
-    items.forEach(function(h,i){
-      var id='hd-'+cat+'-'+i;
-      var val=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
-      var plEur=val-(h.ccy==='USD'?h.shares*h.avg/EUR_USD:h.shares*h.avg);
-      var sym=h.ccy==='EUR'?'\u20ac':'$';
-      var pc=fmtPct(h.pl);
-      var cls=h.pl>=0?'up':'dn';
-      html+='<div class="hcard" onclick="toggleH(\''+id+'\')">';
-      html+='<div class="htop">';
-      html+='<div class="hleft">';
-      html+='<div class="tbadge">'+h.ticker+'</div>';
-      html+='<div><div class="hname">'+h.name+'</div><div class="hcat">'+h.shares+' aandelen</div></div>';
+  // Eén platte lijst, alle posities gesorteerd op eurowaarde van groot naar klein.
+  var sorted=H.map(function(h){
+    var val=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
+    return {h:h,val:val};
+  }).sort(function(a,b){return b.val-a.val;});
+  var html='';
+  sorted.forEach(function(pair,i){
+    var h=pair.h, val=pair.val;
+    var id='hd-'+i;
+    var plEur=val-(h.ccy==='USD'?h.shares*h.avg/EUR_USD:h.shares*h.avg);
+    var sym=h.ccy==='EUR'?'\u20ac':'$';
+    var pc=fmtPct(h.pl);
+    var cls=h.pl>=0?'up':'dn';
+    html+='<div class="hcard" onclick="toggleH(\''+id+'\')">';
+    html+='<div class="htop">';
+    html+='<div class="hleft">';
+    html+='<div class="tbadge">'+h.ticker+'</div>';
+    html+='<div><div class="hname">'+h.name+'</div><div class="hcat">'+h.shares+' aandelen \u00b7 \u20ac'+n2(val)+'</div></div>';
+    html+='</div>';
+    var qtLine=(h.ccy==='USD'&&h.qt)?fmtQt(h.qt):'';
+    html+='<div class="hright">';
+    html+='<div class="hprice">'+sym+h.price.toFixed(2)+'</div>';
+    html+='<div class="hpl '+cls+'">'+pc+'</div>';
+    if(qtLine) html+='<div style="font-size:9px;color:var(--t3);margin-top:2px">'+qtLine+'</div>';
+    html+='</div></div>';
+    html+='<div class="hdet" id="'+id+'">';
+    html+='<div class="dgrid">';
+    html+='<div class="ditem"><div class="dl">Waarde</div><div class="dv">\u20ac'+n2(val)+'</div></div>';
+    html+='<div class="ditem"><div class="dl">P&amp;L</div><div class="dv '+cls+'">'+fmtEur(plEur)+'</div></div>';
+    html+='<div class="ditem"><div class="dl">Gem. aankoop</div><div class="dv">'+sym+h.avg.toFixed(2)+'</div></div>';
+    if(h.target&&h.target>0){
+      html+='<div class="ditem"><div class="dl">Koersdoel</div><div class="dv">'+sym+h.target.toFixed(2)+'</div></div>';
+      var upCls=h.upside>=0?'up':'dn';
+      html+='<div class="ditem"><div class="dl">Upside</div><div class="dv '+upCls+'">'+(h.upside>=0?'+':'')+h.upside+'%</div></div>';
+    } else {
+      html+='<div class="ditem"><div class="dl">Koersdoel</div><div class="dv mu" style="font-size:12px">geen gratis dekking</div></div>';
+    }
+    html+='<div class="ditem"><div class="dl">P/E</div><div class="dv">'+h.pe+'</div></div>';
+    html+='<div class="ditem"><div class="dl">Free Cash Flow</div><div class="dv">'+h.fcf+'</div></div>';
+    var ratingExtra=h.analysts?' <span style="font-size:10px;color:var(--t3)">('+h.analysts+' analisten)</span>':'';
+    html+='<div class="ditem"><div class="dl">Rating</div><div class="dv">'+h.rating+ratingExtra+'</div></div>';
+    if(h.ccy==='USD'&&h.qt) html+='<div class="ditem"><div class="dl">Laatste koers-update</div><div class="dv" style="font-size:11px">'+fmtQt(h.qt)+'</div></div>';
+    html+='</div>';
+    if(h.brokers&&h.brokers.length>0){
+      html+='<div style="margin-top:8px">';
+      h.brokers.forEach(function(b){
+        var bv=b.sh*h.price/EUR_USD;
+        html+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);padding:3px 0">';
+        html+='<span>'+b.n+' ('+b.sh+' x $'+b.avg.toFixed(2)+')</span>';
+        html+='<span>\u20ac'+n2(bv)+'</span></div>';
+      });
       html+='</div>';
-      var qtLine=(h.ccy==='USD'&&h.qt)?fmtQt(h.qt):'';
-      html+='<div class="hright">';
-      html+='<div class="hprice">'+sym+h.price.toFixed(2)+'</div>';
-      html+='<div class="hpl '+cls+'">'+pc+'</div>';
-      if(qtLine) html+='<div style="font-size:9px;color:var(--t3);margin-top:2px">'+qtLine+'</div>';
-      html+='</div></div>';
-      html+='<div class="hdet" id="'+id+'">';
-      html+='<div class="dgrid">';
-      html+='<div class="ditem"><div class="dl">Waarde</div><div class="dv">\u20ac'+n2(val)+'</div></div>';
-      html+='<div class="ditem"><div class="dl">P&amp;L</div><div class="dv '+cls+'">'+fmtEur(plEur)+'</div></div>';
-      html+='<div class="ditem"><div class="dl">Gem. aankoop</div><div class="dv">'+sym+h.avg.toFixed(2)+'</div></div>';
-      if(h.target&&h.target>0){
-        html+='<div class="ditem"><div class="dl">Koersdoel</div><div class="dv">'+sym+h.target.toFixed(2)+'</div></div>';
-        var upCls=h.upside>=0?'up':'dn';
-        html+='<div class="ditem"><div class="dl">Upside</div><div class="dv '+upCls+'">'+(h.upside>=0?'+':'')+h.upside+'%</div></div>';
-      } else {
-        html+='<div class="ditem"><div class="dl">Koersdoel</div><div class="dv mu" style="font-size:12px">geen gratis dekking</div></div>';
-      }
-      html+='<div class="ditem"><div class="dl">P/E</div><div class="dv">'+h.pe+'</div></div>';
-      html+='<div class="ditem"><div class="dl">Free Cash Flow</div><div class="dv">'+h.fcf+'</div></div>';
-      var ratingExtra=h.analysts?' <span style="font-size:10px;color:var(--t3)">('+h.analysts+' analisten)</span>':'';
-      html+='<div class="ditem"><div class="dl">Rating</div><div class="dv">'+h.rating+ratingExtra+'</div></div>';
-      if(h.ccy==='USD'&&h.qt) html+='<div class="ditem"><div class="dl">Laatste koers-update</div><div class="dv" style="font-size:11px">'+fmtQt(h.qt)+'</div></div>';
-      html+='</div>';
-      if(h.brokers&&h.brokers.length>0){
-        html+='<div style="margin-top:8px">';
-        h.brokers.forEach(function(b){
-          var bv=b.sh*h.price/EUR_USD;
-          html+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t2);padding:3px 0">';
-          html+='<span>'+b.n+' ('+b.sh+' x $'+b.avg.toFixed(2)+')</span>';
-          html+='<span>\u20ac'+n2(bv)+'</span></div>';
-        });
-        html+='</div>';
-      }
-      html+='</div></div>';
-    });
-    var cont=document.getElementById(ids[cat]);
-    if(cont) cont.innerHTML=html;
+    }
+    html+='</div></div>';
   });
+  var cont=document.getElementById('hList');
+  if(cont) cont.innerHTML=html;
 
   var tU=0,cU=0,tE=0,cE=0;
   H.forEach(function(h){
