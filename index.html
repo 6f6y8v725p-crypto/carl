@@ -2549,10 +2549,11 @@ function init(){
   bootstrapHistory();
   loadHoldingsOverride();
   migrateSnapshots();
+  dedupeHist();
   loadEurManual();
   loadLivePrices();
   renderCloudUI();
-  if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){loadHoldingsOverride();migrateSnapshots();loadLivePrices();updateAll();cloudPush(false);} });
+  if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){loadHoldingsOverride();migrateSnapshots();dedupeHist();loadLivePrices();updateAll();cloudPush(false);} });
   var key=lsGet('carl-fh');
   fetchEurUsd(key);
   document.getElementById('kbanner').style.display=key?'none':'block';
@@ -2566,22 +2567,41 @@ function init(){
   var now=new Date(),ws=lsGet(PK.w),ms=lsGet(PK.m);
   if(ws&&ws.week!==isoWeek(now)&&ws.live){
     var wp=calcPnL(ws),wh=lsGet(PK.wh)||[];
+    wh=wh.filter(function(e){return e.week!==ws.week;}); // bestaande entry voor deze week weg
     wh.unshift({week:ws.week,date:ws.date,total:wp?Math.round(wp.total):0});
     lsSet(PK.wh,wh.slice(0,16));lsSet(PK.w,null);
   }
   if(ms&&ms.month!==isoMonth(now)&&ms.live){
     var mp=calcPnL(ms),mh=lsGet(PK.mh)||[];
+    mh=mh.filter(function(e){return e.month!==ms.month;});
     mh.unshift({month:ms.month,date:ms.date,total:mp?Math.round(mp.total):0});
     lsSet(PK.mh,mh.slice(0,12));lsSet(PK.m,null);
   }
   var ys=lsGet(PK.y);
   if(ys&&ys.year!==isoYear(now)&&ys.live){
     var yp=calcPnL(ys),yh=lsGet(PK.yh)||[];
+    yh=yh.filter(function(e){return e.year!==ys.year;});
     yh.unshift({year:ys.year,date:ys.date,total:yp?Math.round(yp.total):0});
     lsSet(PK.yh,yh.slice(0,10));lsSet(PK.y,null);
   }
 }
 
+function dedupeHist(){
+  // Ruimt bestaande dubbele entries in de historiek op (één per week/maand/jaar).
+  // Houdt de EERSTE (meest recente, want unshift) per periode-sleutel.
+  [['cp_wh','week'],['cp_mh','month'],['cp_yh','year']].forEach(function(pair){
+    var k=pair[0],field=pair[1];
+    var arr=lsGet(k);
+    if(!Array.isArray(arr)||!arr.length) return;
+    var seen={},out=[];
+    arr.forEach(function(e){
+      var id=e&&e[field];
+      if(id===undefined||id===null){out.push(e);return;}
+      if(!seen[id]){seen[id]=true;out.push(e);}
+    });
+    if(out.length!==arr.length) lsSet(k,out);
+  });
+}
 init();
 </script>
 </body>
