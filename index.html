@@ -1465,7 +1465,8 @@ function renderHistBlock(elId,title,arr,key,max){
   if(!arr.length){el.innerHTML='<div class="stitle">'+title+'</div><div class="mu" style="font-size:13px">Geen data</div>';return;}
   var h='<div class="stitle">'+title+'</div>';
   arr.slice(0,max).forEach(function(w){
-    h+='<div class="prow"><span style="font-size:12px;color:var(--t2);flex:1">'+w[key]+'</span>';
+    var estTag=w.est?' <span style="font-size:9px;color:var(--t3)">geschat</span>':'';
+    h+='<div class="prow"><span style="font-size:12px;color:var(--t2);flex:1">'+w[key]+estTag+'</span>';
     h+='<span class="'+(w.total>=0?'up':'dn')+'" style="font-weight:600">'+fmtEur(w.total)+'</span></div>';
   });
   el.innerHTML=h;
@@ -2546,6 +2547,7 @@ function init(){
   loadHoldingsOverride();
   migrateSnapshots();
   dedupeHist();
+  reconstructMonthsFromDaily();
   loadEurManual();
   loadLivePrices();
   renderCloudUI();
@@ -2579,6 +2581,57 @@ function init(){
     yh=yh.filter(function(e){return e.year!==ys.year;});
     yh.unshift({year:ys.year,date:ys.date,total:yp?Math.round(yp.total):0});
     lsSet(PK.yh,yh.slice(0,10));lsSet(PK.y,null);
+  }
+  reconstructMonthsFromDaily(); // gemiste maanden/weken opvullen uit dag-historiek
+}
+
+// Reconstrueert ontbrekende maand- en week-entries uit de dag-historiek (cp_dh).
+// Elke maand/week krijgt de SOM van de dagresultaten in die periode. Deze entries
+// worden gemarkeerd als geschat (est:true), want ze zijn afgeleid uit dagdata i.p.v.
+// een exacte periode-snapshot. Bestaande entries blijven onaangeroerd.
+function reconstructMonthsFromDaily(){
+  var dh=lsGet(PK.dh)||[];
+  if(!dh.length) return;
+  function isoWk(dateStr){
+    var d=new Date(dateStr+'T12:00:00');
+    var t=new Date(d);t.setDate(t.getDate()+4-(t.getDay()||7));
+    var ys=new Date(t.getFullYear(),0,1);
+    var wn=Math.ceil((((t-ys)/86400000)+1)/7);
+    return t.getFullYear()+'-W'+(wn<10?'0'+wn:wn);
+  }
+  var byMonth={},byWeek={};
+  dh.forEach(function(e){
+    if(!e||!e.date||typeof e.total!=='number') return;
+    var mo=e.date.slice(0,7);
+    byMonth[mo]=(byMonth[mo]||0)+e.total;
+    var wk=isoWk(e.date);
+    byWeek[wk]=(byWeek[wk]||0)+e.total;
+  });
+  var mh=lsGet(PK.mh)||[];
+  var haveMonth={};mh.forEach(function(e){if(e&&e.month)haveMonth[e.month]=true;});
+  var curMonth=isoMonth(new Date());
+  var addedM=false;
+  Object.keys(byMonth).forEach(function(mo){
+    if(haveMonth[mo]||mo===curMonth) return;
+    mh.push({month:mo,date:mo+'-01',total:Math.round(byMonth[mo]),est:true});
+    addedM=true;
+  });
+  if(addedM){
+    mh.sort(function(a,b){return (b.month||'').localeCompare(a.month||'');});
+    lsSet(PK.mh,mh.slice(0,12));
+  }
+  var wh=lsGet(PK.wh)||[];
+  var haveWeek={};wh.forEach(function(e){if(e&&e.week)haveWeek[e.week]=true;});
+  var curWeek=isoWeek(new Date());
+  var addedW=false;
+  Object.keys(byWeek).forEach(function(wk){
+    if(haveWeek[wk]||wk===curWeek) return;
+    wh.push({week:wk,date:'',total:Math.round(byWeek[wk]),est:true});
+    addedW=true;
+  });
+  if(addedW){
+    wh.sort(function(a,b){return (b.week||'').localeCompare(a.week||'');});
+    lsSet(PK.wh,wh.slice(0,16));
   }
 }
 
