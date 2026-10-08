@@ -609,7 +609,7 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
 
 <script>
 var EUR_USD = 1.1611;
-var PK = {w:'cp_w',m:'cp_m',y:'cp_y',wh:'cp_wh',mh:'cp_mh',yh:'cp_yh',dh:'cp_dh'};
+var PK = {w:'cp_w',m:'cp_m',y:'cp_y',wh:'cp_wh',mh:'cp_mh',yh:'cp_yh',dh:'cp_dh',cl:'cp_close',tx:'cp_tx'};
 
 // Versie van de posities in de code hieronder. Verhoog dit nummer telkens als je de
 // H[]-array zelf aanpast bij een aankoop/verkoop. Bij het openen wint de code van een
@@ -674,6 +674,10 @@ function loadHoldingsOverride(){
         rating:o.rating||'\u2014',brokers:[]});
     }
   });
+  // FIX: een volledig verkochte positie staat niet meer in de override, maar wel nog in de
+  // H[]-code. Zonder deze stap kwam ze na herladen terug met het oude aantal aandelen.
+  var present={};data.forEach(function(o){if(o&&o.ticker)present[o.ticker]=true;});
+  for(var i=H.length-1;i>=0;i--){ if(!present[H[i].ticker]) H.splice(i,1); }
   rebuildUsdSyms(); // nieuw gereconstrueerde USD-aandelen meenemen in koers-ophaling
 }
 function saveHoldingsOverride(){
@@ -691,14 +695,64 @@ function saveHoldingsOverride(){
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function lsGet(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-function isoDate(d){return(d||new Date()).toISOString().slice(0,10);}
+function pad2(n){return(n<10?'0':'')+n;}
+function ymd(d){d=d||new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+// FIX: lokale datum i.p.v. UTC (toISOString gaf tussen 00:00 en 02:00 Belgische tijd de datum van gisteren)
+function isoDate(d){return ymd(d);}
+function parseYmd(s){var p=String(s).split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+// FIX: correcte ISO-weeknummering. De oude versie rekende vanaf 4 januari i.p.v. 1 januari
+// en gaf in 2025 en 2026 elke week een nummer te laag (bv. 8 okt 2026 = W40 i.p.v. W41).
 function isoWeek(d){
   d=d||new Date();
   var t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
   t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));
-  var y=new Date(Date.UTC(t.getUTCFullYear(),0,4));
-  var wn=Math.ceil((((t-y)/86400000)+1)/7);
-  return t.getUTCFullYear()+'-W'+(wn<10?'0':'')+wn;
+  var y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));
+  var wn=Math.ceil((((t-y0)/86400000)+1)/7);
+  return t.getUTCFullYear()+'-W'+pad2(wn);
+}
+// Begin (00:00 lokaal) van de lopende week (maandag), maand of jaar
+function periodStart(kind,now){
+  now=now||new Date();
+  if(kind==='week'){var d=new Date(now.getFullYear(),now.getMonth(),now.getDate());d.setDate(d.getDate()-((d.getDay()||7)-1));return d;}
+  if(kind==='month') return new Date(now.getFullYear(),now.getMonth(),1);
+  return new Date(now.getFullYear(),0,1);
+}
+// Begin van de periode die NA de periode van snapshot s komt (= einde van die periode)
+function periodEndOf(s,kind){
+  if(kind==='week'){
+    var m=/^(\d{4})-W(\d{2})$/.exec(s.week||'');if(!m) return null;
+    var y=+m[1],w=+m[2],jan4=new Date(y,0,4);
+    var mon=new Date(y,0,4-((jan4.getDay()||7)-1));
+    mon.setDate(mon.getDate()+7*(w-1)+7);return mon;
+  }
+  if(kind==='month'){var p=String(s.month||'').split('-');if(p.length<2)return null;return new Date(+p[0],+p[1],1);}
+  if(s.year) return new Date(+s.year+1,0,1);
+  return null;
+}
+// Handelsdatum (New York) van een Finnhub-tijdstempel
+function nyYmd(unixSec){
+  var d=new Date(unixSec*1000);
+  try{
+    var parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);
+    var o={};parts.forEach(function(p){o[p.type]=p.value;});
+    if(o.year&&o.month&&o.day) return o.year+'-'+o.month+'-'+o.day;
+  }catch(e){}
+  return ymd(d);
+}
+function isUSTradingDay(d){
+  if(d.getDay()===0||d.getDay()===6) return false;
+  return !usHolidays(d.getFullYear()).some(function(h){return sameYMD(h,d);});
+}
+function prevTradingDay(ymdStr){
+  var d=parseYmd(ymdStr);
+  for(var i=0;i<10;i++){d.setDate(d.getDate()-1);if(isUSTradingDay(d)) return ymd(d);}
+  return ymd(d);
+}
+// Oude weeklabels (2025/2026, gemaakt met de foute isoWeek) één week opschuiven
+function shiftOldWeekLabel(lbl){
+  var m=/^(\d{4})-W(\d{2})$/.exec(lbl||'');if(!m) return lbl;
+  var y=+m[1],w=+m[2];if(y!==2025&&y!==2026) return lbl;
+  return y+'-W'+pad2(w+1);
 }
 function isoMonth(d){d=d||new Date();return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1);}
 function isoYear(d){d=d||new Date();return String(d.getFullYear());}
@@ -784,43 +838,212 @@ function fmtQt(unixSec){
   return sameDay?timeStr:(d.toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit'})+' '+timeStr);
 }
 
-function snapNow(live){
-  var vals={},eP={},px={},sh={},tot=0,now=new Date();
-  H.forEach(function(h){
-    if(h.ccy==='USD'){vals[h.ticker]=h.shares*h.price;tot+=h.shares*h.price;px[h.ticker]=h.price;sh[h.ticker]=h.shares;}
-    else{eP[h.ticker]=h.shares*h.price;px[h.ticker]=h.price;sh[h.ticker]=h.shares;}
+// ─── SLOTKOERS-BOEK ───────────────────────────────────────────────────────────
+// Per ticker de laatst gekende koers per handelsdag: {TSLA:{'2026-10-02':412.3,...}, EURUSD:{...}}.
+// Daarmee kan de referentie van een nieuwe week/maand/jaar de SLOTKOERS van de vorige
+// handelsdag zijn, i.p.v. de koers op het moment dat je de app toevallig opent.
+function bookGet(){return lsGet(PK.cl)||{};}
+function bookPut(book,tk,date,px){if(!(px>0)||!date)return;(book[tk]||(book[tk]={}))[date]=px;}
+function bookPrune(book){
+  Object.keys(book).forEach(function(tk){
+    var ks=Object.keys(book[tk]).sort();
+    if(ks.length>30) ks.slice(0,ks.length-30).forEach(function(k){delete book[tk][k];});
   });
-  return{date:isoDate(),time:now.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),week:isoWeek(),month:isoMonth(),year:isoYear(),vals:vals,eP:eP,px:px,sh:sh,tot:tot,live:!!live,eurUsd:EUR_USD};
 }
-
-function calcPnL(snap){
-  if(!snap)return null;
-  var by={},ud=0,ed=0;
+// Laatste koers met datum < beforeY (en >= minY indien opgegeven). {px,date} of null.
+function bookBefore(book,tk,beforeY,minY){
+  var b=book&&book[tk];if(!b) return null;
+  var ks=Object.keys(b).sort();
+  for(var i=ks.length-1;i>=0;i--){
+    if(ks[i]<beforeY){ if(minY&&ks[i]<minY) return null; return{px:b[ks[i]],date:ks[i]}; }
+  }
+  return null;
+}
+function recordCloses(fresh){
+  var book=bookGet();
   H.forEach(function(h){
-    var refPx=snap.px?snap.px[h.ticker]:undefined;
-    var refSh=snap.sh?snap.sh[h.ticker]:undefined;
-    var rawVal=(h.ccy==='USD')?(snap.vals?snap.vals[h.ticker]:undefined):(snap.eP?snap.eP[h.ticker]:undefined);
-    // Bepaal een betrouwbare referentiekoers. Voorkeur: expliciete px. Anders afgeleid uit
-    // opgeslagen waarde. Zelf-corrigerend: als de afgeleide/opgeslagen referentiekoers een
-    // onmogelijk rendement zou geven (koersverhouding buiten 0,33–3,0 t.o.v. nu), dan is het
-    // aantal aandelen sinds de snapshot gewijzigd (bijkoop/verkoop) → deze positie overslaan.
-    var effPx;
-    if(refPx!==undefined) effPx=refPx;
-    else if(rawVal!==undefined&&refSh!==undefined&&refSh>0) effPx=rawVal/refSh;
-    else if(rawVal!==undefined&&h.shares>0) effPx=rawVal/h.shares;
-    else return; // geen referentie voor deze positie
-    var ratio=h.price>0?effPx/h.price:1;
-    if(ratio<0.33||ratio>3.0) return; // onbetrouwbaar referentiepunt → overslaan
-    var baseSh=(refSh!==undefined)?Math.min(refSh,h.shares):h.shares;
-    var d=(h.price-effPx)*baseSh;
-    var pvBasis=effPx*baseSh;
     if(h.ccy==='USD'){
-      by[h.ticker]={diff:d,pct:pvBasis>0?d/pvBasis*100:0};ud+=d;
-    } else {
-      ed+=d;
+      if(!fresh||fresh[h.ticker]!=='\u2713'||!h.qt||!(h.price>0)) return;
+      var qd=nyYmd(h.qt);
+      bookPut(book,h.ticker,qd,h.price);
+      if(h.pc>0) bookPut(book,h.ticker,prevTradingDay(qd),h.pc);
+    } else if(h.price>0){
+      var s=lsGet('carl-eur-manual');
+      bookPut(book,h.ticker,(s&&s.date)||isoDate(),h.price);
     }
   });
-  return{by:by,ud:ud,ed:ed,total:ud/EUR_USD+ed,from:snap.date};
+  bookPrune(book);lsSet(PK.cl,book);
+}
+// ─── TRANSACTIELOG (voor correcte P&L bij bijkoop/verkoop binnen een periode) ──
+function logTx(tk,ccy,sh,px){
+  var tx=lsGet(PK.tx)||[],ts=Date.now();
+  tx.push({id:ts+'-'+tk,ts:ts,date:isoDate(),tk:tk,ccy:ccy,sh:sh,px:px,fx:EUR_USD});
+  var cutoff=ts-400*86400000;
+  tx=tx.filter(function(t){return t&&t.ts>cutoff;});
+  lsSet(PK.tx,tx);
+}
+function netTxShares(tx,tk,sinceTs){
+  var s=0;(tx||[]).forEach(function(t){if(t.tk===tk&&t.ts>sinceTs)s+=t.sh;});return s;
+}
+function hasTx(tk){return (lsGet(PK.tx)||[]).some(function(t){return t.tk===tk;});}
+
+// Nieuwe periode-snapshot. kind = 'week'|'month'|'year'. fresh = voortgangsmap van doFetch.
+// Referentiekoers per positie: slotkoers van de laatste handelsdag VÓÓR de periode (als die
+// gekend is en hooguit 7 dagen oud), anders de verse koers van nu. Posities zonder verse
+// koers en zonder slotkoers worden NIET met een oude/hardgecodeerde koers vastgelegd; ze
+// worden later aangevuld door fillSnapshotGaps().
+function snapNow(live,kind,fresh){
+  var vals={},eP={},px={},sh={},tts={},tot=0,now=new Date(),nowTs=now.getTime();
+  var ps=kind?periodStart(kind,now):null,psY=ps?ymd(ps):null;
+  var minY=ps?ymd(new Date(ps.getFullYear(),ps.getMonth(),ps.getDate()-7)):null;
+  var book=ps?bookGet():{},tx=lsGet(PK.tx)||[],exactN=0,n=0,baseDate='';
+  H.forEach(function(h){
+    var bp=ps?bookBefore(book,h.ticker,psY,minY):null,p,s,t0;
+    if(bp){p=bp.px;t0=ps.getTime();s=Math.max(0,h.shares-netTxShares(tx,h.ticker,t0));if(h.ccy==='USD'){exactN++;if(bp.date>baseDate)baseDate=bp.date;}}
+    else{
+      if(h.ccy==='USD'&&fresh&&fresh[h.ticker]!=='\u2713') return; // geen verse koers: later aanvullen
+      p=h.price;s=h.shares;t0=nowTs;
+    }
+    if(h.ccy==='USD')n++; // EUR-posities hebben enkel handmatige koersen: tellen niet mee voor het label
+    px[h.ticker]=p;sh[h.ticker]=s;tts[h.ticker]=t0;
+    if(h.ccy==='USD'){vals[h.ticker]=s*p;tot+=s*p;}else{eP[h.ticker]=s*p;}
+  });
+  var fxB=ps?bookBefore(book,'EURUSD',psY,minY):null;
+  return{date:isoDate(now),time:now.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),ts:nowTs,
+    week:isoWeek(now),month:isoMonth(now),year:isoYear(now),vals:vals,eP:eP,px:px,sh:sh,tts:tts,tot:tot,
+    live:!!live,eurUsd:fxB?fxB.px:EUR_USD,fxPending:(!fxB&&!fxLiveThisSession)||undefined,baseDate:baseDate,exactN:exactN,n:n,wkv:2};
+}
+// Vult posities aan die bij het aanmaken van de snapshot geen verse koers hadden.
+function fillSnapshotGaps(s,kind,fresh){
+  if(!s||!s.px) return false;
+  var now=new Date(),ps=periodStart(kind,now),psY=ymd(ps);
+  var minY=ymd(new Date(ps.getFullYear(),ps.getMonth(),ps.getDate()-7));
+  var book=bookGet(),tx=lsGet(PK.tx)||[],ch=false,sTs=s.ts||now.getTime();
+  s.sh=s.sh||{};s.tts=s.tts||{};s.vals=s.vals||{};s.eP=s.eP||{};
+  H.forEach(function(h){
+    if(s.px[h.ticker]!==undefined) return;
+    if(h.ccy==='USD'&&(!fresh||fresh[h.ticker]!=='\u2713')) return;
+    var bp=bookBefore(book,h.ticker,psY,minY),p,t0;
+    if(bp){p=bp.px;t0=ps.getTime();}else{p=h.price;t0=sTs;}
+    var shr=Math.max(0,h.shares-netTxShares(tx,h.ticker,t0));
+    s.px[h.ticker]=p;s.sh[h.ticker]=shr;s.tts[h.ticker]=t0;
+    if(h.ccy==='USD')s.vals[h.ticker]=shr*p;else s.eP[h.ticker]=shr*p;
+    ch=true;
+  });
+  return ch;
+}
+
+// P&L sinds snapshot. opt (optioneel, voor het afsluiten van een periode):
+//   opt.px = {ticker: slotkoers}, opt.fx = EUR/USD op het einde, opt.untilTs = einde periode.
+// Resultaat: total = echte verandering in euro INCLUSIEF wisselkoerseffect (zelfde basis als
+// het dagresultaat), stock = puur koerseffect, fx = wisselkoerseffect (total - stock).
+// Bijkopen/verkopen uit de transactielog tellen als geldstroom, niet als winst/verlies.
+function calcPnL(snap,opt){
+  if(!snap)return null;
+  opt=opt||{};
+  var fxNow=opt.fx||EUR_USD;
+  var fxBase=(snap.eurUsd>0)?snap.eurUsd:fxNow;
+  var snapTs=snap.ts||Date.parse((snap.date||'1970-01-01')+'T'+(snap.time||'00:00')+':00')||0;
+  var tx=lsGet(PK.tx)||[];
+  var cur={};H.forEach(function(h){cur[h.ticker]=h;});
+  var all={};
+  Object.keys(cur).forEach(function(k){all[k]=1;});
+  if(snap.px)Object.keys(snap.px).forEach(function(k){all[k]=1;});
+  if(snap.vals)Object.keys(snap.vals).forEach(function(k){all[k]=1;});
+  if(snap.eP)Object.keys(snap.eP).forEach(function(k){all[k]=1;});
+  tx.forEach(function(t){if(t.ts>snapTs)all[t.tk]=1;});
+  var by={},ud=0,ed=0,usdEur=0;
+  Object.keys(all).forEach(function(tk){
+    var h=cur[tk];
+    var ccy=h?h.ccy:((snap.eP&&snap.eP[tk]!==undefined)?'EUR':((tx.filter(function(t){return t.tk===tk;})[0]||{}).ccy||'USD'));
+    var curSh=h?h.shares:0;
+    var curPx=h?((opt.px&&opt.px[tk]>0)?opt.px[tk]:h.price):0;
+    var t0=(snap.tts&&snap.tts[tk])||snapTs;
+    if(opt.untilTs&&h) curSh=Math.max(0,curSh-netTxShares(tx,tk,opt.untilTs-1));
+    var refPx=snap.px?snap.px[tk]:undefined,refSh=snap.sh?snap.sh[tk]:undefined;
+    var rawVal=(ccy==='USD')?(snap.vals?snap.vals[tk]:undefined):(snap.eP?snap.eP[tk]:undefined);
+    if(refPx===undefined&&rawVal!==undefined){
+      if(refSh>0) refPx=rawVal/refSh;
+      else if(curSh>0){refPx=rawVal/curSh;refSh=curSh;}
+    }
+    if(refPx===undefined){refPx=0;refSh=0;}
+    if(refSh===undefined) refSh=curSh;
+    if(refSh>0&&curPx>0){var ratio=refPx/curPx;if(ratio<0.33||ratio>3.0) return;} // split of foute referentie
+    var flowsN=0,flowsE=0,txSh=0,fxT=(ccy==='USD');
+    tx.forEach(function(t){
+      if(t.tk!==tk||!(t.ts>t0)) return;
+      if(opt.untilTs&&t.ts>=opt.untilTs) return;
+      txSh+=t.sh;flowsN+=t.sh*t.px;flowsE+=fxT?t.sh*t.px/(t.fx||fxNow):t.sh*t.px;
+    });
+    // Aandelenwijzigingen zonder transactie (handmatige correctie): P&L-neutraal behandelen
+    var unexplained=curSh-(refSh+txSh),effRefSh=refSh;
+    if(unexplained>1e-6){flowsN+=unexplained*curPx;flowsE+=fxT?unexplained*curPx/fxNow:unexplained*curPx;}
+    else if(unexplained<-1e-6){effRefSh=Math.max(0,refSh+unexplained);}
+    if(effRefSh===0&&txSh===0&&curSh===0) return;
+    var diffN=curSh*curPx-effRefSh*refPx-flowsN;
+    var basis=effRefSh*refPx+Math.max(0,flowsN);
+    var pct=basis>0?diffN/basis*100:0;
+    if(ccy==='USD'){
+      var eurDiff=curSh*curPx/fxNow-effRefSh*refPx/fxBase-flowsE;
+      by[tk]={diff:diffN,pct:pct,ccy:'USD',eur:eurDiff,stockEur:diffN/fxNow};
+      ud+=diffN;usdEur+=eurDiff;
+    } else {
+      by[tk]={diff:diffN,pct:pct,ccy:'EUR',eur:diffN,stockEur:diffN};
+      ed+=diffN;
+    }
+  });
+  var stock=ud/fxNow+ed,total=usdEur+ed;
+  return{by:by,ud:ud,ed:ed,stock:stock,fx:total-stock,total:total,from:snap.date};
+}
+
+// Sluit afgelopen week/maand/jaar af en archiveert het resultaat. Draait bij opstart, na
+// elke cloud-pull en vóór elke nieuwe snapshot (ook als de app dagenlang open bleef staan).
+// Slotwaarde = laatste gekende slotkoers vóór het einde van die periode (uit het koersboek),
+// zodat het einde van periode N exact het begin van periode N+1 is: geen gaten, geen dubbels.
+function rolloverPeriods(){
+  var now=new Date(),changed=false,book=bookGet();
+  [{k:PK.w,hk:PK.wh,f:'week',fn:isoWeek,max:16},
+   {k:PK.m,hk:PK.mh,f:'month',fn:isoMonth,max:12},
+   {k:PK.y,hk:PK.yh,f:'year',fn:isoYear,max:10}].forEach(function(d){
+    var s=lsGet(d.k);
+    if(!s||!s.live||!s[d.f]||s[d.f]===d.fn(now)) return;
+    var end=periodEndOf(s,d.f);
+    if(!end||end>now) end=periodStart(d.f,now);
+    var endY=ymd(end),opt={px:{},untilTs:end.getTime()},used=0;
+    H.forEach(function(h){var b=bookBefore(book,h.ticker,endY,null);if(b){opt.px[h.ticker]=b.px;used++;}});
+    var fx=bookBefore(book,'EURUSD',endY,null);if(fx)opt.fx=fx.px;
+    var p=calcPnL(s,opt);
+    var hist=(lsGet(d.hk)||[]).filter(function(e){return e&&e[d.f]!==s[d.f];});
+    var entry={date:s.date,total:p?Math.round(p.total):0,stock:p?Math.round(p.stock):0,fx:p?Math.round(p.fx):0,v:2};
+    entry[d.f]=s[d.f];
+    if(!used) entry.approx=true; // geen slotkoersen gekend: laatst opgehaalde koersen gebruikt
+    hist.unshift(entry);
+    hist.sort(function(a,b){return String(b[d.f]||'').localeCompare(String(a[d.f]||''));});
+    lsSet(d.hk,hist.slice(0,d.max));lsSet(d.k,null);changed=true;
+  });
+  return changed;
+}
+
+// Eenmalig/idempotent: weeklabels die met de oude, foute isoWeek gemaakt zijn corrigeren.
+function migrateWeekLabels(){
+  var w=lsGet(PK.w);
+  if(w&&!w.wkv){if(w.week)w.week=shiftOldWeekLabel(w.week);w.wkv=2;lsSet(PK.w,w);}
+  [PK.m,PK.y].forEach(function(k){var s=lsGet(k);if(s&&!s.wkv){if(s.week)s.week=shiftOldWeekLabel(s.week);s.wkv=2;lsSet(k,s);}});
+  var wh=lsGet(PK.wh);
+  if(Array.isArray(wh)){
+    var cw=isoWeek(new Date()),ch=false;
+    wh=wh.filter(function(e){
+      if(!e) return false;
+      if(!e.v){
+        // exacte entries (snapshot) hadden het foute label; geschatte (uit dagdata) waren al juist
+        if(!e.est&&e.week)e.week=shiftOldWeekLabel(e.week);
+        e.v=2;ch=true;
+      }
+      if(e.est&&e.week===cw){ch=true;return false;} // lopende week hoort niet in de historiek
+      return true;
+    });
+    if(ch){wh.sort(function(a,b){return String(b.week||'').localeCompare(String(a.week||''));});lsSet(PK.wh,wh);}
+  }
 }
 
 // ─── FX-IMPACT (wisselkoers-effect op de portefeuille, los van koersbewegingen) ──
@@ -1150,13 +1373,19 @@ function onFetchDone(btn,st){
 
   var now=new Date();
   var histChanged=false; // alleen naar cloud pushen bij een ECHTE historiek-wijziging
-  var ws=lsGet(PK.w);
-  if(!ws||!ws.live||ws.week!==isoWeek(now)){lsSet(PK.w,snapNow(true));histChanged=true;}
-  var ms=lsGet(PK.m);
-  if(!ms||!ms.live||ms.month!==isoMonth(now)){lsSet(PK.m,snapNow(true));histChanged=true;}
-  var ys=lsGet(PK.y);
-  if(!ys||!ys.live||ys.year!==isoYear(now)){lsSet(PK.y,snapNow(true));histChanged=true;}
-  if(anySuccess){ if(archiveDayIfNeeded()) histChanged=true; } // dag-historiek enkel met verse data
+  // FIX: eerst slotkoersen bewaren, dan afgelopen periodes correct afsluiten (ook als de app
+  // over het weekend open bleef), en pas daarna nieuwe referenties maken — en ENKEL met
+  // verse koersen (vroeger werd bij een mislukte ophaling een oude/hardgecodeerde koers
+  // als referentie voor de hele week/maand/jaar vastgelegd).
+  if(anySuccess){ recordCloses(prog2); if(rolloverPeriods()) histChanged=true; }
+  if(anySuccess){
+    [[PK.w,'week',isoWeek],[PK.m,'month',isoMonth],[PK.y,'year',isoYear]].forEach(function(d){
+      var s=lsGet(d[0]);
+      if(!s||!s.live||s[d[1]]!==d[2](now)){lsSet(d[0],snapNow(true,d[1],prog2));histChanged=true;}
+      else if(fillSnapshotGaps(s,d[1],prog2)){lsSet(d[0],s);histChanged=true;}
+    });
+    if(archiveDayIfNeeded()) histChanged=true; // dag-historiek enkel met verse data
+  }
   // Sla de laatst opgehaalde live prijzen op zodat ze bij heropening herladen worden
   if(anySuccess){
     var snap={};
@@ -1183,10 +1412,10 @@ function onFetchDone(btn,st){
 
     // 'carl-lastval' blijft de laatst-opgehaalde totale waarde (voor heropening-weergave)
     lsSet('carl-lastval',{v:curTot,usd:usdTot,t:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})+' '+isoDate()});
-    // Alleen naar cloud pushen bij een echte historiek-wijziging (snapshot/dag/beursdag).
-    // Zo snoepen automatische verversingen niet onnodig van de JSONBin-requestlimiet.
-    if(histChanged) cloudSyncDebounced();
   }
+  // Alleen naar cloud pushen bij een echte historiek-wijziging (snapshot/dag/beursdag).
+  // Zo snoepen automatische verversingen niet onnodig van de JSONBin-requestlimiet.
+  if(histChanged) cloudSyncDebounced();
   updateAll();
   if(btn){
     btn.disabled=false;
@@ -1542,9 +1771,16 @@ function renderPerf(){
     }
   });
   renderPeriod('pMonth','Maand P&L',lsGet(PK.m),{
-    toggleKey:'month',label:'Per week',
+    toggleKey:'month',label:'Per week (som dagresultaten binnen deze maand)',
     getItems:function(snap){
-      return entriesInMonth(lsGet(PK.wh)||[],snap.month).map(function(e){return{label:e.week,total:e.total};});
+      // FIX: vroeger werden week-entries op hun startdatum aan een maand gekoppeld (een week
+      // over de maandgrens telde volledig mee bij de vorige maand), geschatte weken en de
+      // lopende week ontbraken. Nu: dagresultaten van deze maand gegroepeerd per week.
+      var by={};
+      entriesInMonth(lsGet(PK.dh)||[],snap.month).forEach(function(e){
+        var wk=isoWeek(parseYmd(e.date));by[wk]=(by[wk]||0)+(e.total||0);
+      });
+      return Object.keys(by).sort().reverse().map(function(k){return{label:k,total:by[k]};});
     }
   });
   renderPeriod('pYear','Jaar P&L',lsGet(PK.y),{
@@ -1564,7 +1800,7 @@ function renderHistBlock(elId,title,arr,key,max){
   if(!arr.length){el.innerHTML='<div class="stitle">'+title+'</div><div class="mu" style="font-size:13px">Geen data</div>';return;}
   var h='<div class="stitle">'+title+'</div>';
   arr.slice(0,max).forEach(function(w){
-    var estTag=w.est?' <span style="font-size:9px;color:var(--t3)">geschat</span>':'';
+    var estTag=(w.est||w.approx)?' <span style="font-size:9px;color:var(--t3)">geschat</span>':'';
     h+='<div class="prow"><span style="font-size:12px;color:var(--t2);flex:1">'+w[key]+estTag+'</span>';
     h+='<span class="'+(w.total>=0?'up':'dn')+'" style="font-weight:600">'+fmtEur(w.total)+'</span></div>';
   });
@@ -1581,24 +1817,25 @@ function renderPeriod(elId,title,snap,breakdown){
     return;
   }
   var cls=pnl.total>=0?'up':'dn';
-  var h='<div class="stitle">'+title+'</div>';
+  var kind=breakdown&&breakdown.toggleKey,curP={week:isoWeek(),month:isoMonth(),year:isoYear()}[kind];
+  var stale=kind&&snap[kind]&&curP&&snap[kind]!==curP;
+  var h='<div class="stitle">'+title+(stale?' <span style="font-size:10px;color:var(--am)">('+snap[kind]+' \u2014 tik Vernieuwen om af te sluiten)</span>':'')+'</div>';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
   h+='<div class="'+cls+'" style="font-size:22px;font-weight:700">'+fmtEur(pnl.total)+'</div>';
-  h+='<div style="font-size:11px;color:var(--t2)">vs. '+snap.date+(snap.time?' '+snap.time:'')+'</div></div>';
+  var refLbl=(snap.exactN&&snap.exactN===snap.n&&snap.baseDate)?('slot '+snap.baseDate):(snap.date+(snap.time?' '+snap.time:'')+(snap.exactN?' (deels slot '+snap.baseDate+')':''));
+  h+='<div style="font-size:11px;color:var(--t2)">vs. '+refLbl+'</div></div>';
 
-  // FX-impact sinds deze snapshot
-  var fxP=fxImpact(snap.eurUsd||1.1611,currentUsdTotal());
-  if(fxP){
-    var fcP=fxP.impact>=0?'up':'dn';
-    var arrP=fxP.ratePct>=0?'\u25b2':'\u25bc';
-    h+='<div style="display:flex;justify-content:space-between;align-items:center;background:var(--p2);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11px">'+
-      '<span style="color:var(--t2)">EUR/USD '+fxP.oldRate.toFixed(4)+' \u2192 '+fxP.newRate.toFixed(4)+' <span class="'+fcP+'">'+arrP+' '+(fxP.ratePct>=0?'+':'')+fxP.ratePct.toFixed(2)+'%</span></span>'+
-      '<span class="'+fcP+'" style="font-weight:700">FX: '+fmtEur(fxP.impact)+'</span></div>';
-  }
+  // Opsplitsing: koerseffect + wisselkoerseffect = totaal (totaal is incl. wisselkoers,
+  // net als het dagresultaat, zodat 'Per dag' optelt tot dit totaal)
+  var fxOld=(snap.eurUsd>0)?snap.eurUsd:null;
+  var fcP=pnl.fx>=0?'up':'dn';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;background:var(--p2);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11px">'+
+    '<span style="color:var(--t2)">Koers '+fmtEur(pnl.stock)+(fxOld?' \u00b7 EUR/USD '+fxOld.toFixed(4)+' \u2192 '+EUR_USD.toFixed(4):'')+'</span>'+
+    '<span class="'+fcP+'" style="font-weight:700">FX: '+fmtEur(pnl.fx)+'</span></div>';
 
   var items=[];
   var keys=Object.keys(pnl.by);
-  keys.forEach(function(tk){items.push({ticker:tk,diff:pnl.by[tk].diff/EUR_USD,pct:pnl.by[tk].pct});});
+  keys.forEach(function(tk){items.push({ticker:tk,diff:pnl.by[tk].stockEur,pct:pnl.by[tk].pct});});
   items.sort(function(a,b){return b.diff-a.diff;});
   var mx=0;
   items.forEach(function(it){if(Math.abs(it.diff)>mx) mx=Math.abs(it.diff);});
@@ -1660,24 +1897,21 @@ function archiveDayIfNeeded(){
 
   // Datum van de koers afleiden uit de Finnhub-tijdstempel zelf, niet uit 'nu'
   // (zo blijft archivering correct, ook als je pas de volgende ochtend vóór beursopening checkt)
-  var quoteDate=latestQt?new Date(latestQt*1000):new Date();
-  var dateStr=isoDate(quoteDate);
-  var dayOfWeek=quoteDate.getDay();
+  var dateStr=latestQt?nyYmd(latestQt):isoDate();
+  var dayOfWeek=parseYmd(dateStr).getDay();
   if(dayOfWeek===0||dayOfWeek===6) return false; // veiligheidsnet: weekend-tijdstempel negeren
 
-  var dh=lsGet(PK.dh)||[];
-  if(!dh.length||dh[0].date!==dateStr){
-    dh.unshift({date:dateStr,time:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot),val:Math.round(totVal)});
-    lsSet(PK.dh,dh.slice(0,60));
-    return true; // nieuwe dag toegevoegd = echte historiek-wijziging
-  } else if(dh[0].date===dateStr){
-    // Zelfde handelsdag, latere/nauwkeurigere fetch: bijwerken i.p.v. negeren
-    dh[0].total=Math.round(tot);
-    dh[0].val=Math.round(totVal);
-    dh[0].time=new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
-    lsSet(PK.dh,dh);
-  }
-  return false; // enkel bijgewerkt, geen nieuwe entry
+  // FIX: entry voor deze datum overal zoeken (niet enkel bovenaan), dubbels verwijderen en
+  // sorteren. Vroeger kon dezelfde dag twee keer in de lijst komen (bv. na een cloud-sync)
+  // en werd hij dan dubbel opgeteld in 'Per dag' en in de geschatte week/maand.
+  var dh=(lsGet(PK.dh)||[]).filter(function(e){return e&&e.date;});
+  var entry={date:dateStr,time:new Date().toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'}),total:Math.round(tot),val:Math.round(totVal)};
+  var isNew=!dh.some(function(e){return e.date===dateStr;});
+  dh=dh.filter(function(e){return e.date!==dateStr;});
+  dh.push(entry);
+  dh.sort(function(a,b){return b.date.localeCompare(a.date);});
+  lsSet(PK.dh,dh.slice(0,260)); // ~1 jaar beursdagen (was 60 = amper 3 maanden)
+  return isNew; // nieuwe dag toegevoegd = echte historiek-wijziging
 }
 
 function renderDag(){
@@ -1763,6 +1997,7 @@ function renderDag(){
 var vixVal=null,vixErr=null,vixDP=null,vixStale=null;
 // ─── EUR/USD WISSELKOERS (live via Finnhub forex) ────────────────────────────
 var eurUsdPrevClose=null;
+var fxLiveThisSession=false; // true zodra de live EUR/USD van deze sessie binnen is
 function fetchEurUsd(fhKey){
   var el=document.getElementById("kEur");
   var sub=document.getElementById("kEurSub");
@@ -1773,6 +2008,12 @@ function fetchEurUsd(fhKey){
     EUR_USD=Math.round(rate*10000)/10000;
     eurUsdPrevClose=prevRate||EUR_USD;
     lsSet("carl-eurusd-day",{rate:EUR_USD,prev:prevRate||null,prevdate:prevDate||null,date:isoDate()});
+    if(src!=="cache"){
+      fxLiveThisSession=true;
+      // Snapshots die gemaakt werden vóór de live koers binnen was: referentie-FX rechtzetten
+      [PK.w,PK.m,PK.y].forEach(function(k){var s=lsGet(k);if(s&&s.fxPending){s.eurUsd=EUR_USD;delete s.fxPending;lsSet(k,s);}});
+      var bk=bookGet();bookPut(bk,'EURUSD',isoDate(),EUR_USD);if(prevRate&&prevDate)bookPut(bk,'EURUSD',prevDate,prevRate);bookPrune(bk);lsSet(PK.cl,bk);
+    }
     if(el) el.textContent=EUR_USD.toFixed(4);
     if(convLbl) convLbl.innerHTML="&rarr; EUR @"+EUR_USD.toFixed(4).replace(".",",");
     if(sub){
@@ -1783,7 +2024,7 @@ function fetchEurUsd(fhKey){
         sub.innerHTML='<span style="font-size:10px;opacity:.6">live koers ('+src+')</span>';
       }
     }
-    renderHoldings();updateKPI();
+    renderHoldings();updateKPI();renderPerf();
   }
 
   function fetchPrev(n,cb,curRate){
@@ -2104,7 +2345,44 @@ function importBackup(file){
 var CLOUD_KEYS=['cp_w','cp_m','cp_y','cp_wh','cp_mh','cp_yh','cp_dh',
   'carl-eur-manual','carl-vix','carl-lastval','carl-live-prices',
   'carl-usd-dayref','carl-usd-prevday','carl-eurusd-day','carl-eurusd-prev','carl-eurusd-prevdate',
-  'carl-holdings','carl-div-manual','carl-pension'];
+  'carl-holdings','carl-div-manual','carl-pension','cp_close','cp_tx'];
+
+// FIX: slim samenvoegen bij cloud-pull i.p.v. lokale historiek blind te overschrijven.
+function mergeCloudValue(k,locRaw,cldRaw){
+  if(locRaw===null||locRaw===undefined) return cldRaw;
+  var L,C;try{L=JSON.parse(locRaw);C=JSON.parse(cldRaw);}catch(e){return cldRaw;}
+  if(L===null) return cldRaw; if(C===null) return locRaw;
+  function unionBy(field,pref,sortDesc,max){
+    var m={},rest=[];
+    L.concat(C).forEach(function(e){
+      if(!e||e[field]===undefined){return;}
+      var id=e[field];
+      if(m[id]===undefined||pref(e,m[id])) m[id]=e;
+    });
+    var arr=Object.keys(m).map(function(x){return m[x];}).concat(rest);
+    arr.sort(function(a,b){return sortDesc?String(b[field]).localeCompare(String(a[field])):(a[field]>b[field]?1:-1);});
+    return JSON.stringify(max?arr.slice(0,max):arr);
+  }
+  if(k==='cp_dh'&&Array.isArray(L)&&Array.isArray(C))
+    return unionBy('date',function(n,o){return String(n.time||'')>String(o.time||'');},true,260);
+  if((k==='cp_wh'||k==='cp_mh'||k==='cp_yh')&&Array.isArray(L)&&Array.isArray(C)){
+    var f=k==='cp_wh'?'week':k==='cp_mh'?'month':'year';
+    return unionBy(f,function(n,o){return (o.est&&!n.est)||(!o.v&&n.v);},true,k==='cp_wh'?16:k==='cp_mh'?12:10);
+  }
+  if(k==='cp_tx'&&Array.isArray(L)&&Array.isArray(C)) return unionBy('id',function(){return false;},false,0);
+  if(k==='cp_close'&&typeof L==='object'&&typeof C==='object'){
+    Object.keys(C).forEach(function(tk){L[tk]=L[tk]||{};Object.keys(C[tk]).forEach(function(d){L[tk][d]=C[tk][d];});});
+    bookPrune(L);return JSON.stringify(L);
+  }
+  if(k==='cp_w'||k==='cp_m'||k==='cp_y'){
+    var f2=k==='cp_w'?'week':k==='cp_m'?'month':'year';
+    if(!L[f2]) return cldRaw; if(!C[f2]) return locRaw;
+    if(L[f2]!==C[f2]) return String(L[f2])>String(C[f2])?locRaw:cldRaw; // nieuwste periode wint
+    if((L.exactN||0)!==(C.exactN||0)) return (L.exactN||0)>(C.exactN||0)?locRaw:cldRaw;
+    return ((L.ts||0)&&(L.ts<(C.ts||Infinity)))?locRaw:cldRaw; // vroegste referentie wint
+  }
+  return cldRaw;
+}
 var cloudPushTimer=null;
 
 function cloudCfg(){
@@ -2193,7 +2471,7 @@ function cloudPull(showMsg,cb){
     if(!rec||typeof rec!=='object'){throw new Error('lege respons');}
     var n=0;
     CLOUD_KEYS.forEach(function(k){
-      if(rec[k]!==undefined&&rec[k]!==null){localStorage.setItem(k,rec[k]);n++;}
+      if(rec[k]!==undefined&&rec[k]!==null){localStorage.setItem(k,mergeCloudValue(k,localStorage.getItem(k),rec[k]));n++;}
     });
     setCloudBadge('on');
     if(st)st.textContent='\u2713 '+n+' items opgehaald uit cloud';
@@ -2396,7 +2674,12 @@ function migrateSnapshots(){
     if(!snap)return;
     var px={},sh={},cleanVals={},cleanEP={},changed=false;
     function handle(tk,val,isEur){
-      if(curPx[tk]===undefined||curSh[tk]<=0){changed=true;return;} // positie bestaat niet meer
+      if(curPx[tk]===undefined||curSh[tk]<=0){
+        // positie bestaat niet meer: behouden als er een verkooptransactie is (gerealiseerd
+        // resultaat telt mee in de periode), anders verwijderen
+        if(hasTx(tk)&&snap.px&&snap.px[tk]!==undefined){px[tk]=snap.px[tk];sh[tk]=(snap.sh&&snap.sh[tk]!==undefined)?snap.sh[tk]:0;if(isEur)cleanEP[tk]=val;else cleanVals[tk]=val;return;}
+        changed=true;return;
+      }
       // Bepaal referentiekoers: uit bestaand px-veld indien aanwezig, anders uit waarde/aandelen
       var refPx=(snap.px&&snap.px[tk]!==undefined)?snap.px[tk]:(val/curSh[tk]);
       var ratio=curPx[tk]>0?refPx/curPx[tk]:1;
@@ -2692,6 +2975,7 @@ function applyTx(){
     if(H.filter(function(h){return h.ticker===tk;})[0]){alert(tk+' bestaat al. Gebruik "Bijkopen".');return;}
     H.push({ticker:tk,name:nm,cat:cat,ccy:ccy,shares:sh,avg:px,price:px,qt:null,pc:0,
       pl:0,pe:'n.v.t.',fcf:'n.b.',target:0,upside:0,rating:'\u2014',brokers:[]});
+    logTx(tk,ccy,sh,px);
     rebuildUsdSyms();
   } else {
     var h=txCurrentHolding();
@@ -2700,9 +2984,11 @@ function applyTx(){
       var newSh=h.shares+sh;
       h.avg=(h.shares*h.avg+sh*px)/newSh;
       h.shares=newSh;
+      logTx(h.ticker,h.ccy,sh,px);
     } else { // sell
       if(sh>h.shares+1e-9){alert('Je hebt maar '+fmtNum(h.shares)+' aandelen.');return;}
       h.shares=h.shares-sh;
+      logTx(h.ticker,h.ccy,-sh,px);
       // avg blijft gelijk bij verkoop (gerealiseerde winst valt buiten de positie)
       if(h.shares<1e-9){
         // Volledige positie verkocht: verwijderen
@@ -2737,13 +3023,21 @@ function saveHoldingsEdit(){
 function init(){
   bootstrapHistory();
   loadHoldingsOverride();
-  migrateSnapshots();
-  dedupeHist();
-  reconstructMonthsFromDaily();
+  // FIX: eerst de laatst gekende koersen laden, DAN snapshots controleren. Vroeger vergeleek
+  // migrateSnapshots de referenties met de (verouderde) hardgecodeerde koersen uit de code,
+  // waardoor posities onterecht uit de week/maand/jaar-referentie konden verdwijnen.
   loadEurManual();
   loadLivePrices();
+  migrateWeekLabels();
+  migrateSnapshots();
+  dedupeHist();
+  // Periodes worden pas afgesloten na een verse koersophaling (onFetchDone), zodat de
+  // slotkoers van de laatste handelsdag (bv. vrijdag) gekend is.
+  reconstructMonthsFromDaily();
   renderCloudUI();
-  if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){loadHoldingsOverride();migrateSnapshots();dedupeHist();loadLivePrices();renderPension();updateAll();cloudPush(false);} });
+  // FIX: na een cloud-pull opnieuw afsluiten/migreren, anders draaide de (oudere) cloudversie
+  // de afsluiting van vorige week/maand terug en ging dat resultaat verloren.
+  if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){loadHoldingsOverride();loadEurManual();loadLivePrices();migrateWeekLabels();migrateSnapshots();dedupeHist();reconstructMonthsFromDaily();renderPension();updateAll();cloudPush(false);} });
   var key=lsGet('carl-fh');
   fetchEurUsd(key);
   document.getElementById('kbanner').style.display=key?'none':'block';
@@ -2755,27 +3049,6 @@ function init(){
   renderMkt();
   renderPension();
   updateAll();
-  var now=new Date(),ws=lsGet(PK.w),ms=lsGet(PK.m);
-  if(ws&&ws.week!==isoWeek(now)&&ws.live){
-    var wp=calcPnL(ws),wh=lsGet(PK.wh)||[];
-    wh=wh.filter(function(e){return e.week!==ws.week;}); // bestaande entry voor deze week weg
-    wh.unshift({week:ws.week,date:ws.date,total:wp?Math.round(wp.total):0});
-    lsSet(PK.wh,wh.slice(0,16));lsSet(PK.w,null);
-  }
-  if(ms&&ms.month!==isoMonth(now)&&ms.live){
-    var mp=calcPnL(ms),mh=lsGet(PK.mh)||[];
-    mh=mh.filter(function(e){return e.month!==ms.month;});
-    mh.unshift({month:ms.month,date:ms.date,total:mp?Math.round(mp.total):0});
-    lsSet(PK.mh,mh.slice(0,12));lsSet(PK.m,null);
-  }
-  var ys=lsGet(PK.y);
-  if(ys&&ys.year!==isoYear(now)&&ys.live){
-    var yp=calcPnL(ys),yh=lsGet(PK.yh)||[];
-    yh=yh.filter(function(e){return e.year!==ys.year;});
-    yh.unshift({year:ys.year,date:ys.date,total:yp?Math.round(yp.total):0});
-    lsSet(PK.yh,yh.slice(0,10));lsSet(PK.y,null);
-  }
-  reconstructMonthsFromDaily(); // gemiste maanden/weken opvullen uit dag-historiek
 }
 
 // Reconstrueert ontbrekende maand- en week-entries uit de dag-historiek (cp_dh).
@@ -2785,13 +3058,9 @@ function init(){
 function reconstructMonthsFromDaily(){
   var dh=lsGet(PK.dh)||[];
   if(!dh.length) return;
-  function isoWk(dateStr){
-    var d=new Date(dateStr+'T12:00:00');
-    var t=new Date(d);t.setDate(t.getDate()+4-(t.getDay()||7));
-    var ys=new Date(t.getFullYear(),0,1);
-    var wn=Math.ceil((((t-ys)/86400000)+1)/7);
-    return t.getFullYear()+'-W'+(wn<10?'0'+wn:wn);
-  }
+  // FIX: dezelfde weekfunctie als de rest van de app (de oude eigen versie gaf vanaf 2027
+  // een ander weeknummer dan isoWeek, met dubbele/verschoven weken als gevolg)
+  function isoWk(dateStr){return isoWeek(parseYmd(dateStr));}
   var byMonth={},byWeek={};
   dh.forEach(function(e){
     if(!e||!e.date||typeof e.total!=='number') return;
@@ -2802,11 +3071,14 @@ function reconstructMonthsFromDaily(){
   });
   var mh=lsGet(PK.mh)||[];
   var haveMonth={};mh.forEach(function(e){if(e&&e.month)haveMonth[e.month]=true;});
+  // Periodes die nog een open snapshot hebben (nog niet afgesloten) niet als 'geschat' toevoegen
+  var openM=lsGet(PK.m),openW=lsGet(PK.w);
+  if(openM&&openM.month)haveMonth[openM.month]=true;
   var curMonth=isoMonth(new Date());
   var addedM=false;
   Object.keys(byMonth).forEach(function(mo){
     if(haveMonth[mo]||mo===curMonth) return;
-    mh.push({month:mo,date:mo+'-01',total:Math.round(byMonth[mo]),est:true});
+    mh.push({month:mo,date:mo+'-01',total:Math.round(byMonth[mo]),est:true,v:2});
     addedM=true;
   });
   if(addedM){
@@ -2815,11 +3087,12 @@ function reconstructMonthsFromDaily(){
   }
   var wh=lsGet(PK.wh)||[];
   var haveWeek={};wh.forEach(function(e){if(e&&e.week)haveWeek[e.week]=true;});
+  if(openW&&openW.week)haveWeek[openW.week]=true;
   var curWeek=isoWeek(new Date());
   var addedW=false;
   Object.keys(byWeek).forEach(function(wk){
     if(haveWeek[wk]||wk===curWeek) return;
-    wh.push({week:wk,date:'',total:Math.round(byWeek[wk]),est:true});
+    wh.push({week:wk,date:'',total:Math.round(byWeek[wk]),est:true,v:2});
     addedW=true;
   });
   if(addedW){
@@ -2839,7 +3112,8 @@ function dedupeHist(){
     arr.forEach(function(e){
       var id=e&&e[field];
       if(id===undefined||id===null){out.push(e);return;}
-      if(!seen[id]){seen[id]=true;out.push(e);}
+      if(seen[id]===undefined){seen[id]=out.length;out.push(e);}
+      else if(out[seen[id]].est&&!e.est){out[seen[id]]=e;} // exacte entry wint van geschatte
     });
     if(out.length!==arr.length) lsSet(k,out);
   });
