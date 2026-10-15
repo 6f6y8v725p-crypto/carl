@@ -511,31 +511,31 @@ function updateEurSt(){
   }
 }
 function openKeyModal(){
-  document.getElementById('iKey').value=lsGet('carl-fh')||'';
+  document.getElementById('iKey').value=getKey('carl-fh')||'';
   document.getElementById('keyModal').classList.add('open');
 }
 function updateKeySt(){
-  var k=lsGet('carl-fh');
+  var k=getKey('carl-fh');
   var el=document.getElementById('keySt');
   if(!el) return;
   el.textContent=k?('actief \u00b7 ...'+k.slice(-4)):'tik om in te voeren';
 }
 function openFmpModal(){
-  document.getElementById('iFmp').value=lsGet('carl-fmp')||'';
+  document.getElementById('iFmp').value=getKey('carl-fmp')||'';
   document.getElementById('fmpModal').classList.add('open');
 }
 function closeFmpModal(){document.getElementById('fmpModal').classList.remove('open');}
 function saveFmp(){
   var k=document.getElementById('iFmp').value.replace(/\s/g,'');
   if(!k) return;
-  lsSet('carl-fmp',k);cloudSyncDebounced();
+  lsSet('carl-fmp',k);cloudSyncDebounced();backupKeys();
   closeFmpModal();
   updateFmpKeySt();
-  var fhKey=lsGet('carl-fh');
+  var fhKey=getKey('carl-fh');
   if(fhKey) fetchTargets(fhKey);
 }
 function updateFmpKeySt(){
-  var k=lsGet('carl-fmp');
+  var k=getKey('carl-fmp');
   var el=document.getElementById('fmpKeySt');
   if(!el) return;
   el.textContent=k?('actief \u00b7 ...'+k.slice(-4)):'tik om in te voeren \u00b7 gratis op financialmodelingprep.com';
@@ -543,20 +543,20 @@ function updateFmpKeySt(){
 
 // ─── DIVIDEND (BusinessQuant automatisch + handmatige terugval) ──────────────
 function openBqModal(){
-  document.getElementById('iBq').value=lsGet('carl-bq')||'';
+  document.getElementById('iBq').value=getKey('carl-bq')||'';
   document.getElementById('bqModal').classList.add('open');
 }
 function closeBqModal(){document.getElementById('bqModal').classList.remove('open');}
 function saveBq(){
   var k=document.getElementById('iBq').value.replace(/\s/g,'');
   if(!k) return;
-  lsSet('carl-bq',k);cloudSyncDebounced();
+  lsSet('carl-bq',k);cloudSyncDebounced();backupKeys();
   closeBqModal();
   updateBqKeySt();
   fetchDividends();
 }
 function updateBqKeySt(){
-  var k=lsGet('carl-bq');
+  var k=getKey('carl-bq');
   var el=document.getElementById('bqKeySt');
   if(!el) return;
   el.textContent=k?('actief \u00b7 ...'+k.slice(-4)):'tik om in te voeren \u00b7 gratis op businessquant.com';
@@ -602,7 +602,7 @@ function saveDivManual(){
 // een handmatig ingevuld bedrag (carl-div-manual), zodat het overzicht sowieso werkt.
 var divAuto={}; // {ticker: {ttm, yield}} — enkel automatisch opgehaalde waarden
 function fetchDividends(){
-  var bqKey=lsGet('carl-bq');
+  var bqKey=getKey('carl-bq');
   if(!bqKey){ renderDividends(); return Promise.resolve(); }
   var proms=H.map(function(h){
     return fetch('https://data.businessquant.com/dividends?ticker='+h.ticker+'&mode=dps&api_key='+bqKey)
@@ -659,7 +659,7 @@ function closeKeyModal(){document.getElementById('keyModal').classList.remove('o
 function saveKey(){
   var k=document.getElementById('iKey').value.replace(/\s/g,'');
   if(!k) return;
-  lsSet('carl-fh',k);cloudSyncDebounced();
+  lsSet('carl-fh',k);cloudSyncDebounced();backupKeys();
   closeKeyModal();
   updateKeySt();
   document.getElementById('kbanner').style.display='none';
@@ -668,9 +668,15 @@ function saveKey(){
 
 // ─── LIVE FETCH ──────────────────────────────────────────────────────────────
 function onLiveClick(){
-  var k=lsGet('carl-fh');
-  if(!k){openKeyModal();return;}
-  doFetch(k);
+  var k=getKey('carl-fh');
+  if(k){doFetch(k);return;}
+  // Geen Finnhub-sleutel: eerst de reservekopie proberen, pas dan (en enkel dan) vragen
+  restoreKeysFromIdb().then(function(){
+    var k2=getKey('carl-fh');
+    if(k2){updateKeySt();doFetch(k2);return;}
+    fetchEurQuotes();
+    openKeyModal();
+  });
 }
 
 function doFetch(fhKey){
@@ -1814,7 +1820,7 @@ function saveCloudCfg(){
   var key=(document.getElementById('iCloudKey').value||'').trim();
   var st=document.getElementById('cloudSt');
   if(!bin||!key){if(st)st.textContent='\u2717 Vul zowel Bin ID als sleutel in';return;}
-  lsSet('carl-cloud',{bin:bin,key:key});
+  lsSet('carl-cloud',{bin:bin,key:key});backupKeys();
   renderCloudUI();
   if(st)st.textContent='\u2713 Verbonden \u2014 eerste synchronisatie...';
   // Eerst ophalen (bestaande cloud-data), dan onze data pushen als de cloud leeg is
@@ -1875,7 +1881,7 @@ function cloudPull(showMsg,cb){
     var rec=j&&j.record?j.record:j;
     if(!rec||typeof rec!=='object'){throw new Error('lege respons');}
     var n=0;
-    if(restoreApiKeys(rec.__keys)){updateKeySt();updateFmpKeySt();updateBqKeySt();var kb=document.getElementById('kbanner');if(kb&&lsGet('carl-fh'))kb.style.display='none';}
+    if(restoreApiKeys(rec.__keys)){updateKeySt();updateFmpKeySt();updateBqKeySt();var kb=document.getElementById('kbanner');if(kb&&getKey('carl-fh'))kb.style.display='none';}
     CLOUD_KEYS.forEach(function(k){
       if(rec[k]!==undefined&&rec[k]!==null){localStorage.setItem(k,mergeCloudValue(k,localStorage.getItem(k),rec[k]));n++;}
     });
@@ -1902,7 +1908,7 @@ function bootstrapHistory(){ /* PRIVACY: geen historiek meer in de publieke code
 // ─── KOERSDOELEN (analisten) — FMP primair, Finnhub als terugval ─────────────
 var targetStatus={ok:0,fail:0,premiumBlocked:false,source:''};
 function fetchTargets(fhKey){
-  var fmpKey=lsGet('carl-fmp');
+  var fmpKey=getKey('carl-fmp');
   var p=fmpKey?fetchTargetsFMP(fmpKey):fetchTargetsFinnhub(fhKey);
   // Na de koersdoelen: voor tickers zonder doel de gratis Finnhub-recommendation ophalen
   // (analistenrating als telling), zodat WULF/HIMS/PATH/SPCX toch analistendata tonen.
@@ -2140,7 +2146,7 @@ function toggleAutoRefresh(){
     if(btn){btn.textContent='Auto-refresh AAN';btn.classList.add('auto-on');}
     autoRefreshTimer=setInterval(function(){
       if(isUSOpen()){
-        var k=lsGet('carl-fh');
+        var k=getKey('carl-fh');
         if(k) doFetch(k);
       }
     },90000);
@@ -2421,6 +2427,49 @@ function saveHoldingsEdit(){
 // Oplossing: (1) sleutels mee in de privé JSONBin, (2) instel-link, (3) persistente opslag vragen.
 var API_KEY_NAMES=['carl-fh','carl-fmp','carl-bq'];
 function collectApiKeys(){var o={};API_KEY_NAMES.forEach(function(k){var v=lsGet(k);if(v)o[k]=v;});return o;}
+// ─── SLEUTELS: robuust lezen + reservekopie in IndexedDB ───────────────────────
+// Leest altijd vers uit localStorage; aanvaardt JSON-tekst én ruwe tekst (oude/ geïmporteerde
+// waarden). Valt terug op de IndexedDB-kopie als localStorage (iOS) leeg is geraakt.
+var KEY_CACHE={};
+function getKey(name){
+  var raw=null;try{raw=localStorage.getItem(name);}catch(e){}
+  var v=null;
+  if(raw!==null&&raw!==''){try{v=JSON.parse(raw);}catch(e){v=raw;}}
+  if(typeof v!=='string') v=v==null?null:String(v);
+  if(v) v=v.replace(/^["']|["']$/g,'').replace(/\s/g,'');
+  if(!v&&KEY_CACHE[name]){v=KEY_CACHE[name];try{localStorage.setItem(name,JSON.stringify(v));}catch(e){}}
+  return v||null;
+}
+function idbKeys(mode,obj){
+  return new Promise(function(res){
+    try{var rq=indexedDB.open('carl-keys',1);
+      rq.onupgradeneeded=function(){rq.result.createObjectStore('k');};
+      rq.onerror=function(){res(null);};
+      rq.onsuccess=function(){var db=rq.result,tx=db.transaction('k',mode==='w'?'readwrite':'readonly'),st=tx.objectStore('k');
+        if(mode==='w'){st.put(obj,'keys');tx.oncomplete=function(){res(true);};tx.onerror=function(){res(null);};}
+        else{var g=st.get('keys');g.onsuccess=function(){res(g.result||null);};g.onerror=function(){res(null);};}};
+    }catch(e){res(null);}
+  });
+}
+function backupKeys(){
+  var o={};['carl-fh','carl-fmp','carl-bq'].forEach(function(k){var v=getKey(k);if(v)o[k]=v;});
+  var c=lsGet('carl-cloud');if(c&&c.bin&&c.key)o['carl-cloud']=c;
+  if(Object.keys(o).length) idbKeys('w',o);
+}
+function restoreKeysFromIdb(){
+  return idbKeys('r').then(function(o){
+    if(!o) return false;var ch=false;
+    ['carl-fh','carl-fmp','carl-bq'].forEach(function(k){if(o[k]){KEY_CACHE[k]=o[k];if(!getKey(k)){ch=true;}}});
+    if(o['carl-cloud']&&!lsGet('carl-cloud')){lsSet('carl-cloud',o['carl-cloud']);ch=true;}
+    return ch;
+  });
+}
+function keyDiag(){
+  var el=document.getElementById('keyDiag');if(!el)return;
+  var sa=(window.navigator.standalone||matchMedia('(display-mode: standalone)').matches)?'app op beginscherm':'browser';
+  el.textContent='Opgeslagen op dit toestel ('+sa+'): Finnhub '+(getKey('carl-fh')?'\u2713':'\u2717')+' \u00b7 FMP '+(getKey('carl-fmp')?'\u2713':'\u2717')+' \u00b7 BusinessQuant '+(getKey('carl-bq')?'\u2713':'\u2717')+' \u00b7 Cloud '+(cloudCfg()?'\u2713':'\u2717');
+}
+
 function restoreApiKeys(obj){
   if(!obj||typeof obj!=='object')return false;var ch=false;
   API_KEY_NAMES.forEach(function(k){var v=obj[k];if(typeof v==='string'&&v&&!lsGet(k)){lsSet(k,v.replace(/\s/g,''));ch=true;}});
@@ -2461,6 +2510,7 @@ function requestPersistentStorage(){
 }
 
 function init(){
+  restoreKeysFromIdb().then(function(ch){ if(ch){updateKeySt();updateFmpKeySt();updateBqKeySt();} backupKeys(); keyDiag(); });
   applySetupFromHash();
   requestPersistentStorage();
   bootstrapHistory();
@@ -2480,7 +2530,7 @@ function init(){
   // FIX: na een cloud-pull opnieuw afsluiten/migreren, anders draaide de (oudere) cloudversie
   // de afsluiting van vorige week/maand terug en ging dat resultaat verloren.
   if(cloudCfg()) cloudPull(false,function(pulled){ if(pulled){loadHoldingsOverride();loadEurManual();loadLivePrices();migrateWeekLabels();migrateSnapshots();dedupeHist();reconstructMonthsFromDaily();renderPension();updateAll();cloudPush(false);} });
-  var key=lsGet('carl-fh');
+  var key=getKey('carl-fh');
   fetchEurUsd(key);
   document.getElementById('kbanner').style.display=key?'none':'block';
   updateKeySt();
@@ -2616,7 +2666,7 @@ function getRepoPrices(){
   return p;
 }
 function fetchEurQuotes(){
-  var fmp=lsGet('carl-fmp'),fh=lsGet('carl-fh');
+  var fmp=getKey('carl-fmp'),fh=getKey('carl-fh');
   var tickers=Object.keys(EUR_SYMS).filter(function(t){return H.some(function(h){return h.ticker===t&&h.ccy==='EUR';});});
   return Promise.all(tickers.map(function(t){
     var sym=EUR_SYMS[t][0];
@@ -2771,7 +2821,7 @@ function renderChartsLazy(){
   if(p&&p.classList.contains('active')){renderCharts();chartsDirty=false;}else chartsDirty=true;
 }
 var _goOrig=go;
-go=function(id,btn){_goOrig(id,btn);if(id==='charts'&&chartsDirty){renderCharts();chartsDirty=false;}if(id==='settings')renderAlertUI();};
+go=function(id,btn){_goOrig(id,btn);if(id==='settings')keyDiag();if(id==='charts'&&chartsDirty){renderCharts();chartsDirty=false;}if(id==='settings')renderAlertUI();};
 
 // ── Haken: na elke render / koersophaling ──
 var _updateAllOrig=updateAll;
