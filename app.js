@@ -3003,6 +3003,26 @@ var _updateAll27=updateAll;
 updateAll=function(){_updateAll27();renderV27();};
 getRepoPrices().then(renderV27,function(){});
 
+// ── v2.8: VS-indexfutures (Yahoo via prices.json) ──
+function renderFutures(){
+  var el=document.getElementById('futLine');if(!el)return;
+  var f=window.__pricesJson&&window.__pricesJson.futures;
+  if(!f||!Object.keys(f).length){el.style.display='none';return;}
+  var names=[['SP500','S&amp;P'],['NASDAQ100','Nasdaq'],['DOW','Dow']],parts=[],newest=0;
+  names.forEach(function(n){var q=f[n[0]];if(!q)return;var t=Date.parse(q.timestamp);if(t>newest)newest=t;
+    if(typeof q.change_pct!=='number'){parts.push(n[1]+' <span class="mu">geen data</span>');return;}
+    parts.push(n[1]+' <b class="'+(q.change_pct>=0?'up':'dn')+'">'+(q.change_pct>=0?'+':'')+q.change_pct.toFixed(2).replace('.',',')+'%</b>');});
+  if(!parts.length){el.style.display='none';return;}
+  var ageH=(Date.now()-newest)/3600000,d=new Date(),wd=d.getDay()>0&&d.getDay()<6;
+  var stale=wd&&ageH>2;
+  var tm=new Date(newest).toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+  var lbl=(typeof isUSOpen==='function'&&isUSOpen())?' \u00b7 <span class="mu">VS-beurs open</span>':'';
+  el.style.display='block';
+  el.innerHTML='<span class="mu">Futures</span> \u00b7 '+parts.join(' \u00b7 ')+' \u00b7 <span style="color:'+(stale?'var(--am)':'var(--t3)')+'">'+(newest?tm:'?')+(stale?' verouderd':'')+'</span>'+lbl;
+}
+var _renderV27b=renderV27;
+renderV27=function(){_renderV27b();renderFutures();};
+
 init();
 renderAlertUI();
 fetchEurQuotes(); // gratis prices.json: VUSA/D'Ieteren meteen actueel bij openen
