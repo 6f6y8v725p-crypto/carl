@@ -251,6 +251,8 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-sy
         <button class="mbtn" style="flex:1" onclick="cloudPush(true)">&#8593; Nu opslaan</button>
         <button class="mbtn" style="flex:1" onclick="cloudPull(true)">&#8595; Nu ophalen</button>
       </div>
+      <button class="mbtn" style="width:100%;margin-top:6px" onclick="copySetupLink()">&#128279; Kopieer instel-link voor ander toestel</button>
+      <div style="font-size:10px;color:var(--t3);margin-top:4px;line-height:1.4">Open die link één keer op je gsm/tablet: alle sleutels worden daar bewaard. Deel hem met niemand.</div>
       <button class="mbtn" style="width:100%;margin-top:6px;font-size:11px;color:var(--t3)" onclick="clearCloudCfg()">Verbinding verbreken</button>
     </div>
     <div id="cloudSt" style="font-size:10px;color:var(--t3);margin-top:8px;min-height:14px"></div>
@@ -1149,7 +1151,7 @@ function closeFmpModal(){document.getElementById('fmpModal').classList.remove('o
 function saveFmp(){
   var k=document.getElementById('iFmp').value.replace(/\s/g,'');
   if(!k) return;
-  lsSet('carl-fmp',k);
+  lsSet('carl-fmp',k);cloudSyncDebounced();
   closeFmpModal();
   updateFmpKeySt();
   var fhKey=lsGet('carl-fh');
@@ -1171,7 +1173,7 @@ function closeBqModal(){document.getElementById('bqModal').classList.remove('ope
 function saveBq(){
   var k=document.getElementById('iBq').value.replace(/\s/g,'');
   if(!k) return;
-  lsSet('carl-bq',k);
+  lsSet('carl-bq',k);cloudSyncDebounced();
   closeBqModal();
   updateBqKeySt();
   fetchDividends();
@@ -1280,7 +1282,7 @@ function closeKeyModal(){document.getElementById('keyModal').classList.remove('o
 function saveKey(){
   var k=document.getElementById('iKey').value.replace(/\s/g,'');
   if(!k) return;
-  lsSet('carl-fh',k);
+  lsSet('carl-fh',k);cloudSyncDebounced();
   closeKeyModal();
   updateKeySt();
   document.getElementById('kbanner').style.display='none';
@@ -2441,6 +2443,7 @@ function cloudPush(showMsg){
     if(v!==null) payload[k]=v;
   });
   payload.__synced=new Date().toISOString();
+  payload.__keys=collectApiKeys(); // API-sleutels mee in je PRIVÉ bin, zodat je ze op elk toestel maar één keer hoeft in te geven
   fetch('https://api.jsonbin.io/v3/b/'+cfg.bin,{
     method:'PUT',
     headers:{'Content-Type':'application/json','X-Master-Key':cfg.key},
@@ -2470,6 +2473,7 @@ function cloudPull(showMsg,cb){
     var rec=j&&j.record?j.record:j;
     if(!rec||typeof rec!=='object'){throw new Error('lege respons');}
     var n=0;
+    if(restoreApiKeys(rec.__keys)){updateKeySt();updateFmpKeySt();updateBqKeySt();var kb=document.getElementById('kbanner');if(kb&&lsGet('carl-fh'))kb.style.display='none';}
     CLOUD_KEYS.forEach(function(k){
       if(rec[k]!==undefined&&rec[k]!==null){localStorage.setItem(k,mergeCloudValue(k,localStorage.getItem(k),rec[k]));n++;}
     });
@@ -3020,7 +3024,43 @@ function saveHoldingsEdit(){
   updateAll();
 }
 
+// ─── SLEUTELS BEWAREN (eenmalig ingeven) ─────────────────────────────────────
+// API-sleutels staan in localStorage van DIT toestel/deze browser. Oorzaken van 'steeds opnieuw
+// ingeven': ander toestel/browser, privévenster, of Safari die opslag wist na 7 dagen niet openen.
+// Oplossing: (1) sleutels mee in de privé JSONBin, (2) instel-link, (3) persistente opslag vragen.
+var API_KEY_NAMES=['carl-fh','carl-fmp','carl-bq'];
+function collectApiKeys(){var o={};API_KEY_NAMES.forEach(function(k){var v=lsGet(k);if(v)o[k]=v;});return o;}
+function restoreApiKeys(obj){
+  if(!obj||typeof obj!=='object')return false;var ch=false;
+  API_KEY_NAMES.forEach(function(k){var v=obj[k];if(typeof v==='string'&&v&&!lsGet(k)){lsSet(k,v.replace(/\s/g,''));ch=true;}});
+  return ch;
+}
+function b64e(str){return btoa(unescape(encodeURIComponent(str)));}
+function b64d(str){return decodeURIComponent(escape(atob(str)));}
+function applySetupFromHash(){
+  var m=/[#&]setup=([^&]+)/.exec(location.hash||'');if(!m)return;
+  try{
+    var o=JSON.parse(b64d(decodeURIComponent(m[1])));
+    if(o.cloud&&o.cloud.bin&&o.cloud.key&&!cloudCfg())lsSet('carl-cloud',{bin:String(o.cloud.bin).trim(),key:String(o.cloud.key).trim()});
+    restoreApiKeys(o.keys);
+  }catch(e){console.warn('Ongeldige instel-link');}
+  // sleutels meteen uit de adresbalk/geschiedenis halen
+  try{history.replaceState(null,'',location.pathname+location.search);}catch(e){location.hash='';}
+}
+function copySetupLink(){
+  var cfg=cloudCfg();var st=document.getElementById('cloudSt');
+  var url=location.origin+location.pathname+'#setup='+encodeURIComponent(b64e(JSON.stringify({cloud:cfg,keys:collectApiKeys()})));
+  function ok(){if(st)st.textContent='\u2713 Instel-link gekopieerd \u2014 open hem op je andere toestel';}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(ok,function(){prompt('Kopieer deze link:',url);});}
+  else prompt('Kopieer deze link:',url);
+}
+function requestPersistentStorage(){
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
+}
+
 function init(){
+  applySetupFromHash();
+  requestPersistentStorage();
   bootstrapHistory();
   loadHoldingsOverride();
   // FIX: eerst de laatst gekende koersen laden, DAN snapshots controleren. Vroeger vergeleek
