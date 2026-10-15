@@ -1,0 +1,89 @@
+{
+ "prices": {
+  "AMZN": {
+   "currency": "USD",
+   "price": 254.08,
+   "source": "Yahoo",
+   "symbol": "AMZN",
+   "timestamp": "2026-10-14T20:00:01Z"
+  },
+  "DIET": {
+   "currency": "EUR",
+   "price": 175.2,
+   "source": "Yahoo",
+   "symbol": "DIE.BR",
+   "timestamp": "2026-10-15T08:05:57Z"
+  },
+  "EURUSD": {
+   "currency": "USD",
+   "price": 1.1223,
+   "source": "Yahoo",
+   "symbol": "EURUSD=X",
+   "timestamp": "2026-10-15T08:20:26Z"
+  },
+  "GOOGL": {
+   "currency": "USD",
+   "price": 347.64,
+   "source": "Yahoo",
+   "symbol": "GOOGL",
+   "timestamp": "2026-10-14T20:00:01Z"
+  },
+  "HIMS": {
+   "currency": "USD",
+   "price": 27.72,
+   "source": "Yahoo",
+   "symbol": "HIMS",
+   "timestamp": "2026-10-14T20:00:03Z"
+  },
+  "NVDA": {
+   "currency": "USD",
+   "price": 221.3,
+   "source": "Yahoo",
+   "symbol": "NVDA",
+   "timestamp": "2026-10-14T20:00:00Z"
+  },
+  "PATH": {
+   "currency": "USD",
+   "price": 13.06,
+   "source": "Yahoo",
+   "symbol": "PATH",
+   "timestamp": "2026-10-14T20:00:03Z"
+  },
+  "PLTR": {
+   "currency": "USD",
+   "price": 200.97,
+   "source": "Yahoo",
+   "symbol": "PLTR",
+   "timestamp": "2026-10-14T20:00:00Z"
+  },
+  "SPCX": {
+   "currency": "USD",
+   "price": 152.16,
+   "source": "Yahoo",
+   "symbol": "SPCX",
+   "timestamp": "2026-10-14T20:00:01Z"
+  },
+  "TSLA": {
+   "currency": "USD",
+   "price": 367.16,
+   "source": "Yahoo",
+   "symbol": "TSLA",
+   "timestamp": "2026-10-14T20:00:01Z"
+  },
+  "VUSA": {
+   "currency": "EUR",
+   "price": 130.101,
+   "source": "Yahoo",
+   "symbol": "VUSA.AS",
+   "timestamp": "2026-10-15T08:05:53Z"
+  },
+  "WULF": {
+   "currency": "USD",
+   "price": 11.54,
+   "source": "Yahoo",
+   "symbol": "WULF",
+   "timestamp": "2026-10-14T20:00:01Z"
+  }
+ },
+ "updated": "2026-10-15T08:21:00Z"
+}

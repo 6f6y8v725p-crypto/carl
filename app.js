@@ -2592,12 +2592,23 @@ function renderStaleBanner(){
 // Volgorde: FMP (carl-fmp) → Finnhub (carl-fh). Lukt geen enkele: de laatst gekende koers
 // blijft staan en wordt als 'verouderd' gemarkeerd. Nooit een geschatte koers.
 var EUR_SYMS={VUSA:['VUSA.AS'],DIET:['DIE.BR']};
+var _repoPricesP=null;
+function getRepoPrices(){
+  if(!_repoPricesP) _repoPricesP=fetch('prices.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
+    .catch(function(e){_repoPricesP=null;throw e;});
+  var p=_repoPricesP;setTimeout(function(){_repoPricesP=null;},60000); // max 1 min hergebruiken
+  return p;
+}
 function fetchEurQuotes(){
   var fmp=lsGet('carl-fmp'),fh=lsGet('carl-fh');
   var tickers=Object.keys(EUR_SYMS).filter(function(t){return H.some(function(h){return h.ticker===t&&h.ccy==='EUR';});});
   return Promise.all(tickers.map(function(t){
     var sym=EUR_SYMS[t][0];
     var tries=[];
+    // 1) prices.json uit de eigen repo (GitHub Action, Yahoo, geen sleutel nodig)
+    tries.push(function(){return getRepoPrices().then(function(pj){var q=pj&&pj.prices&&pj.prices[t];
+      if(!q||!(q.price>0)||!q.timestamp)throw new Error('leeg');
+      return {p:q.price,ts:Math.floor(Date.parse(q.timestamp)/1000),src:'Yahoo (repo)'};});});
     if(fmp) tries.push(function(){return fetch('https://financialmodelingprep.com/stable/quote?symbol='+encodeURIComponent(sym)+'&apikey='+encodeURIComponent(fmp))
       .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
       .then(function(j){var q=Array.isArray(j)?j[0]:null;if(!q||!(q.price>0))throw new Error('leeg');return {p:q.price,ts:q.timestamp||null,src:'FMP'};});});
@@ -2762,3 +2773,4 @@ registerSW();
 
 init();
 renderAlertUI();
+fetchEurQuotes(); // gratis prices.json: VUSA/D'Ieteren meteen actueel bij openen
