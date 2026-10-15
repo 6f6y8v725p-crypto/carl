@@ -1748,7 +1748,7 @@ function importBackup(file){
 var CLOUD_KEYS=['cp_w','cp_m','cp_y','cp_wh','cp_mh','cp_yh','cp_dh',
   'carl-eur-manual','carl-vix','carl-lastval','carl-live-prices',
   'carl-usd-dayref','carl-usd-prevday','carl-eurusd-day','carl-eurusd-prev','carl-eurusd-prevdate',
-  'carl-holdings','carl-div-manual','carl-pension','cp_close','cp_tx'];
+  'carl-holdings','carl-div-manual','carl-pension','cp_close','cp_tx','carl-tob-cfg'];
 
 // FIX: slim samenvoegen bij cloud-pull i.p.v. lokale historiek blind te overschrijven.
 function mergeCloudValue(k,locRaw,cldRaw){
@@ -2836,6 +2836,172 @@ function registerSW(){
   navigator.serviceWorker.register('sw.js').catch(function(e){console.warn('SW niet geregistreerd',e);});
 }
 registerSW();
+
+// ═══ v2.7: DIVIDEND NETTO · BEURSTAKS & JAAROVERZICHT · CONCENTRATIE · S&P 500 ═══
+// Alle bedragen INDICATIEF. Fiscale parameters hieronder zijn aanpasbaar (stand okt. 2026).
+var BE_TAX={
+  rv:0.30,                 // roerende voorheffing op dividenden (België)
+  wht:{US:0.15,BE:0,IE:0,NL:0.15,FR:0.128,DE:0.26375}, // bronheffing per land (US: 15% met W-8BEN)
+  divExempt:833,           // ~vrijstelling dividenden per persoon/jaar (via aangifte terug te vragen; bedrag wordt jaarlijks geïndexeerd)
+  cgtRate:0.10,cgtExempt:10000 // meerwaardebelasting vanaf 1/1/2026: 10% boven €10.000/persoon/jaar (AJ 2027)
+};
+// Land van herkomst voor de bronheffing. Standaard: USD → US. Enkel tickers, geen posities.
+var TICKER_COUNTRY={DIET:'BE',VUSA:'IE'};
+function tickerCountry(h){return h.country||TICKER_COUNTRY[h.ticker]||(h.ccy==='USD'?'US':'BE');}
+
+// Beurstaks (TOB) — tarieven per type effect, met plafond per transactie.
+var TOB_RATES={
+  stock:       {rate:0.0035,max:1600,lbl:'Aandeel 0,35% (max €1.600)'},
+  etf_dist_eea:{rate:0.0012,max:1300,lbl:'ETF EER-geregistreerd/distribuerend 0,12% (max €1.300)'},
+  etf_acc:     {rate:0.0132,max:4000,lbl:'Kapitaliserend fonds/ETF (BE-geregistreerd) 1,32% (max €4.000)'}
+};
+var TICKER_TOB_TYPE={VUSA:'etf_dist_eea'}; // standaard 'stock'
+// Houdt de broker de TOB zelf in? false = mogelijk zelf aangeven (aanpasbaar in Prestaties > Jaaroverzicht)
+var BROKER_TOB_WITHHELD_DEFAULT={Bolero:true,BUX:false,Revolut:false};
+function tobCfg(){var c=lsGet('carl-tob-cfg')||{};return {types:c.types||{},brokers:c.brokers||{}};}
+function tobType(tk){var c=tobCfg();return c.types[tk]||TICKER_TOB_TYPE[tk]||'stock';}
+function brokerWithholds(b){var c=tobCfg();return (b in c.brokers)?!!c.brokers[b]:!!BROKER_TOB_WITHHELD_DEFAULT[b];}
+function calcTob(tk,amountEur){var r=TOB_RATES[tobType(tk)]||TOB_RATES.stock;return Math.min(Math.abs(amountEur)*r.rate,r.max);}
+function eurAmt(ccy,sh,px,fx){return ccy==='USD'?sh*px/(fx||EUR_USD):sh*px;}
+
+// ── Transacties: broker + TOB + gemiddelde aankoopprijs bij verkoop bewaren ──
+var _logTxOrig=logTx;
+logTx=function(tk,ccy,sh,px){
+  var tx=lsGet(PK.tx)||[],ts=Date.now();
+  var sel=document.getElementById('txBroker'),broker=sel?sel.value:'';
+  var h=H.filter(function(x){return x.ticker===tk;})[0];
+  var amt=eurAmt(ccy,Math.abs(sh),px,EUR_USD);
+  var e={id:ts+'-'+tk,ts:ts,date:isoDate(),tk:tk,ccy:ccy,sh:sh,px:px,fx:EUR_USD,broker:broker,amtEur:Math.round(amt*100)/100,
+    tob:Math.round(calcTob(tk,amt)*100)/100,tobType:tobType(tk)};
+  if(sh<0&&window.__txAvgBefore!=null){e.avg=window.__txAvgBefore;e.gainEur=Math.round(eurAmt(ccy,-sh,px-window.__txAvgBefore,EUR_USD)*100)/100;}
+  tx.push(e);
+  var cutoff=ts-3650*86400000; // 10 jaar bewaren (fiscaal jaaroverzicht)
+  lsSet(PK.tx,tx.filter(function(t){return t&&t.ts>cutoff;}));
+};
+var _applyTxOrig=applyTx;
+applyTx=function(){var h=(typeof txCurrentHolding==='function')?txCurrentHolding():null;window.__txAvgBefore=h?h.avg:null;_applyTxOrig();window.__txAvgBefore=null;renderYearOverview();};
+var _txPrevOrig=txUpdatePreview;
+txUpdatePreview=function(){
+  _txPrevOrig();
+  var el=document.getElementById('txTob');if(!el)return;
+  var sh=parseFloat(document.getElementById('txShares').value),px=parseFloat(document.getElementById('txPrice').value);
+  var tk=(txType==='new')?(document.getElementById('txNewTicker').value||'').trim().toUpperCase():(document.getElementById('txTicker').value||'');
+  var ccy=(txType==='new')?document.getElementById('txNewCcy').value:((H.filter(function(x){return x.ticker===tk;})[0]||{}).ccy||'USD');
+  var b=(document.getElementById('txBroker')||{}).value||'';
+  if(!(sh>0&&px>0)||!tk){el.innerHTML='Beurstaks: vul aantal en prijs in';return;}
+  var amt=eurAmt(ccy,sh,px,EUR_USD),tob=calcTob(tk,amt);
+  el.innerHTML='Beurstaks (TOB) indicatief: <b>\u20ac'+n2(tob)+'</b> op \u20ac'+n2(amt)+' \u00b7 '+(TOB_RATES[tobType(tk)]||{}).lbl+
+    (b?(brokerWithholds(b)?' \u00b7 <span class="up">'+b+' houdt in</span>':' \u00b7 <span style="color:var(--am)">'+b+': zelf aangeven?</span>'):'');
+};
+
+// ── A) Dividend: bruto/netto per positie (bron: Yahoo via prices.json, anders BusinessQuant/handmatig) ──
+function divData(h){
+  var pj=window.__pricesJson,q=pj&&pj.prices&&pj.prices[h.ticker];
+  if(q&&q.div&&q.div.ttm>0) return {dps:q.div.ttm,lastEx:q.div.last_ex,n:q.div.count_12m,src:'Yahoo'};
+  if(typeof divAuto!=='undefined'&&divAuto[h.ticker]) return {dps:divAuto[h.ticker].ttm,lastEx:null,n:null,src:'BusinessQuant'};
+  var man=lsGet('carl-div-manual')||{};if(man[h.ticker]>0) return {dps:man[h.ticker],lastEx:null,n:null,src:'handmatig'};
+  return null;
+}
+function renderDivNet(){
+  var el=document.getElementById('divNet');if(!el)return;
+  if(!H.length){el.innerHTML='';return;}
+  var rows='',tb=0,tn=0;
+  H.forEach(function(h){
+    if(!(h.shares>0))return;
+    var d=divData(h),val=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;
+    if(!d){rows+='<div class="prow"><span class="ptk">'+h.ticker+'</span><span style="flex:1;font-size:11px;color:var(--t3)">geen data</span></div>';return;}
+    var gross=h.ccy==='USD'?h.shares*d.dps/EUR_USD:h.shares*d.dps,c=tickerCountry(h),w=BE_TAX.wht[c]||0;
+    var net=gross*(1-w)*(1-BE_TAX.rv);tb+=gross;tn+=net;
+    rows+='<div class="prow"><span class="ptk">'+h.ticker+'</span><span style="flex:1;font-size:11px;color:var(--t2)">'+(val>0?(gross/val*100).toFixed(2):'0')+'% \u00b7 '+(d.n?d.n+'x/jaar \u00b7 ':'')+'laatste ex: '+(d.lastEx||'geen data')+' \u00b7 volgende: geen data<br><span style="color:var(--t3)">'+d.src+' \u00b7 '+c+' bronheffing '+Math.round(w*100)+'% + RV 30%</span></span>'+
+      '<span class="pval">\u20ac'+n2(gross)+'</span><span class="peur up">\u20ac'+n2(net)+'</span></div>';
+  });
+  el.innerHTML='<div class="stitle">Dividend bruto \u2192 netto (indicatief)</div>'+
+    '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div style="font-size:11px;color:var(--t2)">Bruto per jaar</div><div style="font-size:18px;font-weight:700">\u20ac'+n2(tb)+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--t2)">Netto per jaar</div><div style="font-size:18px;font-weight:700" class="up">\u20ac'+n2(tn)+'</div></div></div>'+
+    rows+'<div style="font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5">Op basis van de dividenden van de laatste 12 maanden (geen voorspelling). VS: 15% bronheffing (W-8BEN), daarna 30% roerende voorheffing. BE: 30%. Ierse ETF (VUSA): geen bronheffing op de uitkering, 30% RV. Vrijstelling ~\u20ac'+BE_TAX.divExempt+'/persoon/jaar via je aangifte terug te vragen. Toekomstige ex-datums zijn niet gratis beschikbaar.</div>';
+}
+
+// ── B) Jaaroverzicht: transacties, beurstaks, gerealiseerde meerwaarde ──
+function renderYearOverview(){
+  var el=document.getElementById('yearOv');if(!el)return;
+  var tx=(lsGet(PK.tx)||[]).slice().sort(function(a,b){return a.ts-b.ts;}),by={};
+  tx.forEach(function(t){var y=(t.date||'').slice(0,4)||'?';var o=by[y]||(by[y]={n:0,buy:0,sell:0,tob:0,tobSelf:0,gain:0,gainUnknown:0});
+    o.n++;var amt=t.amtEur!=null?t.amtEur:eurAmt(t.ccy,Math.abs(t.sh),t.px,t.fx);if(t.sh>0)o.buy+=amt;else o.sell+=amt;
+    var tob=t.tob!=null?t.tob:calcTob(t.tk,amt);o.tob+=tob;if(!t.broker||!brokerWithholds(t.broker))o.tobSelf+=tob;
+    if(t.sh<0){if(t.gainEur!=null)o.gain+=t.gainEur;else o.gainUnknown++;}});
+  var ys=Object.keys(by).sort().reverse(),h='<div class="stitle">Jaaroverzicht transacties (indicatief)</div>';
+  if(!ys.length) h+='<div class="mu" style="font-size:12px">Nog geen transacties ingevoerd via \u201cTransactie toevoegen\u201d.</div>';
+  ys.forEach(function(y){var o=by[y],tax=Math.max(0,o.gain-BE_TAX.cgtExempt)*BE_TAX.cgtRate;
+    h+='<div style="border-top:1px solid var(--bd);padding:8px 0"><div style="display:flex;justify-content:space-between;font-weight:700"><span>'+y+'</span><span>'+o.n+' transacties</span></div>'+
+     '<div style="font-size:12px;color:var(--t2);line-height:1.7">Aankopen \u20ac'+n2(o.buy)+' \u00b7 verkopen \u20ac'+n2(o.sell)+'<br>Beurstaks totaal <b>\u20ac'+n2(o.tob)+'</b>'+(o.tobSelf>0?' \u00b7 <span style="color:var(--am)">waarvan mogelijk zelf aan te geven \u20ac'+n2(o.tobSelf)+'</span>':'')+
+     '<br>Gerealiseerde meerwaarde (gem. aankoopprijs) <b class="'+(o.gain>=0?'up':'dn')+'">'+fmtEur(o.gain)+'</b>'+(o.gainUnknown?' (+'+o.gainUnknown+' verkoop zonder gegevens)':'')+
+     (+y>=2026?'<br>Meerwaardebelasting 10% boven \u20ac10.000: <b>\u20ac'+n2(tax)+'</b>':'')+'</div></div>';});
+  var bs=['BUX','Bolero','Revolut'];
+  h+='<div style="font-size:12px;margin-top:6px">Houdt de broker de beurstaks zelf in?</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 8px">'+bs.map(function(b){return '<label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox" '+(brokerWithholds(b)?'checked':'')+' onchange="setBrokerTob(\''+b+'\',this.checked)"> '+b+'</label>';}).join('')+'</div>'+
+   '<button class="mbtn" style="width:100%" onclick="exportYearCSV()">&#11015; Jaaroverzicht naar Excel (CSV)</button>'+
+   '<div style="font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5">Meerwaardebelasting (wet 6/4/2026, vanaf 1/1/2026): 10% op gerealiseerde meerwaarden boven \u20ac10.000 per persoon per jaar (overdraagbaar tot \u20ac15.000). Voor aandelen gekocht v\u00f3\u00f3r 2026 telt in principe de waarde op 31/12/2025 als aankoopwaarde \u2014 deze berekening gebruikt je gemiddelde aankoopprijs en is dus enkel een indicatie. Minderwaarden en wisselkoersen niet volledig verrekend. Vraag je boekhouder voor je aangifte.</div>';
+  el.innerHTML=h;
+}
+function setBrokerTob(b,v){var c=lsGet('carl-tob-cfg')||{};c.brokers=c.brokers||{};c.brokers[b]=v;lsSet('carl-tob-cfg',c);renderYearOverview();}
+function exportYearCSV(){
+  function num(v,d){return (typeof v==='number'&&isFinite(v))?v.toFixed(d).replace('.',','):'';}
+  var rows=['Datum;Jaar;Ticker;Broker;Type;Aantal;Koers;Valuta;Bedrag EUR;TOB-type;TOB EUR;Broker houdt TOB in;Gem. aankoopprijs;Gerealiseerd EUR'];
+  (lsGet(PK.tx)||[]).slice().sort(function(a,b){return a.ts-b.ts;}).forEach(function(t){
+    var amt=t.amtEur!=null?t.amtEur:eurAmt(t.ccy,Math.abs(t.sh),t.px,t.fx),tob=t.tob!=null?t.tob:calcTob(t.tk,amt);
+    rows.push([t.date,(t.date||'').slice(0,4),t.tk,t.broker||'',t.sh>0?'aankoop':'verkoop',num(Math.abs(t.sh),4),num(t.px,4),t.ccy,num(amt,2),t.tobType||tobType(t.tk),num(tob,2),t.broker?(brokerWithholds(t.broker)?'ja':'nee'):'?',t.avg!=null?num(t.avg,4):'',t.gainEur!=null?num(t.gainEur,2):''].join(';'));});
+  var blob=new Blob(['\ufeff'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='jaaroverzicht-transacties-'+isoDate()+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+// ── C) Concentratie + scenario's ──
+function renderConcentration(){
+  var el=document.getElementById('concCard');if(!el)return;
+  var tot=0,arr=H.filter(function(h){return h.shares>0;}).map(function(h){var v=h.ccy==='USD'?h.shares*h.price/EUR_USD:h.shares*h.price;tot+=v;return {tk:h.ticker,v:v};});
+  if(!arr.length||tot<=0){el.innerHTML='';return;}
+  arr.sort(function(a,b){return b.v-a.v;});
+  var top=arr[0],w=top.v/tot*100,h='<div class="stitle">Concentratie</div>';
+  if(w>25) h+='<div class="kbanner" style="cursor:default;margin-bottom:8px">\u26a0 <b>'+top.tk+'</b> is '+w.toFixed(1)+'% van je portefeuille (grens 25%). Een daling van dit ene aandeel weegt zwaar door.</div>';
+  arr.forEach(function(a){var p=a.v/tot*100;h+='<div class="prow"><span class="ptk">'+a.tk+'</span><div class="pbar"><div class="pbf" style="width:'+Math.min(100,p)+'%;background:'+(p>25?'var(--am)':'var(--bl)')+'"></div></div><span class="pval" style="min-width:52px">'+p.toFixed(1)+'%</span></div>';});
+  h+='<div class="stitle" style="margin-top:12px">Scenario\u2019s</div><div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:4px;font-size:12px"><b>Daling</b><b>'+top.tk+' alleen</b><b>Hele portefeuille</b>';
+  [10,20,30].forEach(function(d){h+='<span>\u2212'+d+'%</span><span class="dn">'+fmtEur(-top.v*d/100)+'</span><span class="dn">'+fmtEur(-tot*d/100)+'</span>';});
+  h+='</div><div style="font-size:10px;color:var(--t3);margin-top:6px">Op basis van de huidige waarde (\u20ac'+n2(tot)+'). Bij \u2212'+30+'% op '+top.tk+' alleen daalt je portefeuille met '+(top.v*0.3/tot*100).toFixed(1)+'%.</div>';
+  el.innerHTML=h;
+}
+
+// ── D) Portefeuille vs S&P 500 (SPY in EUR), beide geïndexeerd op 100 ──
+function renderBench(){
+  var el=document.getElementById('benchCard');if(!el)return;
+  var pj=window.__pricesJson,hs=pj&&pj.history;
+  var dh=(lsGet(PK.dh)||[]).filter(function(e){return e&&e.date&&typeof e.total==='number'&&e.val>0;}).sort(function(a,b){return a.date<b.date?-1:1;});
+  if(!hs||!hs.SPY||!hs.EURUSD){el.innerHTML='<div class="stitle">Portefeuille vs S&amp;P 500</div><div class="mu" style="font-size:12px">Nog geen S&amp;P 500-reeks beschikbaar (prices.json).</div>';return;}
+  if(dh.length<2){el.innerHTML='<div class="stitle">Portefeuille vs S&amp;P 500</div><div class="mu" style="font-size:12px">Te weinig daghistoriek (met waarde) om te vergelijken.</div>';return;}
+  var spy={},fx={},lastFx=null;hs.SPY.forEach(function(r){spy[r[0]]=r[1];});hs.EURUSD.forEach(function(r){fx[r[0]]=r[1];});
+  function spyEur(d){if(!spy[d])return null;var f=fx[d];if(!f){var ks=Object.keys(fx).filter(function(k){return k<=d;}).sort();f=ks.length?fx[ks[ks.length-1]]:null;}return f?spy[d]/f:null;}
+  // Portefeuille-index uit dagrendementen (dagresultaat / waarde vorige dag): neutraal voor bijkopen
+  var pts=[],pi=100,base=null;
+  dh.forEach(function(e,i){
+    var s=spyEur(e.date);if(s==null)return;
+    if(base===null){base=s;pts.push({d:e.date,p:100,s:100});return;}
+    var prevVal=e.val-e.total;if(prevVal>0)pi*=1+e.total/prevVal;
+    pts.push({d:e.date,p:pi,s:s/base*100});
+  });
+  if(pts.length<2){el.innerHTML='<div class="stitle">Portefeuille vs S&amp;P 500</div><div class="mu" style="font-size:12px">Geen overlappende dagen met S&amp;P 500-data.</div>';return;}
+  var W=340,Hh=150,mn=Infinity,mx=-Infinity;pts.forEach(function(q){mn=Math.min(mn,q.p,q.s);mx=Math.max(mx,q.p,q.s);});var pad=(mx-mn)*0.08||1;mn-=pad;mx+=pad;
+  function line(k){return pts.map(function(q,i){return (i?'L':'M')+(i/(pts.length-1)*W).toFixed(1)+','+((1-(q[k]-mn)/(mx-mn))*Hh).toFixed(1);}).join('');}
+  var L=pts[pts.length-1],out=L.p-L.s;
+  el.innerHTML='<div class="stitle">Portefeuille vs S&amp;P 500 (in EUR)</div>'+
+   '<svg viewBox="0 0 '+W+' '+Hh+'" width="100%" height="'+Hh+'" preserveAspectRatio="none"><path d="'+line('s')+'" fill="none" stroke="#8b949e" stroke-width="2"/><path d="'+line('p')+'" fill="none" stroke="var(--bl)" stroke-width="2.5"/></svg>'+
+   '<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px"><span><span style="color:var(--bl)">\u25cf</span> Portefeuille '+(L.p-100>=0?'+':'')+(L.p-100).toFixed(1)+'%</span><span><span style="color:#8b949e">\u25cf</span> S&amp;P 500 '+(L.s-100>=0?'+':'')+(L.s-100).toFixed(1)+'%</span></div>'+
+   '<div style="font-size:14px;font-weight:700;margin-top:6px" class="'+(out>=0?'up':'dn')+'">'+(out>=0?'Beter':'Slechter')+' dan de S&amp;P 500: '+(out>=0?'+':'')+out.toFixed(1)+' procentpunt</div>'+
+   '<div style="font-size:10px;color:var(--t3);margin-top:4px">Periode '+pts[0].d+' \u2192 '+L.d+' ('+pts.length+' dagen met data). S&amp;P 500 = SPY (Yahoo, USD) omgerekend naar EUR, zonder dividenden. Portefeuille uit je dagresultaten (aankopen tellen niet als rendement).</div>';
+}
+
+// ── Laden van prices.json één keer bewaren voor dividend + benchmark ──
+var _getRepoPricesOrig=getRepoPrices;
+getRepoPrices=function(){return _getRepoPricesOrig().then(function(j){window.__pricesJson=j;return j;});};
+function renderV27(){renderConcentration();renderDivNet();renderYearOverview();renderBench();}
+var _updateAll27=updateAll;
+updateAll=function(){_updateAll27();renderV27();};
+getRepoPrices().then(renderV27,function(){});
 
 init();
 renderAlertUI();

@@ -11,7 +11,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-title" content="Portefeuille">
-<link rel="stylesheet" href="app.css?v=2.6">
+<link rel="stylesheet" href="app.css?v=2.7">
 </head>
 <body>
 <div id="app">
@@ -222,14 +222,18 @@
   <div id="hList"></div>
   <div class="card" id="hTot"></div>
   <div class="card" id="hBroker"></div>
+  <div class="card" id="concCard"></div>
   <button class="mbtn" style="width:100%;margin-bottom:10px" onclick="exportExcel()">&#11015; Exporteer naar Excel (CSV)</button>
 </div>
 
 <!-- PRESTATIES TAB -->
 <div class="tab-pane" id="pane-perf">
+  <div class="card" id="benchCard" style="margin-bottom:10px"></div>
   <div class="card" id="pWeek" style="margin-bottom:10px"></div>
   <div class="card" id="pMonth" style="margin-bottom:10px"></div>
   <div class="card" id="pYear" style="margin-bottom:10px"></div>
+  <div class="card" id="divNet" style="margin-bottom:10px"></div>
+  <div class="card" id="yearOv" style="margin-bottom:10px"></div>
   <div class="card" id="pHistWeek" style="margin-bottom:10px"></div>
   <div class="card" id="pHistMonth" style="margin-bottom:10px"></div>
   <div class="card" id="pHistYear" style="margin-bottom:10px"></div>
@@ -519,6 +523,9 @@
       </div>
     </div>
 
+    <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Broker</div>
+    <select class="minp" id="txBroker" onchange="txUpdatePreview()" style="margin-bottom:10px"><option value="BUX">BUX</option><option value="Bolero">Bolero</option><option value="Revolut">Revolut</option><option value="">Andere</option></select>
+    <div id="txTob" style="font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.5">Beurstaks: vul aantal en prijs in</div>
     <!-- Live preview van het resultaat -->
     <div id="txPreview" style="font-size:12px;line-height:1.6;background:var(--card2);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:12px;color:var(--t2)">Vul de gegevens in&hellip;</div>
 
@@ -529,6 +536,6 @@
   </div>
 </div>
 
-<script src="app.js?v=2.6"></script>
+<script src="app.js?v=2.7"></script>
 </body>
 </html>
