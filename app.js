@@ -7,22 +7,9 @@ var PK = {w:'cp_w',m:'cp_m',y:'cp_y',wh:'cp_wh',mh:'cp_mh',yh:'cp_yh',dh:'cp_dh'
 // — zo overschrijft een oude override nooit meer een verse aankoop in de code.
 var HOLDINGS_VERSION = 3;
 
-var H = [
-  {ticker:'TSLA',name:'Tesla',         cat:'core',ccy:'USD',shares:625.60,  avg:378.88,price:397.0,qt:null,pc:0,pl:4.8,  pe:'~180x',  fcf:'$5,3B',  target:420.0,upside:6, rating:'Buy',
-   brokers:[{n:'BUX',sh:403,avg:362.73},{n:'Bolero',sh:157,avg:438.87},{n:'Revolut',sh:65.60,avg:334.49}]},
-  {ticker:'NVDA',name:'NVIDIA',        cat:'core',ccy:'USD',shares:78.131,  avg:113.71,price:204.0,qt:null,pc:0,pl:79.4, pe:'~35x',   fcf:'$46,3B', target:250.0,upside:23,rating:'Strong Buy',
-   brokers:[{n:'BUX',sh:75,avg:113.769},{n:'Revolut',sh:3.131,avg:112.40}]},
-  {ticker:'GOOGL',name:'Alphabet A',   cat:'core',ccy:'USD',shares:26,      avg:193.52,price:358.0,qt:null,pc:0,pl:85.0, pe:'~22x',   fcf:'$10B Q1', target:450.0,upside:26,rating:'Strong Buy',brokers:[]},
-  {ticker:'PLTR',name:'Palantir',      cat:'core',ccy:'USD',shares:59.54,   avg:98.83, price:115.0,qt:null,pc:0,pl:16.4, pe:'131x',  fcf:'$2,7B',  target:175.0,upside:52,rating:'Buy',        brokers:[]},
-  {ticker:'AMZN',name:'Amazon',        cat:'core',ccy:'USD',shares:10,      avg:233.08,price:242.0,qt:null,pc:0,pl:3.8,  pe:'~28x',   fcf:'Neg.', target:310.0,upside:28,rating:'Strong Buy', brokers:[]},
-  {ticker:'WULF',name:'TeraWulf',      cat:'spec',ccy:'USD',shares:300.871, avg:5.94,  price:24.01, qt:null,pc:0,pl:304.4,pe:'n.v.t.',fcf:'Neg.', target:55.0, upside:129,rating:'Strong Buy',
-   brokers:[{n:'BUX',sh:275,avg:5.19},{n:'Revolut',sh:25.871,avg:13.95}]},
-  {ticker:'HIMS',name:'Hims & Hers',   cat:'spec',ccy:'USD',shares:3.571,   avg:45.88, price:32.0, qt:null,pc:0,pl:-30.3,pe:'~30x',   fcf:'$53M',  target:36.0, upside:13, rating:'Hold',        brokers:[]},
-  {ticker:'PATH',name:'UiPath',        cat:'spec',ccy:'USD',shares:164.966, avg:11.76, price:11.42, qt:null,pc:0,pl:-2.9,pe:'19x', fcf:'22% mgn',  target:13.27, upside:16,rating:'Hold',        brokers:[]},
-  {ticker:'VUSA',name:'Vanguard S&P500',cat:'eur', ccy:'EUR',shares:9.5276, avg:91.88, price:121.87,qt:null,pc:0,pl:32.64,pe:'n.v.t.',fcf:'ETF',    target:151.00,upside:24,rating:'ETF',         brokers:[]},
-  {ticker:'DIET',name:"D'Ieteren",     cat:'eur', ccy:'EUR',shares:2.2444,  avg:200.00,price:169.50,qt:null,pc:0,pl:-15.25,pe:'n.v.t.',fcf:'n.v.t.',target:232.42,upside:37,rating:'Kopen',       brokers:[]},
-  {ticker:'SPCX',name:'SpaceX',        cat:'spec',ccy:'USD',shares:149.542,avg:145.93,price:150.0,qt:null,pc:0,pl:2.8,pe:'n.v.t.',fcf:'n.b.',target:250.0,upside:67,rating:'Buy',brokers:[]}
-];
+// PRIVACY: geen posities in de publieke code. Ze komen uit localStorage 'carl-holdings'
+// (gesynchroniseerd via je privé JSONBin) of uit een geïmporteerde back-up/instel-link.
+var H = [];
 
 var USD_SYMS = [];
 function rebuildUsdSyms(){
@@ -44,15 +31,15 @@ function loadHoldingsOverride(){
   // Als de code een nieuwere positie-versie heeft (bv. na een aankoop die ik in de
   // H[]-array verwerkte), dan wint de code: negeer de oude override en wis hem, zodat
   // de verse aankoop niet wordt overschreven en niet terugkeert via de cloud.
-  if(ver<HOLDINGS_VERSION){
-    localStorage.removeItem('carl-holdings');
-    return;
-  }
+  // Opgeslagen posities worden NOOIT meer gewist (vroeger won een nieuwere code-versie).
+  if(!data.length) return; // lege lijst negeren: nooit posities 'leegmaken' via een lege override
   data.forEach(function(o){
     var existing=H.filter(function(h){return h.ticker===o.ticker;})[0];
     if(existing){
       if(typeof o.shares==='number'&&o.shares>=0) existing.shares=o.shares;
       if(typeof o.avg==='number'&&o.avg>0) existing.avg=o.avg;
+      if(Array.isArray(o.brokers)&&o.brokers.length) existing.brokers=o.brokers;
+      if(o.broker) existing.broker=o.broker;
       existing.pl=(existing.price-existing.avg)/existing.avg*100;
     } else if(o.name&&o.ccy){
       // Positie bestaat niet in de code-array: een via de app toegevoegd nieuw aandeel.
@@ -61,7 +48,7 @@ function loadHoldingsOverride(){
         shares:o.shares||0,avg:o.avg||0,price:o.price||o.avg||0,qt:null,pc:0,
         pl:(o.price&&o.avg)?(o.price-o.avg)/o.avg*100:0,
         pe:o.pe||'n.v.t.',fcf:o.fcf||'n.b.',target:o.target||0,upside:o.upside||0,
-        rating:o.rating||'\u2014',brokers:[]});
+        rating:o.rating||'\u2014',brokers:Array.isArray(o.brokers)?o.brokers:[],broker:o.broker||''});
     }
   });
   // FIX: een volledig verkochte positie staat niet meer in de override, maar wel nog in de
@@ -74,9 +61,11 @@ function saveHoldingsOverride(){
   // Sla per positie genoeg op om ze volledig te reconstrueren (ook nieuw toegevoegde
   // aandelen die niet in de H[]-code staan). shares+avg volstaan voor bestaande posities;
   // de overige velden zorgen dat een volledig nieuw aandeel een herlaad overleeft.
+  if(!H.length) return; // nooit een lege positielijst opslaan (en naar de cloud sturen)
   var data=H.map(function(h){
     return{ticker:h.ticker,shares:h.shares,avg:h.avg,name:h.name,cat:h.cat,ccy:h.ccy,
-      price:h.price,target:h.target,upside:h.upside,pe:h.pe,fcf:h.fcf,rating:h.rating};
+      price:h.price,target:h.target,upside:h.upside,pe:h.pe,fcf:h.fcf,rating:h.rating,
+      brokers:h.brokers||[],broker:h.broker||''};
   });
   lsSet('carl-holdings',{version:HOLDINGS_VERSION,data:data});
   cloudSyncDebounced();
@@ -1555,7 +1544,8 @@ function renderVIX(){
 // ─── GRAFIEKEN ────────────────────────────────────────────────────────────────
 var TICKER_COLOR={TSLA:'#388bfd',NVDA:'#2ea76b',GOOGL:'#3fb950',PLTR:'#8957e5',AMZN:'#d29922',WULF:'#f0a500',HIMS:'#f85149',PATH:'#79c0ff',VUSA:'#a78bfa',DIET:'#c084fc',SPCX:'#ff6b35'};
 var BROKER_COLOR={BUX:'#388bfd',Bolero:'#8957e5',Revolut:'#2ea76b'};
-var SINGLE_BROKER={GOOGL:'BUX',PLTR:'BUX',AMZN:'Bolero',HIMS:'Revolut',PATH:'Revolut',VUSA:'Revolut',DIET:'Revolut',SPCX:'Revolut'};
+// Broker per positie komt uit de opgeslagen posities (veld 'broker' of 'brokers').
+function primaryBroker(h){return h.broker||((h.brokers&&h.brokers.length===1)?h.brokers[0].n:'');}
 
 function svgDonut(segs,centerLbl,centerSub){
   var R=38,C=2*Math.PI*R,cum=0,circles='';
@@ -1666,7 +1656,7 @@ function renderCharts(){
           brokerTot[b.n]=(brokerTot[b.n]||0)+v;
         });
       } else {
-        var primary=SINGLE_BROKER[h.ticker]||'Revolut';
+        var primary=primaryBroker(h)||'Niet toegewezen';
         var v2=h.ccy==='USD'?(h.shares*h.price/EUR_USD):(h.shares*h.price);
         brokerTot[primary]=(brokerTot[primary]||0)+v2;
       }
@@ -1718,7 +1708,24 @@ function importBackup(file){
     try{
       var data=JSON.parse(e.target.result);
       var n=0;
-      Object.keys(data).forEach(function(k){localStorage.setItem(k,data[k]);n++;});
+      if(data.__holdings_merge&&data['carl-holdings']&&hasLocalHoldings()){
+        // Posities-bestand op een toestel dat al posities heeft: bestaande aantallen behouden,
+        // enkel ontbrekende posities en broker-verdeling aanvullen.
+        var loc=lsGet('carl-holdings'),imp=JSON.parse(data['carl-holdings']);
+        var ld=Array.isArray(loc)?loc:loc.data,idt=Array.isArray(imp)?imp:imp.data,byT={};
+        ld.forEach(function(o){byT[o.ticker]=o;});
+        idt.forEach(function(o){var l=byT[o.ticker];
+          if(!l){ld.push(o);n++;return;}
+          if((!l.brokers||!l.brokers.length)&&o.brokers&&o.brokers.length){l.brokers=o.brokers;n++;}
+          if(!l.broker&&o.broker){l.broker=o.broker;n++;}});
+        lsSet('carl-holdings',{version:Math.max(HOLDINGS_VERSION,(loc&&loc.version)||0),data:ld});
+        delete data['carl-holdings'];
+      }
+      delete data.__holdings_merge;
+      Object.keys(data).forEach(function(k){
+        if(k==='carl-holdings'){try{var t=JSON.parse(data[k]),td=Array.isArray(t)?t:(t&&t.data);if(!Array.isArray(td)||!td.length)return;}catch(x){return;}}
+        localStorage.setItem(k,data[k]);n++;});
+      cloudSyncDebounced();
       var st=document.getElementById('backupSt');
       if(st) st.textContent='\u2713 '+n+' items hersteld \u2014 pagina herlaadt...';
       setTimeout(function(){location.reload();},1200);
@@ -1739,6 +1746,7 @@ var CLOUD_KEYS=['cp_w','cp_m','cp_y','cp_wh','cp_mh','cp_yh','cp_dh',
 
 // FIX: slim samenvoegen bij cloud-pull i.p.v. lokale historiek blind te overschrijven.
 function mergeCloudValue(k,locRaw,cldRaw){
+  if(k==='carl-holdings'&&locRaw){try{var cc=JSON.parse(cldRaw),cd=Array.isArray(cc)?cc:(cc&&cc.data);if(!Array.isArray(cd)||!cd.length)return locRaw;}catch(e){return locRaw;}}
   if(locRaw===null||locRaw===undefined) return cldRaw;
   var L,C;try{L=JSON.parse(locRaw);C=JSON.parse(cldRaw);}catch(e){return cldRaw;}
   if(L===null) return cldRaw; if(C===null) return locRaw;
@@ -1820,9 +1828,15 @@ function clearCloudCfg(){
   renderCloudUI();
   var st=document.getElementById('cloudSt');if(st)st.textContent='Verbinding verbroken';
 }
+function renderEmptyState(){
+  var empty=!H.length;
+  ['emptyDash','emptyHold'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=empty?'block':'none';});
+}
+function hasLocalHoldings(){var o=lsGet('carl-holdings');var d=Array.isArray(o)?o:(o&&o.data);return Array.isArray(d)&&d.length>0;}
 function cloudPush(showMsg){
   var cfg=cloudCfg();if(!cfg)return;
   var st=document.getElementById('cloudSt');
+  if(!hasLocalHoldings()){if(st)st.textContent='\u26a0 Niet opgeslagen: nog geen posities op dit toestel \u2014 eerst ophalen of back-up importeren';return;}
   setCloudBadge('sync');
   if(showMsg&&st)st.textContent='\u2191 Opslaan naar cloud...';
   var payload={};
@@ -1883,17 +1897,7 @@ function cloudSyncDebounced(){
 }
 
 // ─── BOOTSTRAP HISTORIEK (eenmalig, enkel als sleutel nog niet lokaal bestaat) ──
-function bootstrapHistory(){
-  var seed={"cp_w": {"date": "2026-06-22", "time": "06:12", "week": "2026-W25", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231935.7737, "NVDA": 16461.42039, "GOOGL": 9568.78, "PLTR": 7649.1038, "AMZN": 2443.9, "WULF": 8719.24158, "HIMS": 126.66337, "PATH": 1694.20082, "SPCX": 229.85}, "eP": {"VUSA": 1179.707432, "DIET": 363.14392}, "tot": 278828.93, "live": true}, "cp_m": {"date": "2026-06-20", "time": "16:43", "week": "2026-W24", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231958.93889999998, "NVDA": 16464.54563, "GOOGL": 9569.82, "PLTR": 7650.89, "AMZN": 2444.3, "WULF": 8725.259, "HIMS": 126.69908, "PATH": 1695.85048, "SPCX": 229.85}, "eP": {"VUSA": 1161.128612, "DIET": 380.4258}, "tot": 278866.15, "live": true}, "cp_y": {"date": "2026-06-20", "time": "16:43", "week": "2026-W24", "month": "2026-06", "year": "2026", "vals": {"TSLA": 231958.93889999998, "NVDA": 16464.54563, "GOOGL": 9569.82, "PLTR": 7650.89, "AMZN": 2444.3, "WULF": 8725.259, "HIMS": 126.69908, "PATH": 1695.85048, "SPCX": 229.85}, "eP": {"VUSA": 1161.128612, "DIET": 380.4258}, "tot": 278866.15, "live": true}, "cp_dh": [{"date": "2026-06-23", "time": "23:30", "total": 0}, {"date": "2026-06-22", "time": "22:01", "total": 1072}, {"date": "2026-06-19", "time": "22:12", "total": 2807}], "cp_wh": [{"week": "2026-W24", "date": "2026-06-20", "total": 5244}], "carl-eur-manual": {"VUSA": 123.76, "DIET": 165.1, "date": "2026-06-22"}, "carl-vix": {"v": 22.89, "dp": -0.3916, "d": "2026-06-24"}};
-  Object.keys(seed).forEach(function(k){
-    try{
-      if(localStorage.getItem(k)===null){
-        lsSet(k,seed[k]);
-        console.log('[Bootstrap] '+k+' ingeladen uit eerdere backup');
-      }
-    }catch(e){}
-  });
-}
+function bootstrapHistory(){ /* PRIVACY: geen historiek meer in de publieke code */ }
 
 // ─── KOERSDOELEN (analisten) — FMP primair, Finnhub als terugval ─────────────
 var targetStatus={ok:0,fail:0,premiumBlocked:false,source:''};
@@ -2192,10 +2196,9 @@ function closeHoldingsEdit(){document.getElementById('holdEditModal').classList.
 function openPensionModal(){
   var p=lsGet('carl-pension')||{};
   // Bij de eerste keer (nog niets opgeslagen) vullen we de velden voor met je bekende
-  // KBC-cijfers als ECHTE waarden, zodat je meteen kunt opslaan zonder alles te typen.
+  // (geen vooraf ingevulde cijfers meer in de publieke code)
   // Bestaan er al gegevens, dan tonen we die zodat je alleen hoeft aan te passen.
-  var seed={name:'KBC Pension Savings Fund',val:32344.37,result:14126.93,units:51.6576,
-    price:626.13,priceDate:'10 september 2026',deposited:0,max:1050,fiscalYear:'2026'};
+  var seed={name:'',max:1050,fiscalYear:String(new Date().getFullYear())};
   var v=(p&&p.val)?p:seed;
   document.getElementById('ipenName').value=v.name||'';
   document.getElementById('ipenVal').value=(v.val!==undefined?v.val:'');
@@ -2652,7 +2655,7 @@ function brokerBreakdown(){
       h.brokers.forEach(function(b){add(b.n,b.sh*h.price*fx,b.sh*b.avg*fx);used+=b.sh;});
       var rest=h.shares-used;
       if(Math.abs(rest)>0.001) add('Niet toegewezen',rest*h.price*fx,rest*h.avg*fx);
-    } else add(SINGLE_BROKER[h.ticker]||'Niet toegewezen',h.shares*h.price*fx,h.shares*h.avg*fx);
+    } else add(primaryBroker(h)||'Niet toegewezen',h.shares*h.price*fx,h.shares*h.avg*fx);
   });
   return by;
 }
@@ -2679,7 +2682,7 @@ function exportExcel(){
   H.forEach(function(h){
     if(!(h.shares>0)) return;
     var fx=h.ccy==='USD'?1/EUR_USD:1,q=quoteInfo(h);
-    var parts=(h.brokers&&h.brokers.length)?h.brokers.map(function(b){return {n:b.n,sh:b.sh,avg:b.avg};}):[{n:SINGLE_BROKER[h.ticker]||'',sh:h.shares,avg:h.avg}];
+    var parts=(h.brokers&&h.brokers.length)?h.brokers.map(function(b){return {n:b.n,sh:b.sh,avg:b.avg};}):[{n:primaryBroker(h),sh:h.shares,avg:h.avg}];
     parts.forEach(function(b){
       var v=b.sh*h.price*fx,c=b.sh*b.avg*fx;
       rows.push([b.n,h.ticker,h.name,h.ccy,num(b.sh,4),num(b.avg,2),num(h.price,2),q.txt,q.stale?'ja':'nee',num(v,2),num(c,2),num(v-c,2)].map(cell).join(';'));
@@ -2759,7 +2762,7 @@ go=function(id,btn){_goOrig(id,btn);if(id==='charts'&&chartsDirty){renderCharts(
 
 // ── Haken: na elke render / koersophaling ──
 var _updateAllOrig=updateAll;
-updateAll=function(){_updateAllOrig();renderBrokers();renderStaleBanner();};
+updateAll=function(){_updateAllOrig();renderBrokers();renderStaleBanner();renderEmptyState();};
 var _onFetchDoneOrig=onFetchDone;
 onFetchDone=function(btn,st){_onFetchDoneOrig(btn,st);fetchEurQuotes().then(checkAlerts,checkAlerts);};
 

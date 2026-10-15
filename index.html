@@ -19,6 +19,12 @@
 
 <!-- DASHBOARD TAB -->
 <div class="tab-pane active" id="pane-dash">
+  <div class="card" id="emptyDash" style="display:none;text-align:center;padding:18px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:6px">Nog geen posities op dit toestel</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.5">Verbind cloud-sync of open je instel-link.<br>Of importeer een back-up (.json).</div>
+    <button class="mbtn pri" style="width:100%;margin-bottom:6px" onclick="go('settings',document.querySelectorAll('.nb')[5])">&#9729; Cloud-sync verbinden</button>
+    <button class="mbtn" style="width:100%" onclick="document.getElementById('importFile').click()">&#11014; Back-up importeren</button>
+  </div>
   <div id="staleBanner" class="kbanner" style="display:none;cursor:default"></div>
   <div id="alertBanner" class="kbanner" style="display:none;border-color:rgba(248,81,73,.4);color:var(--rd,#f85149)" onclick="this.style.display='none'"></div>
   <div id="kbanner" class="kbanner" onclick="go('settings',document.querySelectorAll('.nb')[5])" style="display:none">
@@ -205,6 +211,12 @@
 <!-- HOLDINGS TAB -->
 <div class="tab-pane" id="pane-hold">
   <div class="stitle" style="margin:4px 0 8px">Posities <span style="font-size:10px;color:var(--t3);font-weight:400">— op waarde</span></div>
+  <div class="card" id="emptyHold" style="display:none;text-align:center;padding:18px">
+    <div style="font-size:15px;font-weight:700;margin-bottom:6px">Nog geen posities op dit toestel</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.5">Verbind cloud-sync of open je instel-link.<br>Of importeer een back-up (.json).</div>
+    <button class="mbtn pri" style="width:100%;margin-bottom:6px" onclick="go('settings',document.querySelectorAll('.nb')[5])">&#9729; Cloud-sync verbinden</button>
+    <button class="mbtn" style="width:100%" onclick="document.getElementById('importFile').click()">&#11014; Back-up importeren</button>
+  </div>
   <div id="hList"></div>
   <div class="card" id="hTot"></div>
   <div class="card" id="hBroker"></div>
@@ -322,7 +334,7 @@
   </div>
 
   <div class="warn" style="margin-top:14px">
-    KBC biedt geen automatische koppeling. Werk deze gegevens handmatig bij vanuit je KBC-app &mdash; een pensioenspaarfonds beweegt traag, dus af en toe volstaat.
+    Je bank biedt geen automatische koppeling. Werk deze gegevens handmatig bij vanuit je bank-app &mdash; een pensioenspaarfonds beweegt traag, dus af en toe volstaat.
   </div>
 </div>
 
@@ -330,23 +342,23 @@
 <div class="moverlay" id="pensionModal">
   <div class="mbox" style="max-height:88vh;overflow-y:auto">
     <div class="mtitle">Pensioengegevens</div>
-    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Over te nemen uit je KBC-app.</div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px">Over te nemen uit je bank-app.</div>
     <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Naam van het fonds</div>
-    <input class="minp" id="ipenName" type="text" placeholder="bijv. KBC Pension Savings Fund" style="margin-bottom:10px">
+    <input class="minp" id="ipenName" type="text" placeholder="bijv. naam pensioenspaarfonds" style="margin-bottom:10px">
     <div class="mrow" style="gap:6px;margin-bottom:10px">
       <div style="flex:1"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">Huidige waarde (&euro;)</div>
-        <input class="minp" id="ipenVal" type="number" step="any" placeholder="32344.37" style="margin-bottom:0"></div>
+        <input class="minp" id="ipenVal" type="number" step="any" placeholder="0.00" style="margin-bottom:0"></div>
       <div style="flex:1"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">Niet-gerealiseerd (&euro;)</div>
-        <input class="minp" id="ipenResult" type="number" step="any" placeholder="14126.93" style="margin-bottom:0"></div>
+        <input class="minp" id="ipenResult" type="number" step="any" placeholder="0.00" style="margin-bottom:0"></div>
     </div>
     <div class="mrow" style="gap:6px;margin-bottom:10px">
       <div style="flex:1"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">Aantal deelbewijzen</div>
-        <input class="minp" id="ipenUnits" type="number" step="any" placeholder="51.6576" style="margin-bottom:0"></div>
+        <input class="minp" id="ipenUnits" type="number" step="any" placeholder="0" style="margin-bottom:0"></div>
       <div style="flex:1"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">Indicatieve koers (&euro;)</div>
-        <input class="minp" id="ipenPrice" type="number" step="any" placeholder="626.13" style="margin-bottom:0"></div>
+        <input class="minp" id="ipenPrice" type="number" step="any" placeholder="0.00" style="margin-bottom:0"></div>
     </div>
     <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Koersdatum</div>
-    <input class="minp" id="ipenPriceDate" type="text" placeholder="10 september 2026" style="margin-bottom:10px">
+    <input class="minp" id="ipenPriceDate" type="text" placeholder="bv. 1 oktober 2026" style="margin-bottom:10px">
     <div class="mrow" style="gap:6px;margin-bottom:10px">
       <div style="flex:1"><div style="font-size:12px;color:var(--t2);margin-bottom:4px">Gestort dit jaar (&euro;)</div>
         <input class="minp" id="ipenDeposited" type="number" step="any" placeholder="0" style="margin-bottom:0"></div>
