@@ -1,7 +1,7 @@
 // Service worker: app-bestanden offline beschikbaar; ALTIJD eerst netwerk (nieuwe versie wint).
 // Koers-API's (Finnhub, FMP, JSONBin, ...) worden nooit gecachet: geen oude koersen uit cache.
-var CACHE='portefeuille-v2.3';
-var FILES=['./','index.html','app.css?v=2.3','app.js?v=2.3','manifest.json','icon-192.png','icon-512.png'];
+var CACHE='portefeuille-v2.4';
+var FILES=['./','index.html','app.css?v=2.4','app.js?v=2.4','manifest.json','icon-192.png','icon-512.png'];
 self.addEventListener('install',function(e){e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(FILES);}).then(function(){return self.skipWaiting();}));});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!==CACHE;}).map(function(k){return caches.delete(k);}));}).then(function(){return self.clients.claim();}));});
 self.addEventListener('fetch',function(e){
