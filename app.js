@@ -2428,6 +2428,17 @@ function restoreApiKeys(obj){
 }
 function b64e(str){return btoa(unescape(encodeURIComponent(str)));}
 function b64d(str){return decodeURIComponent(escape(atob(str)));}
+function pasteSetupLink(){
+  var t=prompt('Plak hier je instel-link (gekopieerd op je andere toestel):');if(!t)return;
+  var m=/setup=([^&\s]+)/.exec(t);if(!m){alert('Geen geldige instel-link.');return;}
+  if(applySetupString(m[1])){alert('Sleutels bewaard op dit toestel. De app herlaadt.');location.reload();}
+  else alert('Ongeldige instel-link.');
+}
+function applySetupString(enc){
+  try{var o=JSON.parse(b64d(decodeURIComponent(enc)));
+    if(o.cloud&&o.cloud.bin&&o.cloud.key&&!cloudCfg())lsSet('carl-cloud',{bin:String(o.cloud.bin).trim(),key:String(o.cloud.key).trim()});
+    restoreApiKeys(o.keys);return true;}catch(e){return false;}
+}
 function applySetupFromHash(){
   var m=/[#&]setup=([^&]+)/.exec(location.hash||'');if(!m)return;
   try{
@@ -2588,7 +2599,9 @@ function renderStaleBanner(){
   var st=H.filter(function(h){return h.shares>0&&quoteInfo(h).stale;}).map(function(h){return h.ticker;});
   if(!st.length){el.style.display='none';return;}
   el.style.display='block';
-  el.innerHTML='\u26a0 Verouderde of ontbrekende koersen: <b>'+st.join(', ')+'</b>. Totalen kunnen afwijken \u2014 tik op Vernieuwen of vul EUR-koersen in.';
+  el.style.padding='8px 12px';
+  el.innerHTML='\u26a0 Verouderd: <b>'+st.length+'</b> koers'+(st.length>1?'en':'')+' \u2014 tik op Vernieuwen';
+  el.title=st.join(', ');
 }
 
 // ── #3 VUSA & D'Ieteren automatisch (gratis bronnen met je eigen sleutels) ──
