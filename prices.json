@@ -9,17 +9,17 @@
   },
   "DIET": {
    "currency": "EUR",
-   "price": 175.2,
+   "price": 175.6,
    "source": "Yahoo",
    "symbol": "DIE.BR",
-   "timestamp": "2026-10-15T08:05:57Z"
+   "timestamp": "2026-10-15T08:10:13Z"
   },
   "EURUSD": {
    "currency": "USD",
-   "price": 1.1223,
+   "price": 1.123,
    "source": "Yahoo",
    "symbol": "EURUSD=X",
-   "timestamp": "2026-10-15T08:20:26Z"
+   "timestamp": "2026-10-15T08:25:26Z"
   },
   "GOOGL": {
    "currency": "USD",
@@ -72,10 +72,10 @@
   },
   "VUSA": {
    "currency": "EUR",
-   "price": 130.101,
+   "price": 130.024,
    "source": "Yahoo",
    "symbol": "VUSA.AS",
-   "timestamp": "2026-10-15T08:05:53Z"
+   "timestamp": "2026-10-15T08:10:36Z"
   },
   "WULF": {
    "currency": "USD",
@@ -85,5 +85,5 @@
    "timestamp": "2026-10-14T20:00:01Z"
   }
  },
- "updated": "2026-10-15T08:21:00Z"
+ "updated": "2026-10-15T08:25:53Z"
 }
