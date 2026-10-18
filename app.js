@@ -67,7 +67,7 @@ function saveHoldingsOverride(){
       price:h.price,target:h.target,upside:h.upside,pe:h.pe,fcf:h.fcf,rating:h.rating,
       brokers:h.brokers||[],broker:h.broker||''};
   });
-  lsSet('carl-holdings',{version:HOLDINGS_VERSION,data:data});
+  lsSet('carl-holdings',{version:HOLDINGS_VERSION,savedAt:Date.now(),data:data});
   cloudSyncDebounced();
 }
 
@@ -1724,17 +1724,20 @@ function importBackup(file){
           if(!l){ld.push(o);n++;return;}
           if((!l.brokers||!l.brokers.length)&&o.brokers&&o.brokers.length){l.brokers=o.brokers;n++;}
           if(!l.broker&&o.broker){l.broker=o.broker;n++;}});
-        lsSet('carl-holdings',{version:Math.max(HOLDINGS_VERSION,(loc&&loc.version)||0),data:ld});
+        lsSet('carl-holdings',{version:Math.max(HOLDINGS_VERSION,(loc&&loc.version)||0),savedAt:Date.now(),data:ld});
         delete data['carl-holdings'];
       }
       delete data.__holdings_merge;
       Object.keys(data).forEach(function(k){
         if(k==='carl-holdings'){try{var t=JSON.parse(data[k]),td=Array.isArray(t)?t:(t&&t.data);if(!Array.isArray(td)||!td.length)return;}catch(x){return;}}
+        if(k==='carl-holdings'){try{var hh=JSON.parse(data[k]);if(!Array.isArray(hh)){hh.savedAt=Date.now();localStorage.setItem(k,JSON.stringify(hh));n++;return;}}catch(x){}}
         localStorage.setItem(k,data[k]);n++;});
-      cloudSyncDebounced();
+      // Meteen naar de cloud (vroeger ging de herlaad vóór de vertraagde push, waardoor de oude
+      // cloudversie zonder brokers later alles terugzette).
+      if(cloudCfg()){window.__importPush=true;cloudPush(false);}
       var st=document.getElementById('backupSt');
       if(st) st.textContent='\u2713 '+n+' items hersteld \u2014 pagina herlaadt...';
-      setTimeout(function(){location.reload();},1200);
+      setTimeout(function(){location.reload();},cloudCfg()?3500:1200);
     }catch(err){
       var st2=document.getElementById('backupSt');
       if(st2) st2.textContent='\u2717 Ongeldig backup-bestand';
@@ -1751,7 +1754,25 @@ var CLOUD_KEYS=['cp_w','cp_m','cp_y','cp_wh','cp_mh','cp_yh','cp_dh',
   'carl-holdings','carl-div-manual','carl-pension','cp_close','cp_tx','carl-tob-cfg'];
 
 // FIX: slim samenvoegen bij cloud-pull i.p.v. lokale historiek blind te overschrijven.
+function mergeHoldings(locRaw,cldRaw){
+  // Nieuwste kant (savedAt) wint voor aantallen/aankoopprijs; zonder savedAt wint de cloud (oud gedrag).
+  // Een niet-lege broker-verdeling gaat NOOIT verloren: ontbreekt ze aan de winnende kant, dan wordt
+  // ze van de andere kant overgenomen.
+  try{var L=JSON.parse(locRaw),C=JSON.parse(cldRaw);}catch(e){return locRaw||cldRaw;}
+  function arr(o){return Array.isArray(o)?o:(o&&Array.isArray(o.data)?o.data:[]);}
+  var la=arr(L),ca=arr(C);
+  if(!ca.length) return locRaw; if(!la.length) return cldRaw;
+  var lt=(L&&L.savedAt)||0,ct=(C&&C.savedAt)||0;
+  var win=lt>ct?L:C,winA=lt>ct?la:ca,othA=lt>ct?ca:la,oth={};
+  othA.forEach(function(o){if(o&&o.ticker)oth[o.ticker]=o;});
+  winA.forEach(function(o){var x=oth[o.ticker];if(!x)return;
+    if((!o.brokers||!o.brokers.length)&&x.brokers&&x.brokers.length)o.brokers=x.brokers;
+    if(!o.broker&&x.broker)o.broker=x.broker;});
+  var out={version:Math.max((L&&L.version)||0,(C&&C.version)||0,HOLDINGS_VERSION),savedAt:Math.max(lt,ct),data:winA};
+  return JSON.stringify(out);
+}
 function mergeCloudValue(k,locRaw,cldRaw){
+  if(k==='carl-holdings'&&locRaw&&cldRaw) return mergeHoldings(locRaw,cldRaw);
   if(k==='carl-holdings'&&locRaw){try{var cc=JSON.parse(cldRaw),cd=Array.isArray(cc)?cc:(cc&&cc.data);if(!Array.isArray(cd)||!cd.length)return locRaw;}catch(e){return locRaw;}}
   if(locRaw===null||locRaw===undefined) return cldRaw;
   var L,C;try{L=JSON.parse(locRaw);C=JSON.parse(cldRaw);}catch(e){return cldRaw;}
@@ -2879,7 +2900,29 @@ logTx=function(tk,ccy,sh,px){
   lsSet(PK.tx,tx.filter(function(t){return t&&t.ts>cutoff;}));
 };
 var _applyTxOrig=applyTx;
-applyTx=function(){var h=(typeof txCurrentHolding==='function')?txCurrentHolding():null;window.__txAvgBefore=h?h.avg:null;_applyTxOrig();window.__txAvgBefore=null;renderYearOverview();};
+applyTx=function(){
+  var h=(typeof txCurrentHolding==='function')?txCurrentHolding():null;window.__txAvgBefore=h?h.avg:null;var avgBefore=h?h.avg:null;
+  var sel=document.getElementById('txBroker'),br=sel?sel.value:'',sh=parseFloat(document.getElementById('txShares').value),px=parseFloat(document.getElementById('txPrice').value);
+  var type=txType,tk=h?h.ticker:(document.getElementById('txNewTicker').value||'').trim().toUpperCase();
+  var nBefore=(lsGet(PK.tx)||[]).length;
+  _applyTxOrig();window.__txAvgBefore=null;
+  if((lsGet(PK.tx)||[]).length>nBefore&&br&&sh>0){ // transactie is echt toegevoegd
+    var x=H.filter(function(q){return q.ticker===tk;})[0];
+    if(x){
+      if(type==='new'){x.broker=br;}
+      else if(x.brokers&&x.brokers.length){
+        var b=x.brokers.filter(function(q){return q.n===br;})[0];
+        if(type==='buy'){if(b){b.avg=(b.sh*b.avg+sh*px)/(b.sh+sh);b.sh=Math.round((b.sh+sh)*1e6)/1e6;}else x.brokers.push({n:br,sh:sh,avg:px});}
+        else if(b){b.sh=Math.max(0,Math.round((b.sh-sh)*1e6)/1e6);if(b.sh<1e-9)x.brokers=x.brokers.filter(function(q){return q!==b;});}
+      } else if(type==='buy'&&x.broker&&x.broker!==br){
+        // positie stond volledig bij één broker: splits op
+        x.brokers=[{n:x.broker,sh:Math.round((x.shares-sh)*1e6)/1e6,avg:avgBefore||x.avg},{n:br,sh:sh,avg:px}];
+      }
+      saveHoldingsOverride();updateAll();
+    }
+  }
+  renderYearOverview();
+};
 var _txPrevOrig=txUpdatePreview;
 txUpdatePreview=function(){
   _txPrevOrig();
