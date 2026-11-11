@@ -1087,7 +1087,9 @@ function renderHoldings(){
     } else {
       html+='<div class="ditem"><div class="dl">Koersdoel</div><div class="dv mu" style="font-size:12px">geen gratis dekking</div></div>';
     }
-    html+='<div class="ditem"><div class="dl">P/E</div><div class="dv">'+h.pe+'</div></div>';
+    html+='<div class="ditem"><div class="dl">P/E (trailing)</div><div class="dv">'+h.pe+'</div></div>';
+    html+='<div class="ditem"><div class="dl">Forward P/E</div><div class="dv">'+(h.fpe||'n.b.')+'</div></div>';
+    if(h.peDate) html+='<div class="ditem"><div class="dl">PE-bron</div><div class="dv" style="font-size:11px">'+h.peSrc+', '+h.peDate+'</div></div>';
     html+='<div class="ditem"><div class="dl">Free Cash Flow</div><div class="dv">'+h.fcf+'</div></div>';
     var ratingExtra=h.analysts?' <span style="font-size:10px;color:var(--t3)">('+h.analysts+' analisten)</span>':'';
     html+='<div class="ditem"><div class="dl">Rating</div><div class="dv">'+h.rating+ratingExtra+'</div></div>';
@@ -3069,3 +3071,10 @@ renderV27=function(){_renderV27b();renderFutures();};
 init();
 renderAlertUI();
 fetchEurQuotes(); // gratis prices.json: VUSA/D'Ieteren meteen actueel bij openen
+
+// Trailing en forward PE uit pe.json (bron Yahoo Finance); geen posities in dit bestand
+function loadPE(){try{fetch('pe.json?'+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(j){
+  if(!j||!j.data) return;
+  H.forEach(function(h){var d=j.data[h.ticker]; if(d){h.pe=d.pe;h.fpe=d.fpe;h.peDate=j.datum;h.peSrc=j.bron;}});
+}).catch(function(){});}catch(e){}}
+loadPE();

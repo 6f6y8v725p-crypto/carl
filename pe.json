@@ -1,0 +1,50 @@
+{
+ "bron": "Yahoo Finance",
+ "datum": "2026-11-11",
+ "data": {
+  "TSLA": {
+   "pe": "417x",
+   "fpe": "176x"
+  },
+  "NVDA": {
+   "pe": "21.4x",
+   "fpe": "10.6x"
+  },
+  "GOOGL": {
+   "pe": "15.0x",
+   "fpe": "18.6x"
+  },
+  "PLTR": {
+   "pe": "119x",
+   "fpe": "66.5x"
+  },
+  "AMZN": {
+   "pe": "21.9x",
+   "fpe": "24.8x"
+  },
+  "WULF": {
+   "pe": "neg.",
+   "fpe": "neg."
+  },
+  "HIMS": {
+   "pe": "neg.",
+   "fpe": "35.2x"
+  },
+  "PATH": {
+   "pe": "19.1x",
+   "fpe": "13.9x"
+  },
+  "SPCX": {
+   "pe": "622x",
+   "fpe": "53.7x"
+  },
+  "DIET": {
+   "pe": "21.1x",
+   "fpe": "11.6x"
+  },
+  "VUSA": {
+   "pe": "n.v.t.",
+   "fpe": "n.v.t."
+  }
+ }
+}
